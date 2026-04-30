@@ -20,7 +20,7 @@ Designing and deploying a real-time audio forensics system that detects AI-gener
 * **Preprocessing & Transformation:** Resamples audio to 16 kHz, applies noise reduction and Voice Activity Detection (VAD), and forms 2-second segments using a 10-second buffer.
 * **Feature Extraction (Parallel):** Extracts Log-Mel Spectrograms alongside MFCC and Spectral Features.
 * **Hybrid Model:** Utilizes a deep learning branch (CNN + LSTM/Transformer via PyTorch) and a classical machine learning branch (SVM + MFCC Features via scikit-learn/LIBSVM).
-* **Ensemble Layer:** Combines outputs using weighted fusion or stacking (Meta Model: Logistic Regression/XGBoost) to produce a final probability score.
+* **Ensemble Layer:** Combines outputs using weighted fusion or stacking  to produce a final probability score.
 * **Risk Engine:** Classifies the final probability into High Risk (Block), Medium Risk (Verify), or Low Risk (Allow).
 * **Deployment & CI/CD:** Deployed via FastAPI, Docker, and Kubernetes, orchestrated with automated GitHub Actions on cloud platforms (AWS/GCP).
 * **Monitoring & Output:** Utilizes Prometheus for metrics tracking and Grafana for live dashboards, outputting real-time detection alerts within 10 seconds.
