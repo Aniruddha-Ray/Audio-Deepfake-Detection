@@ -19,7 +19,7 @@ Designing and deploying a real-time audio forensics system that detects AI-gener
 * **Real-Time Data Ingestion:** Captures live audio via VoIP/SIP APIs and streams it in small manageable chunks (0.5-1 sec) using a high-speed Kafka streaming backbone.
 * **Preprocessing & Transformation:** Resamples audio to 16 kHz, applies noise reduction and Voice Activity Detection (VAD), and forms 2-second segments using a 10-second buffer.
 * **Feature Extraction (Parallel):** Extracts Log-Mel Spectrograms alongside MFCC and Spectral Features.
-* **Hybrid Model:** Utilizes a deep learning branch (CNN + LSTM/Transformer via PyTorch/TensorFlow) and a classical machine learning branch (SVM + MFCC Features via scikit-learn/LIBSVM).
+* **Hybrid Model:** Utilizes a deep learning branch (CNN + LSTM/Transformer via PyTorch) and a classical machine learning branch (SVM + MFCC Features via scikit-learn/LIBSVM).
 * **Ensemble Layer:** Combines outputs using weighted fusion or stacking (Meta Model: Logistic Regression/XGBoost) to produce a final probability score.
 * **Risk Engine:** Classifies the final probability into High Risk (Block), Medium Risk (Verify), or Low Risk (Allow).
 * **Deployment & CI/CD:** Deployed via FastAPI, Docker, and Kubernetes, orchestrated with automated GitHub Actions on cloud platforms (AWS/GCP).
