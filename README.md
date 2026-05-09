@@ -44,3 +44,10 @@ Our deepfake voice detection system demonstrates strong real-world performance a
 * "Deepfake Audio Detection Using Spectrogram-based Feature and Ensemble of Deep Learning Models" - Lam Pham, Phat Lam, Truong Nguyen, Huyen Nguyen, Alexander Schindler.
 * "Deepfake Audio Detection via MFCC features using Machine Learning" - Ameer Hamza, Abdul Rehman Javed, Farkhund Iqbal, Natalia Kryvinska, Ahmad S. Almadhor, Zunera Jalil, Rouba Borghol.
 * "Deep Fake Audio Detection" - Dr Anupama Kumar, Pranathi V, Shreyas R.
+
+## My Contributions
+- Developed and optimized the CNN-LSTM + SVM ensemble model
+- Worked on MFCC and spectrogram-based feature extraction
+- Improved model performance and reduced inference latency
+- Helped integrate the ML pipeline for real-time detection
+- Collaborated on testing and evaluation using accuracy, EER, and FPR metrics
