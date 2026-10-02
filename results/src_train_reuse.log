@@ -1,0 +1,23 @@
+device=cuda artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts
+[1/4] features (SVM and RCNN extractors, cached)
+ train
+  cached: C:\Users\Asus\.cache\audiodf\seg2s_hop1s\train
+ dev
+  cached: C:\Users\Asus\.cache\audiodf\seg2s_hop1s\dev
+ eval
+  cached: C:\Users\Asus\.cache\audiodf\seg2s_hop1s\eval
+[2/4] SVM branch: whole-utterance vectors
+  trained in 113s
+[3/4] RCNN branch: 2 s Log-Mel windows
+  reused checkpoint C:\Users\Asus\.cache\audiodf\seg2s_hop1s\cnn_bilstm.pt
+[4/4] evaluation
+
+DEV (utterance level)
+  svm       EER   0.237%  AUC 0.99997  acc@EER 0.99763
+  rcnn      EER   2.980%  AUC 0.99584  acc@EER 0.97021
+  ensemble  EER   0.141%  AUC 0.99999  acc@EER 0.99871
+
+EVAL (utterance level)
+  svm       EER   8.577%  AUC 0.97142  acc@EER 0.91424
+  rcnn      EER  15.241%  AUC 0.92600  acc@EER 0.84759
+  ensemble  EER   5.668%  AUC 0.98657  acc@EER 0.94333

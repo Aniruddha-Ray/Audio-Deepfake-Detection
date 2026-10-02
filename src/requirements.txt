@@ -1,0 +1,12 @@
+numpy
+scipy
+scikit-learn
+joblib
+soundfile
+torch
+torchaudio
+pyyaml
+fastapi
+uvicorn
+prometheus_client
+confluent-kafka

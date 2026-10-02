@@ -1,0 +1,102 @@
+device=cuda cache=C:\Users\Asus\.cache\audiodf\seg2s_hop1s
+[1/5] feature extraction
+ train
+    2000/25380 utts, 5713 segs, 26 utt/s
+    4000/25380 utts, 10895 segs, 39 utt/s
+    6000/25380 utts, 15202 segs, 48 utt/s
+    8000/25380 utts, 22269 segs, 52 utt/s
+    10000/25380 utts, 29350 segs, 54 utt/s
+    12000/25380 utts, 35319 segs, 56 utt/s
+    14000/25380 utts, 40772 segs, 58 utt/s
+    16000/25380 utts, 46293 segs, 61 utt/s
+    18000/25380 utts, 51562 segs, 62 utt/s
+    20000/25380 utts, 57990 segs, 63 utt/s
+    22000/25380 utts, 64019 segs, 63 utt/s
+    24000/25380 utts, 70376 segs, 64 utt/s
+  extracted 25380 utts / 74243 segs in 392s
+ dev
+    2000/24844 utts, 5745 segs, 23 utt/s
+    4000/24844 utts, 11054 segs, 37 utt/s
+    6000/24844 utts, 15802 segs, 46 utt/s
+    8000/24844 utts, 22767 segs, 50 utt/s
+    10000/24844 utts, 30238 segs, 53 utt/s
+    12000/24844 utts, 35714 segs, 56 utt/s
+    14000/24844 utts, 41486 segs, 58 utt/s
+    16000/24844 utts, 46633 segs, 60 utt/s
+    18000/24844 utts, 52306 segs, 62 utt/s
+    20000/24844 utts, 58574 segs, 63 utt/s
+    22000/24844 utts, 64794 segs, 64 utt/s
+    24000/24844 utts, 71031 segs, 65 utt/s
+  extracted 24844 utts / 73957 segs in 384s
+ eval
+    2000/71237 utts, 5228 segs, 23 utt/s
+    4000/71237 utts, 10487 segs, 36 utt/s
+    6000/71237 utts, 15675 segs, 44 utt/s
+    8000/71237 utts, 20990 segs, 50 utt/s
+    10000/71237 utts, 26319 segs, 55 utt/s
+    12000/71237 utts, 31551 segs, 58 utt/s
+    14000/71237 utts, 36642 segs, 61 utt/s
+    16000/71237 utts, 41963 segs, 63 utt/s
+    18000/71237 utts, 47236 segs, 65 utt/s
+    20000/71237 utts, 52499 segs, 67 utt/s
+    22000/71237 utts, 57746 segs, 68 utt/s
+    24000/71237 utts, 62946 segs, 69 utt/s
+    26000/71237 utts, 68232 segs, 70 utt/s
+    28000/71237 utts, 73416 segs, 71 utt/s
+    30000/71237 utts, 78591 segs, 72 utt/s
+    32000/71237 utts, 83925 segs, 72 utt/s
+    34000/71237 utts, 89128 segs, 73 utt/s
+    36000/71237 utts, 94407 segs, 73 utt/s
+    38000/71237 utts, 99651 segs, 74 utt/s
+    40000/71237 utts, 104871 segs, 74 utt/s
+    42000/71237 utts, 110134 segs, 74 utt/s
+    44000/71237 utts, 115307 segs, 75 utt/s
+    46000/71237 utts, 120492 segs, 75 utt/s
+    48000/71237 utts, 125681 segs, 75 utt/s
+    50000/71237 utts, 130862 segs, 75 utt/s
+    52000/71237 utts, 136114 segs, 75 utt/s
+    54000/71237 utts, 141264 segs, 76 utt/s
+    56000/71237 utts, 146696 segs, 76 utt/s
+    58000/71237 utts, 151942 segs, 76 utt/s
+    60000/71237 utts, 157190 segs, 76 utt/s
+    62000/71237 utts, 162542 segs, 76 utt/s
+    64000/71237 utts, 167714 segs, 76 utt/s
+    66000/71237 utts, 173010 segs, 76 utt/s
+    68000/71237 utts, 178277 segs, 76 utt/s
+    70000/71237 utts, 183601 segs, 76 utt/s
+  extracted 71237 utts / 186848 segs in 943s
+  segments: train=74243 dev=73957 eval=186848
+[2/5] SVM, utterance-level (notebook-faithful)
+  124s
+[3/5] SVM, segment-level (1 random segment per train utterance)
+  158s
+[4/5] CNN-BILSTM on 2 s segments, 5 epochs
+  epoch 1: {'epoch': 1, 'loss': 0.07128, 'dev_utt_eer_pct': 5.302, 'sec': 72}
+  epoch 2: {'epoch': 2, 'loss': 0.03006, 'dev_utt_eer_pct': 5.722, 'sec': 54}
+  epoch 3: {'epoch': 3, 'loss': 0.01551, 'dev_utt_eer_pct': 4.417, 'sec': 54}
+  epoch 4: {'epoch': 4, 'loss': 0.00725, 'dev_utt_eer_pct': 4.077, 'sec': 55}
+  epoch 5: {'epoch': 5, 'loss': 0.0031, 'dev_utt_eer_pct': 2.98, 'sec': 55}
+[5/5] fusion
+
+wrote C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\segmented_baseline_bilstm.json
+
+DEV (utterance level, spoof = positive)
+  model                           EER%      AUC  acc@EER   recall      FPR
+  svm_utt                        0.237  0.99997  0.99763  0.99762  0.00235
+  svm_seg                        0.363  0.99994  0.99630  0.99628  0.00353
+  cnn                            2.980  0.99584  0.97021  0.97022  0.02983
+  fuse_0.7svm_utt_0.3cnn         0.141  0.99999  0.99871  0.99874  0.00157
+  fuse_0.7svm_seg_0.3cnn         0.115  0.99999  0.99887  0.99888  0.00118
+  fuse_tuned                     0.056  1.00000  0.99932  0.99928  0.00039
+
+EVAL (utterance level, spoof = positive)
+  model                           EER%      AUC  acc@EER   recall      FPR
+  svm_utt                        8.577  0.97142  0.91424  0.91425  0.08579
+  svm_seg                       16.860  0.91156  0.83139  0.83139  0.16859
+  cnn                           15.241  0.92600  0.84759  0.84759  0.15241
+  fuse_0.7svm_utt_0.3cnn         5.668  0.98657  0.94333  0.94333  0.05670
+  fuse_0.7svm_seg_0.3cnn        10.072  0.96117  0.89929  0.89930  0.10075
+  fuse_tuned                    10.253  0.96034  0.89745  0.89745  0.10252
+  fuse_stacking_lr              12.297  0.94973  0.87699  0.87698  0.12291
+
+latency: {'features_logmel_ms': 1.177, 'features_svm_ms': 15.051, 'svm_predict_ms': 1.751, 'cnn_cpu_ms': 14.806, 'cnn_gpu_ms': 5.14, 'note': 'per single 2 s segment, batch size 1'}

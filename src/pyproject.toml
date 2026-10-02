@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "audiodf"
+version = "0.1.0"
+description = "Real-time deepfake voice detection: SVM + RCNN ensemble"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "joblib",
+    "soundfile",
+    "torch",
+    "torchaudio",
+    "pyyaml",
+    "fastapi",
+    "uvicorn",
+    "prometheus_client",
+]
+
+[project.optional-dependencies]
+kafka = ["confluent-kafka"]
+dev = ["pytest", "httpx", "websockets"]
+
+[project.scripts]
+audiodf = "audiodf.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["audiodf*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+filterwarnings = ["ignore::UserWarning", "ignore::FutureWarning", "ignore::DeprecationWarning"]

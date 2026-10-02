@@ -1,0 +1,274 @@
+{
+  "config": {
+    "data_root": "C:\\Users\\Asus\\OneDrive\\Desktop\\Audio-Deepfake-Detection\\dataset\\LA\\LA",
+    "cache": "C:\\Users\\Asus\\.cache\\audiodf",
+    "out": "C:\\Users\\Asus\\OneDrive\\Desktop\\Audio-Deepfake-Detection\\results",
+    "limit": "None",
+    "epochs": "5",
+    "batch": "64",
+    "lr": "0.001",
+    "rnn": "bilstm",
+    "workers": "8"
+  },
+  "data": {
+    "train": {
+      "utts": 25380,
+      "segs": 74243,
+      "spoof_utts": 22800
+    },
+    "dev": {
+      "utts": 24844,
+      "segs": 73957,
+      "spoof_utts": 22296
+    },
+    "eval": {
+      "utts": 71237,
+      "segs": 186848,
+      "spoof_utts": 63882
+    }
+  },
+  "cnn_history": [
+    {
+      "epoch": 1,
+      "loss": 0.07128,
+      "dev_utt_eer_pct": 5.302,
+      "sec": 72
+    },
+    {
+      "epoch": 2,
+      "loss": 0.03006,
+      "dev_utt_eer_pct": 5.722,
+      "sec": 54
+    },
+    {
+      "epoch": 3,
+      "loss": 0.01551,
+      "dev_utt_eer_pct": 4.417,
+      "sec": 54
+    },
+    {
+      "epoch": 4,
+      "loss": 0.00725,
+      "dev_utt_eer_pct": 4.077,
+      "sec": 55
+    },
+    {
+      "epoch": 5,
+      "loss": 0.0031,
+      "dev_utt_eer_pct": 2.98,
+      "sec": 55
+    }
+  ],
+  "cnn_segment_level": {
+    "dev": {
+      "eer_pct": 4.118,
+      "auc": 0.99345,
+      "acc_at_eer_thr": 0.95881,
+      "recall_spoof": 0.95881,
+      "fpr_bonafide_flagged": 0.04118,
+      "acc_at_0.5": 0.96955,
+      "eer_threshold": 0.83521
+    },
+    "eval": {
+      "eer_pct": 16.032,
+      "auc": 0.91254,
+      "acc_at_eer_thr": 0.83973,
+      "recall_spoof": 0.83975,
+      "fpr_bonafide_flagged": 0.16039,
+      "acc_at_0.5": 0.69287,
+      "eer_threshold": 0.00571
+    }
+  },
+  "tuned_svm_weight": 0.55,
+  "dev": {
+    "svm_utt": {
+      "eer_pct": 0.237,
+      "auc": 0.99997,
+      "acc_at_eer_thr": 0.99763,
+      "recall_spoof": 0.99762,
+      "fpr_bonafide_flagged": 0.00235,
+      "acc_at_0.5": 0.99855,
+      "eer_threshold": 0.69871
+    },
+    "svm_seg": {
+      "eer_pct": 0.363,
+      "auc": 0.99994,
+      "acc_at_eer_thr": 0.9963,
+      "recall_spoof": 0.99628,
+      "fpr_bonafide_flagged": 0.00353,
+      "acc_at_0.5": 0.99767,
+      "eer_threshold": 0.58933
+    },
+    "cnn": {
+      "eer_pct": 2.98,
+      "auc": 0.99584,
+      "acc_at_eer_thr": 0.97021,
+      "recall_spoof": 0.97022,
+      "fpr_bonafide_flagged": 0.02983,
+      "acc_at_0.5": 0.97758,
+      "eer_threshold": 0.60844
+    },
+    "fuse_0.7svm_utt_0.3cnn": {
+      "eer_pct": 0.141,
+      "auc": 0.99999,
+      "acc_at_eer_thr": 0.99871,
+      "recall_spoof": 0.99874,
+      "fpr_bonafide_flagged": 0.00157,
+      "acc_at_0.5": 0.99911,
+      "eer_threshold": 0.62368
+    },
+    "fuse_0.7svm_seg_0.3cnn": {
+      "eer_pct": 0.115,
+      "auc": 0.99999,
+      "acc_at_eer_thr": 0.99887,
+      "recall_spoof": 0.99888,
+      "fpr_bonafide_flagged": 0.00118,
+      "acc_at_0.5": 0.99903,
+      "eer_threshold": 0.54167
+    },
+    "fuse_tuned": {
+      "eer_pct": 0.056,
+      "auc": 1.0,
+      "acc_at_eer_thr": 0.99932,
+      "recall_spoof": 0.99928,
+      "fpr_bonafide_flagged": 0.00039,
+      "acc_at_0.5": 0.9994,
+      "eer_threshold": 0.5361
+    }
+  },
+  "eval": {
+    "svm_utt": {
+      "eer_pct": 8.577,
+      "auc": 0.97142,
+      "acc_at_eer_thr": 0.91424,
+      "recall_spoof": 0.91425,
+      "fpr_bonafide_flagged": 0.08579,
+      "acc_at_0.5": 0.74788,
+      "eer_threshold": 0.00019
+    },
+    "svm_seg": {
+      "eer_pct": 16.86,
+      "auc": 0.91156,
+      "acc_at_eer_thr": 0.83139,
+      "recall_spoof": 0.83139,
+      "fpr_bonafide_flagged": 0.16859,
+      "acc_at_0.5": 0.61378,
+      "eer_threshold": 0.00058
+    },
+    "cnn": {
+      "eer_pct": 15.241,
+      "auc": 0.926,
+      "acc_at_eer_thr": 0.84759,
+      "recall_spoof": 0.84759,
+      "fpr_bonafide_flagged": 0.15241,
+      "acc_at_0.5": 0.69985,
+      "eer_threshold": 0.02397
+    },
+    "fuse_0.7svm_utt_0.3cnn": {
+      "eer_pct": 5.668,
+      "auc": 0.98657,
+      "acc_at_eer_thr": 0.94333,
+      "recall_spoof": 0.94333,
+      "fpr_bonafide_flagged": 0.0567,
+      "acc_at_0.5": 0.74499,
+      "eer_threshold": 0.05999
+    },
+    "fuse_0.7svm_seg_0.3cnn": {
+      "eer_pct": 10.072,
+      "auc": 0.96117,
+      "acc_at_eer_thr": 0.89929,
+      "recall_spoof": 0.8993,
+      "fpr_bonafide_flagged": 0.10075,
+      "acc_at_0.5": 0.60803,
+      "eer_threshold": 0.03218
+    },
+    "fuse_tuned": {
+      "eer_pct": 10.253,
+      "auc": 0.96034,
+      "acc_at_eer_thr": 0.89745,
+      "recall_spoof": 0.89745,
+      "fpr_bonafide_flagged": 0.10252,
+      "acc_at_0.5": 0.61112,
+      "eer_threshold": 0.04142
+    },
+    "fuse_stacking_lr": {
+      "eer_pct": 12.297,
+      "auc": 0.94973,
+      "acc_at_eer_thr": 0.87699,
+      "recall_spoof": 0.87698,
+      "fpr_bonafide_flagged": 0.12291,
+      "acc_at_0.5": 0.59805,
+      "eer_threshold": 0.0
+    }
+  },
+  "eval_per_attack_eer_pct": {
+    "svm_utt": {
+      "A07": 0.017,
+      "A08": 0.034,
+      "A09": 0.058,
+      "A10": 10.257,
+      "A11": 2.845,
+      "A12": 13.415,
+      "A13": 3.164,
+      "A14": 2.285,
+      "A15": 3.375,
+      "A16": 0.081,
+      "A17": 22.049,
+      "A18": 17.646,
+      "A19": 0.163
+    },
+    "svm_seg": {
+      "A07": 0.007,
+      "A08": 0.017,
+      "A09": 0.065,
+      "A10": 36.914,
+      "A11": 5.388,
+      "A12": 33.709,
+      "A13": 22.593,
+      "A14": 8.485,
+      "A15": 7.28,
+      "A16": 0.024,
+      "A17": 23.53,
+      "A18": 30.171,
+      "A19": 0.054
+    },
+    "cnn": {
+      "A07": 7.738,
+      "A08": 4.716,
+      "A09": 0.669,
+      "A10": 25.438,
+      "A11": 12.576,
+      "A12": 17.826,
+      "A13": 25.506,
+      "A14": 23.703,
+      "A15": 27.906,
+      "A16": 4.197,
+      "A17": 8.998,
+      "A18": 2.974,
+      "A19": 2.105
+    },
+    "fuse_tuned": {
+      "A07": 0.007,
+      "A08": 0.007,
+      "A09": 0.007,
+      "A10": 25.761,
+      "A11": 5.202,
+      "A12": 17.133,
+      "A13": 20.189,
+      "A14": 12.023,
+      "A15": 11.198,
+      "A16": 0.007,
+      "A17": 8.247,
+      "A18": 3.015,
+      "A19": 0.007
+    }
+  },
+  "latency": {
+    "features_logmel_ms": 1.177,
+    "features_svm_ms": 15.051,
+    "svm_predict_ms": 1.751,
+    "cnn_cpu_ms": 14.806,
+    "cnn_gpu_ms": 5.14,
+    "note": "per single 2 s segment, batch size 1"
+  }
+}

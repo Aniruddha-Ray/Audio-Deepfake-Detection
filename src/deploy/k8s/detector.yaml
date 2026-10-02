@@ -1,0 +1,59 @@
+# UNTESTED scaffold. Assumes: image pushed as audiodf:latest, a Kafka reachable at kafka:9092,
+# and a PVC "audiodf-models" holding svm.joblib / rcnn.pt / bundle.json.
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: audiodf-api}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: audiodf-api}}
+  template:
+    metadata:
+      labels: {app: audiodf-api}
+      annotations: {prometheus.io/scrape: "true", prometheus.io/port: "8000", prometheus.io/path: /metrics}
+    spec:
+      containers:
+        - name: api
+          image: audiodf:latest
+          ports: [{containerPort: 8000}]
+          resources: {requests: {cpu: 500m, memory: 1Gi}, limits: {memory: 2Gi}}
+          readinessProbe: {httpGet: {path: /health, port: 8000}, initialDelaySeconds: 10}
+          volumeMounts: [{name: models, mountPath: /models, readOnly: true}]
+      volumes: [{name: models, persistentVolumeClaim: {claimName: audiodf-models}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: audiodf-api}
+spec:
+  selector: {app: audiodf-api}
+  ports: [{port: 80, targetPort: 8000}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: audiodf-worker}
+spec:
+  replicas: 2  # at most the number of partitions on the audio topic
+  selector: {matchLabels: {app: audiodf-worker}}
+  template:
+    metadata:
+      labels: {app: audiodf-worker}
+      annotations: {prometheus.io/scrape: "true", prometheus.io/port: "9100"}
+    spec:
+      containers:
+        - name: worker
+          image: audiodf:latest
+          command: ["python", "-m", "audiodf", "consume", "--metrics-port", "9100"]
+          env: [{name: KAFKA_BOOTSTRAP_SERVERS, value: "kafka:9092"}]
+          resources: {requests: {cpu: "1", memory: 1Gi}, limits: {memory: 2Gi}}
+          volumeMounts: [{name: models, mountPath: /models, readOnly: true}]
+      volumes: [{name: models, persistentVolumeClaim: {claimName: audiodf-models}}]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: audiodf-api}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: audiodf-api}
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource: {name: cpu, target: {type: Utilization, averageUtilization: 70}}

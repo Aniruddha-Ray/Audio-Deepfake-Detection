@@ -1,0 +1,45 @@
+# Defaults are built into audiodf/config.py; this file lists the knobs you will actually change.
+# Use with: audiodf --config configs/default.yaml <command>   (or AUDIODF_CONFIG=...)
+
+paths:
+  data_root: dataset/LA/LA        # ASVspoof2019 LA root (also $AUDIODF_DATA)
+  artifacts_dir: artifacts        # svm.joblib, rcnn.pt, bundle.json (also $AUDIODF_ARTIFACTS)
+  cache_dir: ~/.cache/audiodf     # feature cache
+
+segment:                          # RCNN windows; mirrors the Kafka chunk buffer
+  seconds: 2.0
+  hop_seconds: 1.0
+
+rcnn_model:
+  bidirectional: true             # BiLSTM inside each fixed 2 s window only
+  hidden: 128
+  dropout: 0.2
+
+rcnn_train:
+  epochs: 20                      # dev EER was still falling at 5 epochs
+  batch_size: 64
+  lr: 0.001
+
+svm_model:
+  C: 10.0
+  gamma: scale
+  class_weight: balanced
+
+ensemble:
+  svm_weight: 0.7                 # 0.7 SVM + 0.3 RCNN; do not tune on dev (see README)
+
+risk:                             # P(fake) cut-offs: >=high block, >=medium verify, else allow
+  high: 0.80
+  medium: 0.50
+
+stream:
+  window_seconds: 10.0            # decision window; SVM sees up to this much audio at once
+  chunk_seconds: 0.5
+  session_idle_seconds: 30.0
+  max_sessions: 1000
+
+kafka:
+  bootstrap_servers: localhost:9092
+  audio_topic: deepfake-detection-audio-chunks
+  result_topic: deepfake-detection-verdicts
+  group_id: deepfake-detector

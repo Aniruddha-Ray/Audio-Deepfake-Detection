@@ -1,0 +1,43 @@
+# UNTESTED scaffold. Run from src/:  docker compose -f deploy/docker-compose.yml up --build
+# Needs trained artifacts in ../artifacts (audiodf train). Simulate a call from inside the network:
+#   docker compose -f deploy/docker-compose.yml run --rm worker python -m audiodf produce /data/call.wav --realtime
+
+services:
+  kafka:
+    image: apache/kafka:3.8.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  api:
+    build: {context: .., dockerfile: deploy/Dockerfile}
+    ports: ["8000:8000"]
+    volumes: ["../artifacts:/models:ro"]
+
+  worker:
+    build: {context: .., dockerfile: deploy/Dockerfile}
+    command: ["python", "-m", "audiodf", "consume", "--metrics-port", "9100"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    volumes: ["../artifacts:/models:ro"]
+    depends_on: [kafka]
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    volumes: ["./grafana-datasource.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro"]
+    depends_on: [prometheus]

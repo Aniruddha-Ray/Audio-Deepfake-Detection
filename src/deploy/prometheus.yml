@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: audiodf-api
+    metrics_path: /metrics
+    static_configs: [{targets: ["api:8000"]}]
+  - job_name: audiodf-worker
+    static_configs: [{targets: ["worker:9100"]}]
