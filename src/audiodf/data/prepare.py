@@ -71,6 +71,11 @@ class SplitIndex:
     182k Sample objects x 8 workers would not fit in memory next to the audio buffers."""
 
     FIELDS = ("label", "n_samples", "speech_start", "speech_end")
+    # Set by with_renders(): clips whose audio is read from a realistic-codec copy (ffmpeg_codecs.py).
+    rendered: np.ndarray | None = None
+    render_codec: np.ndarray | None = None
+    render_dir: str | None = None
+    render_tag: str = ""
 
     def __init__(self, samples: list[Sample], arrays: dict, dataset: str, split: str):
         self.dataset, self.split = dataset, split
@@ -82,6 +87,7 @@ class SplitIndex:
         self.attack = np.array([s.attack for s in samples])
         self.codec = np.array([s.codec for s in samples])
         self.speaker = np.array([s.speaker for s in samples])
+        self.source = np.full(len(samples), f"{dataset}:{split}")
 
     @classmethod
     def concat(cls, parts: list["SplitIndex"], name: str = "mixed") -> "SplitIndex":
@@ -89,7 +95,7 @@ class SplitIndex:
         'dataset:attack' because the same code names different systems in each dataset; bonafide stay '-'."""
         out = object.__new__(cls)
         out.dataset, out.split = name, "train"
-        for k in cls.FIELDS + ("utt_id", "codec", "speaker"):
+        for k in cls.FIELDS + ("utt_id", "codec", "speaker", "source"):
             setattr(out, k, np.concatenate([getattr(p, k) for p in parts]))
         out.attack = np.concatenate([np.where(p.attack == "-", "-", np.char.add(f"{p.dataset}:", p.attack))
                                      for p in parts])
@@ -100,10 +106,32 @@ class SplitIndex:
         out.dir_of = np.concatenate([p.dir_of + off for p, off in zip(parts, offsets)]).astype(np.int16)
         return out
 
+    def subset(self, select: np.ndarray, split: str) -> "SplitIndex":
+        """The clips picked by a boolean mask or index array, as a new index (audio folders shared)."""
+        out = object.__new__(SplitIndex)
+        out.dataset, out.split, out.audio_dirs = self.dataset, split, list(self.audio_dirs)
+        for k in self.FIELDS + ("utt_id", "attack", "codec", "speaker", "source", "dir_of"):
+            setattr(out, k, getattr(self, k)[select])
+        if self.rendered is not None:
+            out.rendered, out.render_codec = self.rendered[select], self.render_codec[select]
+            out.render_dir, out.render_tag = self.render_dir, self.render_tag
+        return out
+
+    def with_renders(self, render_dir: str, rendered: np.ndarray, codec: np.ndarray, tag: str) -> "SplitIndex":
+        """This index with `rendered` clips read from their codec copies in render_dir (same sample positions)."""
+        out = self.subset(np.arange(len(self)), self.split)
+        out.rendered, out.render_codec, out.render_dir, out.render_tag = rendered, codec, render_dir, tag
+        return out
+
+    def is_rendered(self, i: int) -> bool:
+        return self.rendered is not None and bool(self.rendered[i])
+
     def __len__(self):
         return len(self.utt_id)
 
     def path(self, i: int) -> str:
+        if self.is_rendered(i):
+            return f"{self.render_dir}/{self.utt_id[i]}.flac"
         return f"{self.audio_dirs[self.dir_of[i]]}/{self.utt_id[i]}.flac"
 
     @property
@@ -150,6 +178,29 @@ def _speech(idx: SplitIndex, i: int, max_samples: int | None = None) -> np.ndarr
 
 # ----------------------------------------------------------------------------- stage 2: SVM snapshots
 
+def holdout_split(pool: SplitIndex, attacks, speaker_source: str, speaker_frac: float,
+                  seed: int = 0) -> tuple[np.ndarray, np.ndarray, int]:
+    """Masks (train, tune) for tuning on attacks the models never see.
+
+    tune  = every clip of the held-out attacks + bonafide clips of held-out speakers, drawn as
+            `speaker_frac` of the bonafide speakers in `speaker_source` (e.g. "asv5:dev");
+    train = everything else, minus every clip of the held-out speakers (no voice shared with tune bonafide).
+    Clips of held-out speakers under other attacks are in neither set."""
+    missing = sorted(set(attacks) - set(pool.attack))
+    if missing:
+        raise ValueError(f"held-out attacks not in the training pool: {missing}")
+    bona_spk = np.unique(pool.speaker[(pool.source == speaker_source) & (pool.label == 0)])
+    if not len(bona_spk):
+        raise ValueError(f"no bonafide speakers in {speaker_source!r} to hold out")
+    held_spk = np.random.default_rng(seed).choice(bona_spk, max(1, round(speaker_frac * len(bona_spk))),
+                                                  replace=False)
+    held_attack = np.isin(pool.attack, list(attacks))
+    held_voice = np.isin(pool.speaker, held_spk)
+    tune = held_attack | (held_voice & (pool.label == 0))
+    train = ~held_attack & ~held_voice
+    return train, tune, len(held_spk)
+
+
 def stratified_subset(idx: SplitIndex, n: int, seed: int = 0) -> np.ndarray:
     """Up to n utterances with speech: a third bonafide, the rest split evenly across attacks."""
     rng = np.random.default_rng(seed)
@@ -176,7 +227,10 @@ class _SnapshotDataset(Dataset):
         if self._fx is None:
             self._fx = SvmFeatureExtractor(s.audio, s.svm_features)
         wave = _speech(self.idx, i, s.window_samples)
-        wave, codec = self.augment(wave, np.random.default_rng((self.seed, i)))  # one codec per call
+        if self.idx.is_rendered(i):  # already through a real codec: don't stack a simulated one on top
+            codec = str(self.idx.render_codec[i])
+        else:
+            wave, codec = self.augment(wave, np.random.default_rng((self.seed, i)))  # one codec per call
         snaps = prefix_snapshots(wave, s.audio.sample_rate, s.data.svm_snapshot_seconds, s.segment_samples)
         feats = np.stack([self._fx.extract(x) for x in snaps]).astype(np.float32)
         secs = np.array([len(x) / s.audio.sample_rate for x in snaps], dtype=np.float32)
@@ -186,11 +240,19 @@ class _SnapshotDataset(Dataset):
 def build_svm_snapshots(idx: SplitIndex, utts: np.ndarray, settings: Settings, augment_p: float,
                         tag: str, workers: int = 8, seed: int = 0, log=print) -> dict:
     """Feature vectors for every growing-buffer snapshot of the given utterances (cached)."""
-    key = hashlib.md5(np.ascontiguousarray(utts, dtype=np.int64).tobytes()).hexdigest()[:8]
+    # Keyed by which clips (IDs), not their positions: subsets re-number clips, and a position-keyed cache
+    # could hand back another clip set's features. Positions are re-mapped to this index on load.
+    ids = idx.utt_id[utts]
+    key = hashlib.md5("\n".join(ids).encode()).hexdigest()[:10]
     grid = "-".join(f"{x:g}" for x in settings.data.svm_snapshot_seconds)
-    path = _prep_dir(settings) / f"svm_{idx.dataset}_{idx.split}_{tag}_{key}_g{grid}_aug{augment_p:g}_s{seed}.npz"
+    render = f"_{idx.render_tag}" if idx.rendered is not None else ""  # codec copies change the features
+    path = _prep_dir(settings) / f"svm_{idx.dataset}_{tag}_{key}_g{grid}_aug{augment_p:g}_s{seed}{render}.npz"
     if path.exists():
-        return dict(np.load(path))
+        data = dict(np.load(path))
+        pos = dict(zip(ids.tolist(), np.asarray(utts).tolist()))
+        data["utt"] = np.array([pos[u] for u in data["utt_id"].tolist()], dtype=np.int64)
+        data["label"] = idx.label[data["utt"]].astype(np.int64)
+        return data
     loader = DataLoader(_SnapshotDataset(idx, utts, settings, augment_p, seed), batch_size=None,
                         num_workers=workers, worker_init_fn=_worker_init, prefetch_factor=8 if workers else None)
     xs, secs, utt_ids, codecs, t0 = [], [], [], [], time.time()
@@ -205,6 +267,7 @@ def build_svm_snapshots(idx: SplitIndex, utts: np.ndarray, settings: Settings, a
     data = {"x": np.concatenate(xs), "seconds": np.concatenate(secs), "utt": np.concatenate(utt_ids),
             "codec": np.array(codecs)}
     data["label"] = idx.label[data["utt"]].astype(np.int64)
+    data["utt_id"] = idx.utt_id[data["utt"]]
     np.savez(path, **data)
     log(f"  svm snapshots {idx.dataset}/{idx.split}: {len(utts)} utts -> {len(data['x'])} vectors "
         f"in {time.time() - t0:.0f}s")
@@ -234,7 +297,7 @@ class RcnnWindowDataset(Dataset):
         off = start - lo
         if len(chunk) < off + seg:  # speech shorter than a window: repeat-pad, as serving does
             chunk = np.concatenate([chunk[:off], pad_to_length(chunk[off:], seg)])
-        if self.margin:
+        if self.margin and not self.idx.is_rendered(i):  # real-codec copies get no simulated codec on top
             chunk, _ = self.augment(chunk, np.random.default_rng((self.seed, i, start)))
         return chunk[off:off + seg]
 
@@ -245,6 +308,15 @@ class RcnnWindowDataset(Dataset):
             self._fx = RcnnFeatureExtractor(s.audio, s.rcnn_features, s.segment_samples)
         mel = self._fx.extract(self.read_window(i, start)[None])[0]
         return torch.from_numpy(mel).unsqueeze(0), torch.tensor(float(self.idx.label[i]))
+
+
+class WaveWindowDataset(RcnnWindowDataset):
+    """The same windows (renders, codec augmentation, silence fill), as raw waveform for the WavLM branch."""
+
+    def __getitem__(self, key):
+        i, start = key
+        wave = np.ascontiguousarray(self.read_window(i, start), dtype=np.float32)
+        return torch.from_numpy(wave), torch.tensor(float(self.idx.label[i]))
 
 
 class RandomWindowSampler(Sampler):

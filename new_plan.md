@@ -335,6 +335,114 @@ Next experiments, ordered by expected gain per hour (each full run is ~4-5 h):
 3. Stronger front end: a pretrained speech model (WavLM/wav2vec2 family) is the usual route to attack and
    channel robustness; untested here and heavier at inference (latency budget to be measured).
 
+### 7.3e Run 2 plan (decided 2026-10-03): pool the data, tune on held-out attacks
+
+Why run 1 failed on ASV5 eval (33.0% EER), decomposed from the eval breakdown:
+- Unseen attacks, about 23 of the 33 points: codec-free eval audio alone gives 22.8% EER. Only 8 synthesis
+  systems in training; the RCNN fit them (loss fell 4x, dev EER flat at ~18% from epoch 1).
+- Real codecs, about 10 more points: codec conditions score 26-41%; even simulated families (Opus, MP3) fail
+  to transfer, and AMR/Speex/EnCodec/AAC/device channels are not simulated.
+- Tuning on a set unlike eval: dev chose SVM weight 0.2, but on eval the SVM is the stronger branch.
+
+Run 2 (one run):
+- **Training pool:** ASV5 train (A01-A08) + ASV5 dev (A09-A16) + ASV2019 train+dev (A01-A06):
+  22 attack systems in total (not ~30, as first stated).
+- **Held out for tuning:** ASV5 dev attacks A10, A12, A15 (easy / inverted / medium in run 1) plus all clips of
+  25% of ASV5 dev bonafide speakers. These are removed from training, so 19 attack systems are trained on.
+  Epoch, SVM calibration, fusion weight and risk thresholds are chosen on this held-out set (codec-augmented 75%).
+- **Tests, never trained or tuned on:** ASV5 eval (same 30k-clip subset as the run-1 baseline) and ASV2019 eval.
+- **Compute:** about 300k training clips; 1 random RCNN window per clip per epoch keeps the per-epoch work close
+  to run 1 (~3.0M windows over 10 epochs vs 3.65M).
+- **In parallel:** check whether an ffmpeg build offers AMR, Speex, AAC, Opus, MP3 and SBC encoders for realistic
+  codec augmentation (addresses the ~10 codec points; separate follow-up).
+- **Decision rule, agreed in advance:** run 2 replaces run 1 if its fused EER on the same ASV5 eval subset is lower.
+  If ASV5 eval stays above roughly 25%, data diversity alone is not enough and a pretrained speech front end
+  (WavLM/wav2vec2 family) becomes the next step. A final retrain including the 3 held-out attacks is optional
+  (a second ~6 h run).
+
+### 7.3f Run 2 results (pooled 19 attack systems; RCNN = epoch-5 checkpoint after a crash at epoch 7)
+
+| EER at 10 s | run 1 | run 2 |
+|---|---|---|
+| Held-out tuning set, RCNN (A10/A12/A15 + unseen voices) | 34.0% | **20.2%** |
+| ASV5 eval fused (same 30k subset) | 33.0% | **31.6%** (SVM 31.1%, RCNN 31.8%) |
+| ASV5 eval, share-weighted per-codec EER | 32.0% | **26.2%** |
+| ASV5 eval, codec-free clips | 22.8% | **16.2%** |
+| ASV2019 eval | 37.8% (cross-dataset) | 14.3% (no longer cross-dataset: ASV2019 train/dev were in the pool) |
+
+- Decision rule: run 2 replaces run 1 (31.6% < 33.0%). Still well above the ~25% line.
+- More attack variety works within conditions: every eval codec condition improved (-0.6 to -11.8 points), codec-free
+  clips by 6.6. Per attack it is mixed: A19 -17, A20 -18, A26 -10, but A18 +13 (to 50.8%), A17 +7, A30 +6.
+- **Main new bottleneck: scores shift with the codec.** Pooled EER (31.6%) is 5.4 points worse than the share-weighted
+  per-codec EER (26.2%); in run 1 that gap was 0.9. One threshold cannot serve all codecs because the same audio scores
+  differently after different codecs. Realistic codec augmentation targets exactly this (ffmpeg encoders confirmed).
+- Fusion still does not transfer: tuning picked SVM weight 0.05, but on eval the SVM alone (31.1%) beats the fused
+  score (31.6%).
+- A12 (inverted in run 1 at 69-75%) is down to 39% on the tuning set: improved but still the hardest held-out attack.
+
+Next, in order: (1) realistic codec augmentation from the ffmpeg encoders, rendered offline, applied to both classes
+(targets the 5.4-point score-shift gap and the within-codec gaps); (2) pretrained speech front end per the agreed
+>25% rule; (3) optional full 10-epoch rerun of run 2 (epochs 7-10 were lost).
+
+### 7.3g Run 3 plan (decided 2026-10-03): realistic codec augmentation, then WavLM if it doesn't help
+
+- **Change (only this):** real-codec copies rendered offline with ffmpeg (bundled via `imageio-ffmpeg`) for a
+  label-blind 50% of training clips: Opus WB/NB, AMR-WB/NB, Speex WB/NB, AAC, MP3, a Bluetooth-like SBC channel,
+  G.722, GSM, at ASV5 eval bitrates. Codec delay (up to ~1100 samples) is measured and removed, so copies keep the
+  original sample positions. Clips without a copy keep in-process simulated codecs at p = 0.4, so ~70% of training
+  clips are codec-processed (eval: ~75%). Tuning clips get real-codec copies at 75% (no simulated codecs).
+  Not covered: EnCodec (neural codec, eval C04/C07).
+- Same pool, held-out attacks, tuning set and tests as run 2; full 10 epochs (run 2 stopped at epoch 5 after a crash,
+  a small confound).
+- **Decision rule, agreed in advance:** run 3 counts as a significant gain on unseen attacks if ASV5 eval fused EER
+  (same 30k subset) is **<= 28.6%**, at least 3 points below run 2's 31.6% (sampling noise ~+-0.5). Otherwise the next
+  step is a pretrained WavLM front end. Also reported: the codec score-shift gap (run 2: 5.4 points).
+
+### 7.3h Run 3 results (realistic codec augmentation): not significant, move to WavLM
+
+| EER at 10 s, ASV5 eval (same 30k clips) | run 2 | run 3 |
+|---|---|---|
+| SVM / RCNN / **fused** | 31.1 / 31.8 / **31.6%** | 29.6 / 29.4 / **29.4%** (fused = RCNN; tuned SVM weight 0.00) |
+| Share-weighted per-codec EER | 26.2% | 28.4% |
+| Codec score-shift gap (pooled minus per-codec) | 5.4 pts | **1.0 pts** |
+| Codec-free eval clips | 16.2% | 26.3% |
+| ASV2019 eval (no codecs, in-domain) | 14.3% | 16.0% |
+| Held-out tuning set (RCNN, real codecs) | 20.2% (simulated codecs) | 12.9% |
+
+- **Decision rule: 29.4% > 28.6%, not significant. Next step: WavLM front end** (as decided in advance).
+- The augmentation did its specific job: scores now agree across codecs (gap 5.4 -> 1.0). It cost clean-audio
+  accuracy: codec-free eval clips 16.2% -> 26.3%, ASV2019 14.3% -> 16.0%, AAC +6.1, AMR-NB +3.5, while Opus,
+  AMR-WB, Speex and device channels improved 2.4-3.2 points. AUC went down slightly (0.775 -> 0.765): most of the
+  EER gain is score alignment across codecs, not better separation. With ~70% of training audio codec-processed,
+  the small models stopped relying on the high-frequency detail that separated classes on clean audio.
+- Per attack: A19 -11, A20 -10, A17 -5, A21/A22/A24/A26/A29 roughly halved; A18 (50.8 -> 65.7%) and A30
+  (52.9 -> 64.8%) got worse and are inverted. The 12.9% held-out tuning EER became 29.4% on eval's other attacks:
+  cross-attack generalisation remains the core limit.
+- Carry into the WavLM design: keep codec augmentation (it removes the score-shift penalty) but at a lower total
+  rate, and track clean and codec EER separately so the trade-off is visible.
+
+### 7.3i Run 4 plan (decided 2026-10-04): WavLM-Base+ as a third branch
+
+Feasibility on this machine (RTX 3050 laptop, 4.3 GB VRAM), measured: WavLM-Base+ (94M params, torchaudio bundle, no
+extra library) takes 49 ms per 2 s window on GPU (RCNN ~6 ms) and 234 ms on CPU; 249 windows/s at batch 32 (1.4 GB);
+training with the top 4 transformer layers fine-tuned runs at 165 windows/s (1.7 GB). Batch 64 thrashes (84/s).
+A single call stays within the 10 s budget even on CPU; serving many calls needs a GPU (~4 calls per CPU core).
+
+Your choices: **third branch** (SVM + RCNN + WavLM, all fused); **fine-tune the top 4 of 12 transformer layers** with a
+learned mix of all 12 layer outputs and attentive statistics pooling; **success = ASV5 eval fused EER <= 24.4%** on the
+same 30k clips (5 points below run 3's 29.4%).
+
+To isolate WavLM's effect: reuse run 3's trained SVM and RCNN, identical pool, held-out tuning set, codec renders and
+tests. Only the WavLM branch trains (8 epochs, ~35 min each). Fusion weights for the 3 branches are tuned on the
+held-out set (simplex grid, ties broken toward equal weights).
+
+Command (implemented 2026-10-04):
+`python run.py --eval-utts 30000 --svm-checkpoint ../artifacts_run3_codecs/svm.joblib --rcnn-checkpoint
+../artifacts_run3_codecs/rcnn.pt` (branches default to svm rcnn wavlm). How to read the result: compare the fused
+EER and the WavLM-alone EER on ASV5 eval with run 3 (29.4%), per attack (especially A18/A30, inverted in run 3) and
+per codec; check codec-free clips separately (run 3 lost ground there). If WavLM alone wins but fusion does not,
+the tuning set is again picking weights that don't transfer.
+
 ### 7.4 Fusion: don't jump to an ANN yet
 
 Considered a small ANN/learned voting classifier instead of the fixed 0.7/0.3 weight. Verdict:

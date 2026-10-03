@@ -68,9 +68,24 @@ class SvmModelConfig:
 
 
 @dataclass
+class WavlmConfig:
+    pretrained: bool = True  # False builds the architecture without downloading weights (tests only)
+    finetune_top: int = 4  # top transformer layers that adapt; the rest of WavLM-Base+ stays frozen
+    hidden: int = 128
+    dropout: float = 0.2
+    epochs: int = 8
+    batch_size: int = 32  # batch 64 thrashes the 4.3 GB GPU (measured 84 vs 249 windows/s)
+    head_lr: float = 1e-3
+    backbone_lr: float = 2e-5
+    weight_decay: float = 1e-4
+    seed: int = 0
+
+
+@dataclass
 class EnsembleConfig:
-    # 0.7/0.3 gave the best eval EER (5.7%); weights tuned on dev made eval worse (see README).
-    svm_weight: float = 0.7
+    branches: tuple = ("svm", "rcnn", "wavlm")  # which branches to train and fuse
+    # Training tunes these on the held-out set and stores them in the model bundle, which wins at serving time.
+    weights: dict = field(default_factory=lambda: {"svm": 0.7, "rcnn": 0.3})
 
 
 @dataclass
@@ -109,18 +124,29 @@ class VadConfig:
 @dataclass
 class DataConfig:
     dataset: str = "asv5"
-    # Training sources. "asv19" adds ASVspoof2019 LA train+dev (attacks A01-A06); its eval stays a test set.
-    # Tuning always uses ASV5 dev, and ASV5 eval / ASV2019 eval are never trained on.
-    train_datasets: tuple = ("asv5",)
+    # Training pool as "dataset:split". Test splits (asv5:eval, asv19:eval) are refused.
+    train_splits: tuple = ("asv5:train", "asv5:dev", "asv19:train", "asv19:dev")
+    # Tuning set: these attacks (dataset-prefixed) plus bonafide clips of `holdout_speaker_frac` of the bonafide
+    # speakers in `holdout_speaker_source` are removed from the pool and used only for tuning. With no held-out
+    # attacks, tuning falls back to ASV5 dev, which then must not be in the training pool.
+    holdout_attacks: tuple = ("asv5:A10", "asv5:A12", "asv5:A15")
+    holdout_speaker_source: str = "asv5:dev"
+    holdout_speaker_frac: float = 0.25
     # SVM sees growing buffers, as CallSession scores them live (never isolated 2 s crops).
     svm_snapshot_seconds: tuple = (2.0, 4.0, 6.0, 8.0, 10.0)
     # Random 2 s windows drawn per utterance per epoch, so long clips don't dominate training.
-    rcnn_windows_per_utt: int = 2
+    rcnn_windows_per_utt: int = 1
     svm_train_utts: int = 20000  # clips (each gives up to 5 snapshot vectors); exact RBF scales ~n^1.5
     tune_utts: int = 12000  # dev clips used for per-epoch checks, SVM calibration and fusion weight
     eval_utts: int = 60000  # test clips scored per report (0 = the whole split; ~35 clips/s for the SVM)
+    # Real-codec copies rendered with ffmpeg (data/ffmpeg_codecs.py) for this label-blind share of training
+    # clips; the in-process simulated codecs below apply only to clips without a copy. About 0.5 + 0.5 * 0.4
+    # = 70% of training clips end up codec-processed, near ASV5 eval's ~75%.
+    ffmpeg_codecs: bool = True
+    render_frac: float = 0.5
+    tune_render_frac: float = 0.75  # tuning clips with a real-codec copy (replaces tune_aug_p when enabled)
     # Applied to bonafide and spoof with the same probability; never conditioned on the label.
-    codec_aug_p: float = 0.5
+    codec_aug_p: float = 0.4
     # Dev tuning clips get codec augmentation at about the rate ASV5 eval has (~75% codec-processed),
     # so epoch choice, calibration, fusion weight and thresholds are picked for codec'd audio, not clean.
     tune_aug_p: float = 0.75
@@ -144,6 +170,7 @@ class Settings:
     rcnn_model: RcnnModelConfig = field(default_factory=RcnnModelConfig)
     rcnn_train: RcnnTrainConfig = field(default_factory=RcnnTrainConfig)
     svm_model: SvmModelConfig = field(default_factory=SvmModelConfig)
+    wavlm: WavlmConfig = field(default_factory=WavlmConfig)
     ensemble: EnsembleConfig = field(default_factory=EnsembleConfig)
     risk: RiskConfig = field(default_factory=RiskConfig)
     stream: StreamConfig = field(default_factory=StreamConfig)

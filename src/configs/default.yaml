@@ -17,18 +17,28 @@ rcnn_model:
   dropout: 0.2
 
 rcnn_train:
-  epochs: 10                      # ~10 min per epoch at 2 windows/clip; keeps the best dev epoch
+  epochs: 10                      # ~20 min per epoch for the pooled set at 1 window/clip; keeps the best tuning epoch
   batch_size: 64
   lr: 0.001
 
 data:
+  # Training pool ("dataset:split"); eval splits are tests and are refused.
+  train_splits: [asv5:train, asv5:dev, asv19:train, asv19:dev]
+  # Held out of training and used only for tuning: these attacks + bonafide of a share of ASV5 dev speakers.
+  # An empty list means "tune on ASV5 dev", which then must not be in train_splits.
+  holdout_attacks: [asv5:A10, asv5:A12, asv5:A15]
+  holdout_speaker_source: asv5:dev
+  holdout_speaker_frac: 0.25
   svm_snapshot_seconds: [2.0, 4.0, 6.0, 8.0, 10.0]   # growing-buffer prefixes the SVM trains and is scored on
-  rcnn_windows_per_utt: 2         # random 2 s windows per clip per epoch (inside the first 10 s of speech)
+  rcnn_windows_per_utt: 1         # random 2 s windows per clip per epoch (inside the first 10 s of speech)
   svm_train_utts: 20000           # clips the SVM trains on
-  tune_utts: 12000                # dev clips for epoch choice, SVM calibration, fusion weight
+  tune_utts: 12000                # tuning clips for epoch choice, SVM calibration, fusion weight
   eval_utts: 60000                # test clips per report (0 = whole split)
-  codec_aug_p: 0.5                # training augmentation, same probability for bonafide and spoof
-  tune_aug_p: 0.75                # dev tuning clips: about the share of eval that is codec-processed
+  ffmpeg_codecs: true             # real-codec copies (Opus, AMR, Speex, AAC, MP3, SBC, G.722, GSM) rendered offline
+  render_frac: 0.5                # label-blind share of training clips with a real-codec copy
+  tune_render_frac: 0.75          # tuning clips with a real-codec copy (about eval's codec-processed share)
+  codec_aug_p: 0.4                # simulated codecs for training clips without a copy; same probability for both classes
+  tune_aug_p: 0.75                # simulated codecs for tuning clips, used only when ffmpeg_codecs is false
 
 vad:
   threshold_db: -45.0             # speech starts at the first frame above this (dBFS), trimmed in training too
@@ -38,8 +48,16 @@ svm_model:
   gamma: scale
   class_weight: balanced
 
+wavlm:                            # third branch: WavLM-Base+ on raw 2 s windows (~4.3 GB VRAM at batch 32)
+  finetune_top: 4                 # top transformer layers that adapt; the rest stays frozen
+  epochs: 8                       # ~35 min per epoch for the pooled set at 1 window/clip; keeps the best tuning epoch
+  batch_size: 32
+  head_lr: 0.001                  # new layer mix, pooling and head
+  backbone_lr: 0.00002            # fine-tuned transformer layers
+
 ensemble:
-  svm_weight: 0.7                 # training tunes this on dev and stores it in artifacts/bundle.json, which wins
+  branches: [svm, rcnn, wavlm]    # branches to train and fuse
+  weights: {svm: 0.7, rcnn: 0.3}  # training tunes these on the held-out set and stores them in bundle.json, which wins
 
 risk:                             # P(fake) cut-offs: >=high block, >=medium verify, else allow
   high: 0.80                      # overridden by the values training stores in the bundle

@@ -23,14 +23,16 @@ def benchmark(engine: DetectionEngine) -> dict:
     rng = np.random.default_rng(0)
     window = (rng.standard_normal(s.window_samples) * 0.05).astype(np.float32)
     seg = window[None, :s.segment_samples]
-    svm_x = engine.svm_features.extract(window)[None]
-    mel = engine.rcnn_features.extract(seg)
-    stats = {
-        "svm_features_10s_buffer_ms": _time_ms(lambda: engine.svm_features.extract(window)),
-        "svm_predict_ms": _time_ms(lambda: engine.svm.predict_proba(svm_x)),
-        "rcnn_features_2s_window_ms": _time_ms(lambda: engine.rcnn_features.extract(seg)),
-        "rcnn_forward_2s_window_ms": _time_ms(lambda: engine.rcnn_probabilities(seg)),
-    }
+    stats = {"branches": dict(engine.weights)}  # only branches with a non-zero fusion weight run
+    if engine.uses_svm:
+        svm_x = engine.svm_features.extract(window)[None]
+        stats["svm_features_10s_buffer_ms"] = _time_ms(lambda: engine.svm_features.extract(window))
+        stats["svm_predict_ms"] = _time_ms(lambda: engine.models["svm"].predict_proba(svm_x))
+    if "rcnn" in engine.models:
+        stats["rcnn_features_2s_window_ms"] = _time_ms(lambda: engine.rcnn_features.extract(seg))
+        stats["rcnn_2s_window_ms"] = _time_ms(lambda: engine.rcnn_probabilities(seg))
+    if "wavlm" in engine.models:
+        stats["wavlm_2s_window_ms"] = _time_ms(lambda: engine.wavlm_probabilities(seg))
     chunk = window[:s.segment_hop_samples]
 
     def push_one_hop():

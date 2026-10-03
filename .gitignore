@@ -7,3 +7,6 @@ __pycache__/
 *.pptx
 dataset5/
 artifacts_prev_asv2019/
+artifacts_run1_asv5/
+artifacts_run2_pooled/
+artifacts_run3_codecs/

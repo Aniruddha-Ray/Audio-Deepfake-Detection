@@ -9,4 +9,5 @@ pyyaml
 fastapi
 uvicorn
 prometheus_client
+imageio-ffmpeg
 confluent-kafka

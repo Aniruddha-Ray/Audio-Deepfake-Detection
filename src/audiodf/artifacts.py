@@ -1,72 +1,117 @@
-"""Versioned model bundle: svm.joblib + rcnn.pt + bundle.json (shapes and training metrics)."""
+"""Versioned model bundle: svm.joblib + rcnn.pt (+ wavlm.pt) + bundle.json (branches, shapes, fusion weights,
+risk thresholds, training metrics)."""
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
 import torch
-from sklearn.pipeline import Pipeline
 
 from audiodf import __version__
 from audiodf.config import Settings
 from audiodf.features import rcnn_features, svm_features
-from audiodf.models.rcnn import RCNN, load_rcnn
+from audiodf.models.ensemble import weights_from_manifest
+from audiodf.models.rcnn import load_rcnn
 from audiodf.models.svm import load_svm, save_svm
 
-SVM_FILE, RCNN_FILE, MANIFEST_FILE = "svm.joblib", "rcnn.pt", "bundle.json"
+SVM_FILE, RCNN_FILE, WAVLM_FILE, MANIFEST_FILE = "svm.joblib", "rcnn.pt", "wavlm.pt", "bundle.json"
+BRANCH_FILES = {"svm": SVM_FILE, "rcnn": RCNN_FILE, "wavlm": WAVLM_FILE}
+WAVLM_INPUT_VERSION = 1  # raw 16 kHz waveform windows, no normalisation
 
 
 @dataclass
 class ModelBundle:
-    svm: Pipeline
-    rcnn: RCNN
+    models: dict  # branch name -> model, only the branches the bundle was trained with
     manifest: dict
+    weights: dict = field(default_factory=dict)
+
+    @property
+    def svm(self):
+        return self.models.get("svm")
+
+    @property
+    def rcnn(self):
+        return self.models.get("rcnn")
+
+    @property
+    def wavlm(self):
+        return self.models.get("wavlm")
 
 
-def feature_versions() -> dict:
-    return {"svm": svm_features.FEATURE_VERSION, "rcnn": rcnn_features.FEATURE_VERSION}
+def feature_versions(branches=("svm", "rcnn")) -> dict:
+    known = {"svm": svm_features.FEATURE_VERSION, "rcnn": rcnn_features.FEATURE_VERSION,
+             "wavlm": WAVLM_INPUT_VERSION}
+    return {b: known[b] for b in branches}
 
 
 def bundle_dir(settings: Settings) -> Path:
     return Path(settings.paths.artifacts_dir)
 
 
-def write_manifest(settings: Settings, svm: Pipeline, rcnn: RCNN, metrics: dict | None = None) -> None:
+def write_manifest(settings: Settings, models: dict, metrics: dict | None = None) -> None:
+    """Saves the SVM (window branches are already saved by their training checkpoints) and the manifest.
+    settings.ensemble.weights must hold the tuned fusion weights."""
     out = bundle_dir(settings)
-    save_svm(svm, out / SVM_FILE)
+    branches = list(models)
     manifest = {
         "version": __version__,
         "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "feature_versions": feature_versions(),
-        "svm_feature_dim": int(svm.n_features_in_),
-        "rcnn_input_shape": list(rcnn.input_shape),
-        "rcnn_bidirectional": rcnn.cfg.bidirectional,
+        "branches": branches,
+        "feature_versions": feature_versions(branches),
+        "fusion_weights": dict(settings.ensemble.weights),
         "segment_seconds": settings.segment.seconds,
         "segment_hop_seconds": settings.segment.hop_seconds,
-        "svm_weight": settings.ensemble.svm_weight,
         "risk": {"high": settings.risk.high, "medium": settings.risk.medium},
         "metrics": metrics or {},
     }
+    if "svm" in models:
+        save_svm(models["svm"], out / SVM_FILE)
+        manifest["svm_feature_dim"] = int(models["svm"].n_features_in_)
+    if "rcnn" in models:
+        manifest["rcnn_input_shape"] = list(models["rcnn"].input_shape)
+        manifest["rcnn_bidirectional"] = models["rcnn"].cfg.bidirectional
+    if "wavlm" in models:
+        from audiodf.models.wavlm import BACKBONE
+
+        manifest["wavlm_backbone"] = BACKBONE
+        manifest["wavlm_finetune_top"] = models["wavlm"].finetune_top
     (out / MANIFEST_FILE).write_text(json.dumps(manifest, indent=2))
 
 
-def load_bundle(settings: Settings, device: str | torch.device = "cpu") -> ModelBundle:
+def load_bundle(settings: Settings, device: str | torch.device = "cpu", only_weighted: bool = False) -> ModelBundle:
+    """only_weighted: skip loading branches whose tuned fusion weight is 0 (serving does not need them)."""
     out = bundle_dir(settings)
-    missing = [f for f in (SVM_FILE, RCNN_FILE, MANIFEST_FILE) if not (out / f).exists()]
+    if not (out / MANIFEST_FILE).exists():
+        raise FileNotFoundError(f"missing {MANIFEST_FILE} in {out}; run `audiodf train` first")
+    manifest = json.loads((out / MANIFEST_FILE).read_text())
+    branches = manifest.get("branches", ["svm", "rcnn"])  # bundles from runs 1-3 had no branch list
+    weights = weights_from_manifest(manifest)
+    if only_weighted:
+        branches = [b for b in branches if weights.get(b, 0) > 0]
+    missing = [BRANCH_FILES[b] for b in branches if not (out / BRANCH_FILES[b]).exists()]
     if missing:
         raise FileNotFoundError(f"missing {missing} in {out}; run `audiodf train` first")
-    manifest = json.loads((out / MANIFEST_FILE).read_text())
-    if manifest.get("feature_versions") != feature_versions():
-        raise ValueError(f"artifacts in {out} were built with feature versions "
-                         f"{manifest.get('feature_versions')}, this code computes {feature_versions()}; retrain")
-    svm = load_svm(out / SVM_FILE)
-    rcnn = load_rcnn(out / RCNN_FILE, device)
-    expect_shape = (settings.rcnn_features.n_mels, settings.segment_frames)
-    if svm.n_features_in_ != settings.svm_features.dim:
-        raise ValueError(f"SVM expects {svm.n_features_in_} features, config produces {settings.svm_features.dim}")
-    if tuple(rcnn.input_shape) != expect_shape:
-        raise ValueError(f"RCNN expects {tuple(rcnn.input_shape)} input, config produces {expect_shape}")
-    return ModelBundle(svm, rcnn, manifest)
+    expected = feature_versions(branches)
+    stored = {b: manifest.get("feature_versions", {}).get(b) for b in branches}
+    if stored != expected:
+        raise ValueError(f"artifacts in {out} were built with feature versions {stored}, "
+                         f"this code computes {expected}; retrain")
+    models = {}
+    if "svm" in branches:
+        models["svm"] = load_svm(out / SVM_FILE)
+        if models["svm"].n_features_in_ != settings.svm_features.dim:
+            raise ValueError(f"SVM expects {models['svm'].n_features_in_} features, "
+                             f"config produces {settings.svm_features.dim}")
+    if "rcnn" in branches:
+        models["rcnn"] = load_rcnn(out / RCNN_FILE, device)
+        expect_shape = (settings.rcnn_features.n_mels, settings.segment_frames)
+        if tuple(models["rcnn"].input_shape) != expect_shape:
+            raise ValueError(f"RCNN expects {tuple(models['rcnn'].input_shape)} input, config produces {expect_shape}")
+    if "wavlm" in branches:
+        from audiodf.models.wavlm import load_wavlm
+
+        models["wavlm"] = load_wavlm(out / WAVLM_FILE, device, settings.wavlm.pretrained)
+    return ModelBundle(models, manifest, weights)

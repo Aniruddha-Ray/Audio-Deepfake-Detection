@@ -1,0 +1,55 @@
+asv5=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset5
+artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts
+pool=asv5:train asv5:dev asv19:train asv19:dev  holdout=asv5:A10 asv5:A12 asv5:A15
+rcnn=BiLSTM, epochs=10, windows/clip/epoch=1, svm clips=20000, codec aug p=0.5
+device=cuda artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts
+[1/6] integrity audit (training pool: asv5:train, asv5:dev, asv19:train, asv19:dev)
+  finding (asv5): attacks shared by train and dev: none
+  finding (asv5): attacks shared by train and eval: none
+  finding (asv5): attacks shared by dev and eval: none
+  finding (asv5): train: duration differs between bonafide (14.52) and spoof (10.736)
+  finding (asv5): train: leading silence differs between bonafide (0.412) and spoof (0.05)
+  finding (asv5): train: trailing silence differs between bonafide (0.213) and spoof (0.025)
+  finding (asv5): dev: digital-silence frame fraction (mean) differs between bonafide (0.003) and spoof (0.014)
+  finding (asv19): attacks shared by train and dev: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06']
+  finding (asv19): attacks shared by train and eval: none
+  finding (asv19): attacks shared by dev and eval: none
+  finding (asv19): train: leading silence differs between bonafide (1.025) and spoof (0.35)
+  finding (asv19): dev: leading silence differs between bonafide (0.838) and spoof (0.35)
+  finding (asv19): eval: leading silence differs between bonafide (0.775) and spoof (0.05)
+  finding (asv19): eval: trailing silence differs between bonafide (0.825) and spoof (0.175)
+[2/6] index clips (decode once, record VAD speech bounds) and split off the tuning set
+  training clips: 307454 (260166 spoof, 47288 bonafide), 19 attack systems
+  tuning set: held-out attacks asv5:A10, asv5:A12, asv5:A15 + bonafide of 196 held-out asv5:dev speakers: 49077 clips (41106 spoof, 7971 bonafide)
+[3/6] SVM branch: growing-buffer snapshots, codec-augmented
+  SVM fit on 75709 snapshot vectors from 19985 clips in 1319s
+[4/6] RCNN branch: random 2 s windows read from FLAC, codec-augmented
+  reusing RCNN checkpoint C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts\rcnn_run2_epoch5.pt (training skipped)
+[5/6] tune on the held-out set (codec-augmented): SVM calibration, fusion weight, risk thresholds
+    svm snapshots tune: 5000/11998 utts (29 utt/s)
+    svm snapshots tune: 10000/11998 utts (34 utt/s)
+  svm snapshots mixed/tune: 11998 utts -> 47228 vectors in 351s
+  svm weight 0.05; risk thresholds: verify >= 0.1074, block >= 0.3519
+  tuning set   n= 11998 | EER at 10 s: svm  26.74%  rcnn  20.20%  fused  19.93%
+               fused EER by seconds of speech: 2s 22.72%  4s 20.50%  6s 20.19%  8s 20.04%  10s 19.93%
+[6/6] test sets (scored once, never tuned on)
+  scoring asv5/eval: 30000 of 136376 clips
+    svm snapshots eval: 5000/30000 utts (32 utt/s)
+    svm snapshots eval: 10000/30000 utts (38 utt/s)
+    svm snapshots eval: 15000/30000 utts (40 utt/s)
+    svm snapshots eval: 20000/30000 utts (41 utt/s)
+    svm snapshots eval: 25000/30000 utts (42 utt/s)
+    svm snapshots eval: 30000/30000 utts (43 utt/s)
+  svm snapshots asv5/eval: 30000 utts -> 119396 vectors in 701s
+  asv5/eval    n= 30000 | EER at 10 s: svm  31.06%  rcnn  31.76%  fused  31.58%
+               fused EER by seconds of speech: 2s 32.60%  4s 31.60%  6s 31.54%  8s 31.55%  10s 31.58%
+  scoring asv19/eval: 29988 of 71237 clips
+    svm snapshots eval: 5000/29988 utts (50 utt/s)
+    svm snapshots eval: 10000/29988 utts (73 utt/s)
+    svm snapshots eval: 15000/29988 utts (87 utt/s)
+    svm snapshots eval: 20000/29988 utts (96 utt/s)
+    svm snapshots eval: 25000/29988 utts (102 utt/s)
+  svm snapshots asv19/eval: 29988 utts -> 50952 vectors in 284s
+  asv19/eval   n= 29988 | EER at 10 s: svm  24.56%  rcnn  14.32%  fused  14.25%
+               fused EER by seconds of speech: 2s 15.23%  4s 14.33%  6s 14.25%  8s 14.25%  10s 14.25%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\training_report.json

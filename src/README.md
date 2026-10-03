@@ -49,9 +49,12 @@ the buffer already waits for.
 
 ## Training and evaluation discipline
 
-Models fit on **ASV5 train**. Everything tuned (RCNN epoch, SVM calibration, fusion weight, risk thresholds)
-uses a stratified subset of **ASV5 dev**, whose attacks (A09-A16) differ from train's (A01-A08). **ASV5 eval**
-(A17-A32, 11 codec conditions) and ASV2019 eval (cross-dataset) are scored once at the end and never tuned on.
+The default training pool is **ASV5 train + dev and ASVspoof2019 train + dev** (22 attack systems).
+Three ASV5 dev attacks (A10, A12, A15) and every clip of 25% of ASV5 dev's bonafide speakers are removed
+from the pool and form the **tuning set**: everything tuned (RCNN epoch, SVM calibration, fusion weight,
+risk thresholds) is chosen on attacks and voices the models never trained on. **ASV5 eval** (A17-A32, 11 codec
+conditions) and ASVspoof2019 eval (cross-dataset) are scored once at the end and never trained or tuned on.
+Run 1 instead trained on ASV5 train and tuned on ASV5 dev (`--train-splits asv5:train --holdout-attacks`).
 Reports: EER at the 10 s decision, EER vs seconds of speech (2/4/6/8/10 s), per-attack and per-codec EER.
 Attack IDs are separate namespaces per dataset ("A01" differs between ASV2019 and ASV5).
 
@@ -80,8 +83,9 @@ pip install -r requirements-dev.txt          # install the torch build you want 
 export AUDIODF_ASV5=../dataset5              # ASVspoof5: ASVspoof5.*.tsv, flac_T/, flac_D/ (flac_E_eval/ for the test)
 export AUDIODF_DATA=../dataset/LA/LA         # optional: ASVspoof2019 LA, used as a cross-dataset test
 
-python run.py                                # ONE command: audit -> index -> SVM -> RCNN -> tune on dev -> test -> artifacts/
+python run.py                                # ONE command: audit -> index -> SVM -> RCNN -> tune -> test -> artifacts/
 python run.py --epochs 12 --eval-utts 0      # flags (--eval-utts 0 = whole eval split, hours; --limit 800 = smoke test)
+python run.py --train-splits asv5:train --holdout-attacks   # run-1 setup: ASV5 train only, tune on ASV5 dev
 
 # `python -m audiodf <command>` is the multi-command CLI (needs a subcommand); run.py is the one-click training.
 python -m audiodf audit --dataset asv5       # integrity audit, exit 1 on hard errors
@@ -92,7 +96,7 @@ python -m audiodf benchmark                  # per-stage latency
 python -m audiodf serve --port 8000          # API: /predict, /stream/{id}, /health, /metrics
 python -m audiodf consume                    # Kafka worker (needs a broker + confluent-kafka)
 python -m audiodf produce call.wav --realtime
-python -m pytest                             # 65 tests, no dataset or GPU needed
+python -m pytest                             # 72 tests, no dataset or GPU needed
 ```
 
 Stream over a WebSocket: send binary frames of 16 kHz mono PCM16, receive a JSON verdict each time a
@@ -101,17 +105,19 @@ The fusion weight and risk thresholds in `artifacts/bundle.json` override the co
 
 ## Results
 
-Run 1 (ASV5 train only; details in `results/training_report.json`, `results/evaluate_asv5_eval.json`):
+**ASV5 eval** (same 30k clips, 16 unseen attacks, real codecs), EER at the 10 s decision:
 
-| EER at the 10 s decision | dev (unseen attacks, codec-aug) | **ASV5 eval** (30k clips, 16 unseen attacks, real codecs) | ASV2019 eval (cross-dataset) |
+| | Run 1: ASV5 train only | Run 2: pooled ASV5 + ASVspoof2019, held-out-attack tuning | Run 3 (current `artifacts/`): run 2 + real-codec augmentation |
 |---|---|---|---|
-| SVM | 21.8% | 33.6% | 41.4% |
-| RCNN | 17.6% | 37.4% | 33.3% |
-| Fused (weight 0.2) | 15.9% | **33.0%** | 37.8% |
+| SVM | 33.6% | 31.1% | 29.6% |
+| RCNN | 37.4% | 31.8% | 29.4% |
+| **Fused** | **33.0%** | **31.6%** | **29.4%** (SVM weight 0) |
+| Codec-free eval clips | 22.8% | 16.2% | 26.3% |
+| Codec score-shift penalty | 0.9 pts | 5.4 pts | 1.0 pts |
 
-**This model is not production-ready.** It generalises poorly to unseen attacks (22.8% EER even on codec-free
-eval audio) and to real codecs (26-41%), and the dev-tuned fusion weight did not hold on eval. See
-`new_plan.md` section 7.3d for the analysis and the next experiments.
+**Not production-ready.** Real-codec augmentation aligned scores across codecs but cost accuracy on clean audio;
+cross-attack generalisation is the remaining limit, so the next step is a pretrained WavLM front end. Details:
+`results/training_report.json` (run 3), `training_report_run2.json`, `training_report_run1.json`, `new_plan.md` 7.3d-7.3h.
 The earlier ASVspoof2019 prototype (5.7% eval EER) used feature version 1 and an easier benchmark; it is not
 reproducible with this code and not comparable to these numbers.
 

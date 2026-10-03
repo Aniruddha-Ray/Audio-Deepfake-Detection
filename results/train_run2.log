@@ -1,0 +1,92 @@
+asv5=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset5
+artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts
+pool=asv5:train asv5:dev asv19:train asv19:dev  holdout=asv5:A10 asv5:A12 asv5:A15
+rcnn=BiLSTM, epochs=10, windows/clip/epoch=1, svm clips=20000, codec aug p=0.5
+device=cuda artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts
+[1/6] integrity audit (training pool: asv5:train, asv5:dev, asv19:train, asv19:dev)
+  finding (asv5): attacks shared by train and dev: none
+  finding (asv5): attacks shared by train and eval: none
+  finding (asv5): attacks shared by dev and eval: none
+  finding (asv5): train: duration differs between bonafide (14.52) and spoof (10.736)
+  finding (asv5): train: leading silence differs between bonafide (0.412) and spoof (0.05)
+  finding (asv5): train: trailing silence differs between bonafide (0.213) and spoof (0.025)
+  finding (asv5): dev: digital-silence frame fraction (mean) differs between bonafide (0.003) and spoof (0.014)
+  finding (asv19): attacks shared by train and dev: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06']
+  finding (asv19): attacks shared by train and eval: none
+  finding (asv19): attacks shared by dev and eval: none
+  finding (asv19): train: leading silence differs between bonafide (1.025) and spoof (0.35)
+  finding (asv19): dev: leading silence differs between bonafide (0.838) and spoof (0.35)
+  finding (asv19): eval: leading silence differs between bonafide (0.775) and spoof (0.05)
+  finding (asv19): eval: trailing silence differs between bonafide (0.825) and spoof (0.175)
+[2/6] index clips (decode once, record VAD speech bounds) and split off the tuning set
+    index asv19/train: 20000/25380 (250 utt/s)
+  indexed asv19/train: 25380 utts in 93s, 0 without speech
+    index asv19/dev: 20000/24844 (252 utt/s)
+  indexed asv19/dev: 24844 utts in 91s, 0 without speech
+  training clips: 307454 (260166 spoof, 47288 bonafide), 19 attack systems
+  tuning set: held-out attacks asv5:A10, asv5:A12, asv5:A15 + bonafide of 196 held-out asv5:dev speakers: 49077 clips (41106 spoof, 7971 bonafide)
+[3/6] SVM branch: growing-buffer snapshots, codec-augmented
+    svm snapshots train: 5000/19985 utts (26 utt/s)
+    svm snapshots train: 10000/19985 utts (30 utt/s)
+    svm snapshots train: 15000/19985 utts (34 utt/s)
+  svm snapshots mixed/train: 19985 utts -> 75709 vectors in 489s
+  SVM fit on 75709 snapshot vectors from 19985 clips in 1107s
+[4/6] RCNN branch: random 2 s windows read from FLAC, codec-augmented
+  epoch 1/10: {'epoch': 1, 'loss': 0.07346, 'dev_eer_pct': 28.997, 'minutes': 21.3}
+  epoch 2/10: {'epoch': 2, 'loss': 0.04703, 'dev_eer_pct': 31.598, 'minutes': 22.5}
+  epoch 3/10: {'epoch': 3, 'loss': 0.03411, 'dev_eer_pct': 20.596, 'minutes': 21.3}
+  epoch 4/10: {'epoch': 4, 'loss': 0.02419, 'dev_eer_pct': 23.053, 'minutes': 21.4}
+  epoch 5/10: {'epoch': 5, 'loss': 0.01832, 'dev_eer_pct': 20.203, 'minutes': 21.8}
+  epoch 6/10: {'epoch': 6, 'loss': 0.01356, 'dev_eer_pct': 22.978, 'minutes': 23.8}
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11764, pipe_handle=350376)
+                                                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\multiprocessing\spawn.py", line 122, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\multiprocessing\spawn.py", line 132, in _main
+    self = reduction.pickle.load(from_parent)
+EOFError: Ran out of input
+Traceback (most recent call last):
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\run.py", line 72, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\run.py", line 68, in main
+    run_training(settings, limit=args.limit, workers=args.workers)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\training\pipeline.py", line 143, in run_training
+    rcnn, history = train_rcnn(train, dev, tune, settings, device, out / RCNN_FILE, workers, log)
+                    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\training\train_rcnn.py", line 56, in train_rcnn
+    horizon = score_rcnn(model, dev, tune_utts, settings, device, workers,
+                         grid=(settings.stream.window_seconds,), augment_p=settings.data.tune_aug_p)
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\evaluation\stream_eval.py", line 85, in score_rcnn
+    probs = score_windows(model, idx, keys, settings, device, workers, augment_p)
+  File "C:\Users\Asus\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\evaluation\stream_eval.py", line 75, in score_windows
+    for x, _ in loader:
+                ^^^^^^
+  File "C:\Users\Asus\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\torch\utils\data\dataloader.py", line 505, in __iter__
+    return self._get_iterator()
+           ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Asus\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\torch\utils\data\dataloader.py", line 438, in _get_iterator
+    return _MultiProcessingDataLoaderIter(self)
+  File "C:\Users\Asus\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\torch\utils\data\dataloader.py", line 1178, in __init__
+    w.start()
+    ~~~~~~~^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\multiprocessing\process.py", line 121, in start
+    self._popen = self._Popen(self)
+                  ~~~~~~~~~~~^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\multiprocessing\context.py", line 230, in _Popen
+    return _default_context.get_context().Process._Popen(process_obj)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\multiprocessing\context.py", line 343, in _Popen
+    return Popen(process_obj)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\multiprocessing\popen_spawn_win32.py", line 97, in __init__
+    reduction.dump(process_obj, to_child)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\multiprocessing\reduction.py", line 60, in dump
+    ForkingPickler(file, protocol).dump(obj)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+MemoryError

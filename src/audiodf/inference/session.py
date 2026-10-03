@@ -1,5 +1,5 @@
-"""Per-call streaming state: VAD gate, rolling audio buffer, 2 s RCNN windows on a 1 s hop,
-whole-buffer SVM."""
+"""Per-call streaming state: VAD gate, rolling audio buffer, 2 s windows on a 1 s hop for the window branches
+(RCNN, WavLM), whole-buffer SVM."""
 
 from __future__ import annotations
 
@@ -38,8 +38,11 @@ class CallSession:
         self._buf = np.zeros(0, dtype=np.float32)
         self._buf_start = 0  # absolute index of _buf[0]
         self._total = 0
-        self._next_start = 0  # absolute start of the next RCNN window
-        self._scores: deque[float] = deque(maxlen=(self.window - self.seg) // self.hop + 1)
+        self._next_start = 0  # absolute start of the next window
+        n_recent = (self.window - self.seg) // self.hop + 1
+        # per window branch (RCNN, WavLM): P(spoof) of the windows inside the last `window_seconds`
+        self._scores: dict[str, deque[float]] = {b: deque(maxlen=n_recent) for b in engine.window_branches}
+        self._n_recent = deque(maxlen=n_recent)  # one entry per scored window, also with no window branch
         self._last: Verdict | None = None
         self._last_total = -1
         self.last_active = time.monotonic()
@@ -66,7 +69,7 @@ class CallSession:
             self._next_start += self.hop
         verdict = None
         if windows:
-            self._scores.extend(self.engine.rcnn_probabilities(np.stack(windows)).tolist())
+            self._score_windows(np.stack(windows))
             verdict = self._verdict(final=self.audio_seconds >= self.engine.settings.stream.window_seconds,
                                     t0=t0)
         self._trim()
@@ -77,20 +80,30 @@ class CallSession:
         if self._total == 0:
             return None
         t0 = time.perf_counter()
-        if not self._scores:
+        if not self._n_recent:
             padded = pad_to_length(self._buf[-self.window:], self.seg)
-            self._scores.extend(self.engine.rcnn_probabilities(padded[None, :self.seg]).tolist())
+            self._score_windows(padded[None, :self.seg])
         elif self._last is not None and self._last_total == self._total:
             return replace(self._last, final=True)
         return self._verdict(final=True, t0=t0)
 
+    def _score_windows(self, windows: np.ndarray) -> None:
+        for branch, probs in self.engine.window_probabilities(windows).items():
+            self._scores[branch].extend(probs.tolist())
+        self._n_recent.extend([1] * len(windows))
+
     def _verdict(self, final: bool, t0: float) -> Verdict:
-        recent = self._buf[-self.window:]
-        if len(recent) < self.seg:
-            recent = pad_to_length(recent, self.seg)
-        svm_p = self.engine.svm_probability(recent)
-        verdict = self.engine.make_verdict(svm_p, list(self._scores), self.audio_seconds, final,
-                                           (time.perf_counter() - t0) * 1000, self.call_id)
+        svm_p = None
+        if self.engine.uses_svm:
+            recent = self._buf[-self.window:]
+            if len(recent) < self.seg:
+                recent = pad_to_length(recent, self.seg)
+            svm_p = self.engine.svm_probability(recent)
+        verdict = self.engine.make_verdict(svm_p, {b: list(s) for b, s in self._scores.items()},
+                                           self.audio_seconds, final, (time.perf_counter() - t0) * 1000,
+                                           self.call_id)
+        if not self._scores:  # SVM-only model: still report how many windows the verdict covers
+            verdict = replace(verdict, segments_scored=len(self._n_recent))
         self._last, self._last_total = verdict, self._total
         return verdict
 

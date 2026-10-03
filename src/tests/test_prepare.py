@@ -131,3 +131,21 @@ def test_concat_index_resolves_paths_and_namespaces_attacks(asv5, tmp_path):
     ds = RcnnWindowDataset(both, asv5)
     x, y = ds[(7, int(both.speech_start[7]))]  # a clip from the second dataset
     assert tuple(x.shape) == (1, 64, 200) and float(y) == float(both.label[7])
+    assert set(both.source) == {"asv5:train", "asv19:train"}
+
+
+def test_snapshot_cache_follows_clips_not_positions(asv5, tmp_path):
+    """A subset re-numbers clips; a cached snapshot file must still map features to the right clips."""
+    asv5.paths.data_root = str(_asv19(tmp_path))
+    both = SplitIndex.concat([build_index(asv5, "asv5", "train", workers=0),
+                              build_index(asv5, "asv19", "train", workers=0)])
+    full = build_svm_snapshots(both, np.arange(4, 10), asv5, 0.0, "t", workers=0)  # the ASV2019 clips
+    sub = both.subset(both.source == "asv19:train", "tune")  # same clips, now at positions 0..5
+    assert sub.utt_id.tolist() == both.utt_id[4:].tolist() and sub.path(0) == both.path(4)
+    again = build_svm_snapshots(sub, np.arange(6), asv5, 0.0, "t", workers=0)  # served from the cache
+    assert sorted(set(again["utt"])) == list(range(6))
+    for j in range(6):
+        assert np.array_equal(again["x"][again["utt"] == j], full["x"][full["utt"] == j + 4])
+    assert (again["label"] == sub.label[again["utt"]]).all()
+    other = build_svm_snapshots(both, np.arange(0, 4), asv5, 0.0, "t", workers=0)  # different clips: own cache
+    assert sorted(set(other["utt"])) == [0, 1, 2, 3]

@@ -8,7 +8,8 @@ from audiodf.config import Settings
 from audiodf.evaluation.stream_eval import StreamScores, rcnn_at_times, summarize, svm_at_times
 from audiodf.inference.engine import DetectionEngine
 from audiodf.models.svm import CalibratedSvm, build_svm
-from audiodf.training.pipeline import operating_points, run_training, tune_fusion
+from audiodf.training.pipeline import (build_training_pool, operating_points, run_training, training_splits,
+                                       tune_fusion)
 
 from conftest import SR, tone
 
@@ -36,10 +37,10 @@ def test_rcnn_at_times_averages_finished_windows():
     assert np.allclose(early[:, 0], [.1, .9])  # nothing finished yet: the first window
 
 
-def _scores(svm, rcnn, y):
+def _scores(y, **branches):
     n = len(y)
     return StreamScores(np.arange(n), y, np.where(y == 1, "A01", "-"), np.full(n, "-"), GRID,
-                        np.tile(svm[:, None], (1, 5)), np.tile(rcnn[:, None], (1, 5)))
+                        {b: np.tile(v[:, None], (1, 5)) for b, v in branches.items()})
 
 
 def test_tune_fusion_prefers_the_informative_branch():
@@ -47,13 +48,26 @@ def test_tune_fusion_prefers_the_informative_branch():
     y = np.array([0, 1] * 100)
     good = np.clip(y * 0.8 + 0.1 + rng.normal(0, 0.05, 200), 0, 1)
     junk = rng.random(200)
-    weight, curve = tune_fusion(_scores(good, junk, y))
-    assert weight > 0.5 and len(curve) == 21
-    assert curve[f"{weight:.2f}"] <= curve["0.00"]  # no worse than the junk branch alone
-    weight, _ = tune_fusion(_scores(junk, good, y))
-    assert weight < 0.5
-    weight, _ = tune_fusion(_scores(good, good, y))  # equally good branches: ties resolve to balanced
-    assert weight == 0.5
+    weights, curve = tune_fusion(_scores(y, svm=good, rcnn=junk))
+    assert weights["svm"] > 0.5 and "svm=0.00 rcnn=1.00" in curve and "svm=1.00 rcnn=0.00" in curve
+    assert curve[" ".join(f"{b}={w:.2f}" for b, w in weights.items())] <= curve["svm=0.00 rcnn=1.00"]
+    weights, _ = tune_fusion(_scores(y, svm=junk, rcnn=good))
+    assert weights["rcnn"] > 0.5
+    weights, _ = tune_fusion(_scores(y, svm=good, rcnn=good))  # equally good branches: ties resolve to balanced
+    assert weights == {"svm": 0.5, "rcnn": 0.5}
+
+
+def test_tune_fusion_three_branches():
+    rng = np.random.default_rng(3)
+    y = np.array([0, 1] * 200)
+    good = np.clip(y * 0.6 + 0.2 + rng.normal(0, 0.15, 400), 0, 1)
+    junk = rng.random(400)
+    weights, curve = tune_fusion(_scores(y, svm=junk, rcnn=junk[::-1].copy(), wavlm=good))
+    assert set(weights) == {"svm", "rcnn", "wavlm"} and abs(sum(weights.values()) - 1) < 1e-9
+    assert weights["wavlm"] > max(weights["svm"], weights["rcnn"])
+    assert len([k for k in curve if "1.00" in k]) == 3  # each branch alone is always reported
+    weights, _ = tune_fusion(_scores(y, svm=good, rcnn=good, wavlm=good))
+    assert max(weights.values()) - min(weights.values()) <= 0.05  # all equal: as balanced as the grid allows
 
 
 def test_operating_points_follow_bonafide_quantiles():
@@ -71,8 +85,8 @@ def test_summarize_reports_horizon_curve_and_attacks():
     rng = np.random.default_rng(2)
     y = np.array([0, 1] * 100)
     s = np.clip(y * 0.7 + 0.15 + rng.normal(0, 0.1, 200), 0, 1)
-    rep = summarize(_scores(s, s, y), 0.5)
-    assert rep["at_horizon"]["fused"]["eer_pct"] < 5
+    rep = summarize(_scores(y, svm=s, rcnn=s), {"svm": 0.5, "rcnn": 0.5})
+    assert rep["at_horizon"]["fused"]["eer_pct"] < 5 and set(rep["at_horizon"]) == {"svm", "rcnn", "fused"}
     assert set(rep["time_to_decision_eer_pct"]["fused"]) == {"2s", "4s", "6s", "8s", "10s"}
     assert "A01" in rep["per_attack_eer_pct"]["fused"] and "per_codec_eer_pct" not in rep
 
@@ -111,26 +125,42 @@ def test_run_training_end_to_end_on_synthetic_asv5(tmp_path):
     s.paths.results_dir = str(tmp_path / "results")
     s.rcnn_train.epochs, s.rcnn_train.batch_size = 1, 4
     s.data.svm_train_utts = s.data.tune_utts = 24
+    s.data.train_splits, s.data.holdout_attacks = ("asv5:train",), ()  # run-1 setup: tune on ASV5 dev
+    s.ensemble.branches = ("svm", "rcnn")
 
     report = run_training(s, workers=0, log=lambda *_: None)
+    assert report["tuning_set"] == "ASV5 dev (all attacks)"
     assert (tmp_path / "artifacts" / "svm.joblib").exists() and report["test"] == {}  # no eval audio: skipped
     manifest = json.loads((tmp_path / "artifacts" / "bundle.json").read_text())
-    assert manifest["svm_weight"] == report["svm_weight"] and manifest["risk"]["medium"] <= manifest["risk"]["high"]
+    assert manifest["fusion_weights"] == report["fusion_weights"] and manifest["branches"] == ["svm", "rcnn"]
+    assert manifest["risk"]["medium"] <= manifest["risk"]["high"]
 
-    manifest.update(svm_weight=0.35, risk={"high": 0.4, "medium": 0.2})  # distinct from every default
+    # distinct from every default
+    manifest.update(fusion_weights={"svm": 0.35, "rcnn": 0.65}, risk={"high": 0.4, "medium": 0.2})
     (tmp_path / "artifacts" / "bundle.json").write_text(json.dumps(manifest))
     s2 = Settings()
     s2.paths.artifacts_dir = str(tmp_path / "artifacts")
     engine = DetectionEngine.from_artifacts(s2, "cpu")
-    assert (engine.settings.ensemble.svm_weight, engine.settings.risk.high, engine.settings.risk.medium) == (
-        0.35, 0.4, 0.2)  # the bundle's tuned operating point wins over the config...
-    assert s2.ensemble.svm_weight == 0.7  # ...without mutating the caller's settings
+    assert (engine.settings.ensemble.weights, engine.settings.risk.high, engine.settings.risk.medium) == (
+        {"svm": 0.35, "rcnn": 0.65}, 0.4, 0.2)  # the bundle's tuned operating point wins over the config...
+    assert s2.ensemble.weights == {"svm": 0.7, "rcnn": 0.3}  # ...without mutating the caller's settings
     verdict = engine.predict_waveform(tone(5, noise=0.2, seed=3))
     assert verdict is not None and 0 <= verdict.fake_probability <= 1
     assert abs(verdict.fake_probability - (0.35 * verdict.svm_probability + 0.65 * verdict.rcnn_probability)) < 1e-3
+    assert verdict.wavlm_probability is None
+
+    # a bundle from runs 1-3 (svm_weight, no branch list) still loads; a zero-weight branch is not run
+    del manifest["fusion_weights"], manifest["branches"]
+    manifest["svm_weight"] = 0.0
+    (tmp_path / "artifacts" / "bundle.json").write_text(json.dumps(manifest))
+    engine = DetectionEngine.from_artifacts(s2, "cpu")
+    assert set(engine.models) == {"rcnn"} and not engine.uses_svm
+    verdict = engine.predict_waveform(tone(5, noise=0.2, seed=3))
+    assert verdict.svm_probability is None and verdict.fake_probability == verdict.rcnn_probability
 
 
-def test_run_training_on_mixed_datasets(tmp_path):
+def _pooled_settings(tmp_path) -> Settings:
+    """Run-2 setup on synthetic data: ASV5 train+dev + ASV2019 train+dev, ASV5 dev attack A10 held out."""
     from test_prepare import _asv19
 
     _write_split(tmp_path, "T", "flac_T", "ASVspoof5.train.tsv", ["A01", "A02"])
@@ -142,9 +172,97 @@ def test_run_training_on_mixed_datasets(tmp_path):
     s.paths.results_dir = str(tmp_path / "results")
     s.rcnn_train.epochs, s.rcnn_train.batch_size = 1, 4
     s.data.svm_train_utts = s.data.tune_utts = 24
-    s.data.train_datasets = ("asv5", "asv19")
+    s.data.train_splits = ("asv5:train", "asv5:dev", "asv19:train", "asv19:dev")
+    s.data.holdout_attacks, s.data.holdout_speaker_frac = ("asv5:A10",), 0.5
+    s.ensemble.branches = ("svm", "rcnn")
+    return s
+
+
+def test_holdout_pool_keeps_tuning_attacks_and_voices_out_of_training(tmp_path):
+    s = _pooled_settings(tmp_path)
+    train, tune, desc = build_training_pool(s, training_splits(s), None, 0, lambda *_: None)
+    assert len(train) + len(tune) <= 72  # 24 + 24 ASV5 + 12 + 12 ASV2019; held-out voices' other clips dropped
+    assert "asv5:A10" not in set(train.attack)  # the held-out attack is never trained on...
+    assert set(tune.attack[tune.label == 1]) == {"asv5:A10"}  # ...and is the only spoof in the tuning set
+    tune_voices = set(tune.speaker[tune.label == 0])
+    assert tune_voices and not tune_voices & set(train.speaker)  # tuning bonafide voices are unseen
+    assert set(tune.source[tune.label == 0]) == {"asv5:dev"}
+    assert not set(zip(train.source, train.utt_id)) & set(zip(tune.source, tune.utt_id))
+    assert {"asv5:A01", "asv5:A02", "asv5:A09", "asv19:A01"} <= set(train.attack)  # pool spans both datasets
+    assert "held-out attacks asv5:A10" in desc
+
+
+def test_training_splits_refuse_test_data_and_double_use_of_dev():
+    s = Settings()
+    s.data.train_splits = ("asv5:train", "asv5:eval")
+    with pytest.raises(ValueError, match="eval"):
+        training_splits(s)
+    s.data.train_splits, s.data.holdout_attacks = ("asv5:train", "asv5:dev"), ()
+    with pytest.raises(ValueError, match="tuning set"):
+        training_splits(s)
+    s.data.holdout_attacks = ("asv5:A12",)
+    assert training_splits(s) == [("asv5", "train"), ("asv5", "dev")]
+
+
+def test_run_training_on_pooled_data_with_held_out_attack(tmp_path):
+    s = _pooled_settings(tmp_path)
     lines = []
-    report = run_training(s, workers=0, log=lines.append)
-    assert any("training clips: 48" in str(line) for line in lines)  # 24 ASV5 + 12 ASV2019 train + 12 dev
-    assert any("training on: asv5 + asv19" in str(line) for line in lines)
+    report = run_training(s, workers=0, log=lambda m: lines.append(str(m)))
+    assert any("training pool: asv5:train, asv5:dev, asv19:train, asv19:dev" in line for line in lines)
+    assert report["training_pool"] == list(s.data.train_splits) and "asv5:A10" in report["tuning_set"]
+    assert set(report["tuning_subset"]["per_attack_eer_pct"]["fused"]) == {"asv5:A10"}
     assert report["test"] == {} and (tmp_path / "artifacts" / "svm.joblib").exists()
+    manifest = json.loads((tmp_path / "artifacts" / "bundle.json").read_text())
+    assert manifest["metrics"]["tuning_set"] == report["tuning_set"]
+
+    # resume after an interruption: reuse the saved RCNN, redo every other stage
+    saved = tmp_path / "rcnn_backup.pt"
+    saved.write_bytes((tmp_path / "artifacts" / "rcnn.pt").read_bytes())
+    lines.clear()
+    again = run_training(s, workers=0, log=lambda m: lines.append(str(m)), checkpoints={"rcnn": saved})
+    assert again["histories"]["rcnn"] == [{"reused_checkpoint": str(saved)}]
+    assert any("training skipped" in line for line in lines) and not any("epoch 1/" in line for line in lines)
+    assert (tmp_path / "artifacts" / "rcnn.pt").read_bytes() == saved.read_bytes()
+
+
+def test_add_wavlm_branch_reusing_trained_svm_and_rcnn(tmp_path):
+    """Run-4 setup: the SVM and RCNN of an earlier run are reused, only WavLM trains, all three fuse."""
+    s = _pooled_settings(tmp_path)
+    run_training(s, workers=0, log=lambda *_: None)
+    prev = tmp_path / "prev"
+    prev.mkdir()
+    for f in ("svm.joblib", "rcnn.pt"):
+        (prev / f).write_bytes((tmp_path / "artifacts" / f).read_bytes())
+
+    s.ensemble.branches = ("svm", "rcnn", "wavlm")
+    s.wavlm.pretrained, s.wavlm.finetune_top, s.wavlm.epochs, s.wavlm.batch_size = False, 1, 1, 4
+    lines = []
+    report = run_training(s, workers=0, log=lambda m: lines.append(str(m)),
+                          checkpoints={"svm": prev / "svm.joblib", "rcnn": prev / "rcnn.pt"})
+    assert sum("training skipped" in line for line in lines) == 2
+    assert len(report["histories"]["wavlm"]) == 1 and "dev_eer_pct" in report["histories"]["wavlm"][0]
+    assert set(report["fusion_weights"]) == {"svm", "rcnn", "wavlm"}
+    assert set(report["tuning_subset"]["at_horizon"]) == {"svm", "rcnn", "wavlm", "fused"}
+    manifest = json.loads((tmp_path / "artifacts" / "bundle.json").read_text())
+    assert manifest["branches"] == ["svm", "rcnn", "wavlm"] and manifest["feature_versions"]["wavlm"] == 1
+    assert (tmp_path / "artifacts" / "wavlm.pt").exists()
+
+    manifest["fusion_weights"] = {"svm": 0.2, "rcnn": 0.3, "wavlm": 0.5}
+    (tmp_path / "artifacts" / "bundle.json").write_text(json.dumps(manifest))
+    s2 = Settings()
+    s2.paths.artifacts_dir, s2.wavlm.pretrained = str(tmp_path / "artifacts"), False
+    engine = DetectionEngine.from_artifacts(s2, "cpu")
+    v = engine.predict_waveform(tone(4, noise=0.2, seed=5))
+    assert v.wavlm_probability is not None and v.segments_scored == 3
+    assert abs(v.fake_probability - (0.2 * v.svm_probability + 0.3 * v.rcnn_probability
+                                     + 0.5 * v.wavlm_probability)) < 1e-3
+
+
+def test_run_training_refuses_unknown_branches(tmp_path):
+    s = _pooled_settings(tmp_path)
+    s.ensemble.branches = ("svm", "vit")
+    with pytest.raises(ValueError, match="branches"):
+        run_training(s, workers=0, log=lambda *_: None)
+    s.ensemble.branches = ("svm",)
+    with pytest.raises(ValueError, match="checkpoints"):
+        run_training(s, workers=0, log=lambda *_: None, checkpoints={"rcnn": tmp_path / "x.pt"})

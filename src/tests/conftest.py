@@ -36,4 +36,4 @@ def engine(settings) -> DetectionEngine:
     svm = CalibratedSvm(build_svm(settings.svm_model).fit(np.stack(X), np.array(y)))
     svm.fit_calibrator(np.stack(X), np.array(y))
     rcnn = RCNN(settings.rcnn_features.n_mels, settings.segment_frames, settings.rcnn_model)
-    return DetectionEngine(svm, rcnn, settings, "cpu")
+    return DetectionEngine({"svm": svm, "rcnn": rcnn}, settings, "cpu")  # default weights: svm 0.7, rcnn 0.3

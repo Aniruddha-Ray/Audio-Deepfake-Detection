@@ -1,0 +1,74 @@
+asv5=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset5
+artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts
+pool=asv5:train asv5:dev asv19:train asv19:dev  holdout=asv5:A10 asv5:A12 asv5:A15
+rcnn=BiLSTM, epochs=10, windows/clip/epoch=1, svm clips=20000, codec aug p=0.4
+device=cuda artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts
+[1/6] integrity audit (training pool: asv5:train, asv5:dev, asv19:train, asv19:dev)
+  finding (asv5): attacks shared by train and dev: none
+  finding (asv5): attacks shared by train and eval: none
+  finding (asv5): attacks shared by dev and eval: none
+  finding (asv5): train: duration differs between bonafide (14.52) and spoof (10.736)
+  finding (asv5): train: leading silence differs between bonafide (0.412) and spoof (0.05)
+  finding (asv5): train: trailing silence differs between bonafide (0.213) and spoof (0.025)
+  finding (asv5): dev: digital-silence frame fraction (mean) differs between bonafide (0.003) and spoof (0.014)
+  finding (asv19): attacks shared by train and dev: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06']
+  finding (asv19): attacks shared by train and eval: none
+  finding (asv19): attacks shared by dev and eval: none
+  finding (asv19): train: leading silence differs between bonafide (1.025) and spoof (0.35)
+  finding (asv19): dev: leading silence differs between bonafide (0.838) and spoof (0.35)
+  finding (asv19): eval: leading silence differs between bonafide (0.775) and spoof (0.05)
+  finding (asv19): eval: trailing silence differs between bonafide (0.825) and spoof (0.175)
+[2/6] index clips (decode once, record VAD speech bounds) and split off the tuning set
+  training clips: 307454 (260166 spoof, 47288 bonafide), 19 attack systems
+  tuning set: held-out attacks asv5:A10, asv5:A12, asv5:A15 + bonafide of 196 held-out asv5:dev speakers: 49077 clips (41106 spoof, 7971 bonafide)
+  rendering real-codec copies (ffmpeg; label-blind; cached on disk)
+    rendered 10000/151573 codec copies (31/s)
+    rendered 20000/151573 codec copies (31/s)
+    rendered 30000/151573 codec copies (31/s)
+    rendered 40000/151573 codec copies (31/s)
+    rendered 50000/151573 codec copies (31/s)
+    rendered 60000/151573 codec copies (31/s)
+    rendered 70000/151573 codec copies (31/s)
+    rendered 80000/151573 codec copies (31/s)
+    rendered 90000/151573 codec copies (31/s)
+    rendered 100000/151573 codec copies (31/s)
+    rendered 110000/151573 codec copies (31/s)
+    rendered 120000/151573 codec copies (31/s)
+    rendered 130000/151573 codec copies (32/s)
+    rendered 140000/151573 codec copies (32/s)
+    rendered 150000/151573 codec copies (33/s)
+  rendered 151573 codec copies in 4615s (2636 reused)
+  rendered 8896 codec copies in 276s (71 reused)
+  real-codec copies: 154209 training clips, 8967 of 11998 tuning clips
+[3/6] SVM branch: growing-buffer snapshots, codec-augmented
+    svm snapshots train: 5000/19985 utts (20 utt/s)
+    svm snapshots train: 10000/19985 utts (24 utt/s)
+    svm snapshots train: 15000/19985 utts (28 utt/s)
+  svm snapshots mixed/train: 19985 utts -> 75709 vectors in 587s
+  SVM fit on 75709 snapshot vectors from 19985 clips in 1986s
+[4/6] RCNN branch: random 2 s windows read from FLAC, codec-augmented
+  epoch 1/10: {'epoch': 1, 'loss': 0.08619, 'dev_eer_pct': 29.916, 'minutes': 19.8}
+  epoch 2/10: {'epoch': 2, 'loss': 0.0572, 'dev_eer_pct': 25.634, 'minutes': 18.6}
+  epoch 3/10: {'epoch': 3, 'loss': 0.04418, 'dev_eer_pct': 21.771, 'minutes': 18.5}
+  epoch 4/10: {'epoch': 4, 'loss': 0.03389, 'dev_eer_pct': 21.503, 'minutes': 18.7}
+  epoch 5/10: {'epoch': 5, 'loss': 0.02609, 'dev_eer_pct': 17.296, 'minutes': 16.8}
+  epoch 6/10: {'epoch': 6, 'loss': 0.02058, 'dev_eer_pct': 16.577, 'minutes': 16.7}
+  epoch 7/10: {'epoch': 7, 'loss': 0.01635, 'dev_eer_pct': 15.139, 'minutes': 16.8}
+  epoch 8/10: {'epoch': 8, 'loss': 0.01303, 'dev_eer_pct': 13.808, 'minutes': 16.6}
+  epoch 9/10: {'epoch': 9, 'loss': 0.01023, 'dev_eer_pct': 13.989, 'minutes': 17.8}
+  epoch 10/10: {'epoch': 10, 'loss': 0.0086, 'dev_eer_pct': 12.945, 'minutes': 17.6}
+[5/6] tune on the held-out set (codec-augmented): SVM calibration, fusion weight, risk thresholds
+    svm snapshots tune: 5000/11998 utts (31 utt/s)
+    svm snapshots tune: 10000/11998 utts (36 utt/s)
+  svm snapshots mixed/tune: 11998 utts -> 47228 vectors in 323s
+  svm weight 0.00; risk thresholds: verify >= 0.0316, block >= 0.2575
+  tuning set   n= 11998 | EER at 10 s: svm  26.97%  rcnn  12.95%  fused  12.95%
+               fused EER by seconds of speech: 2s 17.68%  4s 14.23%  6s 13.40%  8s 13.03%  10s 12.95%
+[6/6] test sets (scored once, never tuned on)
+  scoring asv5/eval: 30000 of 136376 clips
+  asv5/eval    n= 30000 | EER at 10 s: svm  29.58%  rcnn  29.36%  fused  29.36%
+               fused EER by seconds of speech: 2s 30.42%  4s 29.68%  6s 29.41%  8s 29.34%  10s 29.36%
+  scoring asv19/eval: 29988 of 71237 clips
+  asv19/eval   n= 29988 | EER at 10 s: svm  25.18%  rcnn  15.99%  fused  15.99%
+               fused EER by seconds of speech: 2s 17.08%  4s 16.10%  6s 16.00%  8s 15.99%  10s 15.99%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\training_report.json
