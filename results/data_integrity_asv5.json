@@ -1,0 +1,281 @@
+{
+  "dataset": "asv5",
+  "root": "C:\\Users\\Asus\\OneDrive\\Desktop\\Audio-Deepfake-Detection\\dataset5",
+  "ok": true,
+  "errors": [],
+  "findings": [
+    "attacks shared by train and dev: none",
+    "attacks shared by train and eval: none",
+    "attacks shared by dev and eval: none",
+    "train: duration differs between bonafide (14.6) and spoof (11.232)",
+    "train: leading silence differs between bonafide (0.2) and spoof (0.05)",
+    "train: trailing silence differs between bonafide (0.263) and spoof (0.025)",
+    "dev: digital-silence frame fraction (mean) differs between bonafide (0.0) and spoof (0.014)"
+  ],
+  "splits": {
+    "train": {
+      "rows": 182357,
+      "files_on_disk": 182357,
+      "missing_audio": 0,
+      "audio_not_in_protocol": 0,
+      "duplicate_utt_ids": 0,
+      "label_counts": {
+        "bonafide": 18797,
+        "spoof": 163560
+      },
+      "attacks": {
+        "A01": 20445,
+        "A02": 20445,
+        "A03": 20445,
+        "A04": 20445,
+        "A05": 20445,
+        "A06": 20445,
+        "A07": 20445,
+        "A08": 20445
+      },
+      "codec_by_label": {
+        "bonafide": {
+          "-": 18797
+        },
+        "spoof": {
+          "-": 163560
+        }
+      },
+      "speakers": 400,
+      "format_checked": 3000,
+      "formats": {
+        "16000Hz/1ch/PCM_16": 3000
+      },
+      "duration_s_by_label": {
+        "bonafide": {
+          "n": 309,
+          "mean": 15.027,
+          "p5": 10.766,
+          "median": 14.6,
+          "p95": 19.576
+        },
+        "spoof": {
+          "n": 2691,
+          "mean": 11.516,
+          "p5": 7.488,
+          "median": 11.232,
+          "p95": 16.528
+        }
+      },
+      "leading_silence_s_by_label": {
+        "bonafide": {
+          "n": 64,
+          "mean": 0.259,
+          "p5": 0.0,
+          "median": 0.2,
+          "p95": 0.717
+        },
+        "spoof": {
+          "n": 536,
+          "mean": 0.085,
+          "p5": 0.0,
+          "median": 0.05,
+          "p95": 0.4
+        }
+      },
+      "trailing_silence_s_by_label": {
+        "bonafide": {
+          "n": 64,
+          "mean": 0.276,
+          "p5": 0.0,
+          "median": 0.263,
+          "p95": 0.789
+        },
+        "spoof": {
+          "n": 536,
+          "mean": 0.089,
+          "p5": 0.0,
+          "median": 0.025,
+          "p95": 0.475
+        }
+      },
+      "after_vad_leading_silence_s_by_label": {
+        "bonafide": {
+          "n": 64,
+          "mean": 0.029,
+          "p5": 0.0,
+          "median": 0.025,
+          "p95": 0.05
+        },
+        "spoof": {
+          "n": 536,
+          "mean": 0.025,
+          "p5": 0.0,
+          "median": 0.025,
+          "p95": 0.05
+        }
+      },
+      "after_vad_trailing_silence_s_by_label": {
+        "bonafide": {
+          "n": 64,
+          "mean": 0.015,
+          "p5": 0.0,
+          "median": 0.013,
+          "p95": 0.05
+        },
+        "spoof": {
+          "n": 536,
+          "mean": 0.008,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.025
+        }
+      },
+      "digital_silence_frac_by_label": {
+        "bonafide": {
+          "n": 64,
+          "mean": 0.0,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.0
+        },
+        "spoof": {
+          "n": 536,
+          "mean": 0.0,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.0
+        }
+      }
+    },
+    "dev": {
+      "rows": 140950,
+      "files_on_disk": 142134,
+      "missing_audio": 0,
+      "audio_not_in_protocol": 1184,
+      "duplicate_utt_ids": 0,
+      "label_counts": {
+        "bonafide": 31334,
+        "spoof": 109616
+      },
+      "attacks": {
+        "A09": 13702,
+        "A10": 13702,
+        "A11": 13702,
+        "A12": 13702,
+        "A13": 13702,
+        "A14": 13702,
+        "A15": 13702,
+        "A16": 13702
+      },
+      "codec_by_label": {
+        "bonafide": {
+          "-": 31334
+        },
+        "spoof": {
+          "-": 109616
+        }
+      },
+      "speakers": 785,
+      "format_checked": 3000,
+      "formats": {
+        "16000Hz/1ch/PCM_16": 3000
+      },
+      "duration_s_by_label": {
+        "bonafide": {
+          "n": 622,
+          "mean": 6.98,
+          "p5": 4.376,
+          "median": 6.998,
+          "p95": 9.705
+        },
+        "spoof": {
+          "n": 2378,
+          "mean": 7.095,
+          "p5": 4.26,
+          "median": 7.062,
+          "p95": 9.805
+        }
+      },
+      "leading_silence_s_by_label": {
+        "bonafide": {
+          "n": 122,
+          "mean": 0.05,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.25
+        },
+        "spoof": {
+          "n": 478,
+          "mean": 0.052,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.275
+        }
+      },
+      "trailing_silence_s_by_label": {
+        "bonafide": {
+          "n": 122,
+          "mean": 0.116,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.474
+        },
+        "spoof": {
+          "n": 478,
+          "mean": 0.096,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.429
+        }
+      },
+      "after_vad_leading_silence_s_by_label": {
+        "bonafide": {
+          "n": 122,
+          "mean": 0.018,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.05
+        },
+        "spoof": {
+          "n": 478,
+          "mean": 0.018,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.05
+        }
+      },
+      "after_vad_trailing_silence_s_by_label": {
+        "bonafide": {
+          "n": 122,
+          "mean": 0.015,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.05
+        },
+        "spoof": {
+          "n": 478,
+          "mean": 0.017,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.05
+        }
+      },
+      "digital_silence_frac_by_label": {
+        "bonafide": {
+          "n": 122,
+          "mean": 0.0,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.0
+        },
+        "spoof": {
+          "n": 478,
+          "mean": 0.014,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.112
+        }
+      }
+    },
+    "eval": {
+      "rows": 680774,
+      "audio": "not downloaded"
+    }
+  }
+}

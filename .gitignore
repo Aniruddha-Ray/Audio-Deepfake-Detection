@@ -5,3 +5,5 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 *.pptx
+dataset5/
+artifacts_prev_asv2019/

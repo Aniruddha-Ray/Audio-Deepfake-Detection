@@ -1,0 +1,409 @@
+{
+  "dataset": "asv19",
+  "root": "C:\\Users\\Asus\\OneDrive\\Desktop\\Audio-Deepfake-Detection\\dataset\\LA\\LA",
+  "ok": true,
+  "errors": [],
+  "findings": [
+    "attacks shared by train and dev: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06']",
+    "attacks shared by train and eval: none",
+    "attacks shared by dev and eval: none",
+    "train: leading silence differs between bonafide (0.575) and spoof (0.35)",
+    "dev: leading silence differs between bonafide (1.0) and spoof (0.325)",
+    "dev: trailing silence differs between bonafide (0.213) and spoof (0.275)",
+    "eval: leading silence differs between bonafide (0.75) and spoof (0.05)",
+    "eval: trailing silence differs between bonafide (0.275) and spoof (0.15)"
+  ],
+  "splits": {
+    "train": {
+      "rows": 25380,
+      "files_on_disk": 25380,
+      "missing_audio": 0,
+      "audio_not_in_protocol": 0,
+      "duplicate_utt_ids": 0,
+      "label_counts": {
+        "bonafide": 2580,
+        "spoof": 22800
+      },
+      "attacks": {
+        "A01": 3800,
+        "A02": 3800,
+        "A03": 3800,
+        "A04": 3800,
+        "A05": 3800,
+        "A06": 3800
+      },
+      "codec_by_label": {
+        "bonafide": {
+          "-": 2580
+        },
+        "spoof": {
+          "-": 22800
+        }
+      },
+      "speakers": 20,
+      "format_checked": 3000,
+      "formats": {
+        "16000Hz/1ch/PCM_16": 3000
+      },
+      "duration_s_by_label": {
+        "bonafide": {
+          "n": 297,
+          "mean": 3.282,
+          "p5": 1.961,
+          "median": 3.236,
+          "p95": 4.953
+        },
+        "spoof": {
+          "n": 2703,
+          "mean": 3.398,
+          "p5": 1.564,
+          "median": 3.167,
+          "p95": 6.094
+        }
+      },
+      "leading_silence_s_by_label": {
+        "bonafide": {
+          "n": 52,
+          "mean": 0.672,
+          "p5": 0.025,
+          "median": 0.575,
+          "p95": 1.397
+        },
+        "spoof": {
+          "n": 548,
+          "mean": 0.507,
+          "p5": 0.0,
+          "median": 0.35,
+          "p95": 1.5
+        }
+      },
+      "trailing_silence_s_by_label": {
+        "bonafide": {
+          "n": 52,
+          "mean": 0.306,
+          "p5": 0.0,
+          "median": 0.225,
+          "p95": 0.979
+        },
+        "spoof": {
+          "n": 548,
+          "mean": 0.31,
+          "p5": 0.0,
+          "median": 0.275,
+          "p95": 0.8
+        }
+      },
+      "after_vad_leading_silence_s_by_label": {
+        "bonafide": {
+          "n": 52,
+          "mean": 0.042,
+          "p5": 0.0,
+          "median": 0.05,
+          "p95": 0.05
+        },
+        "spoof": {
+          "n": 548,
+          "mean": 0.038,
+          "p5": 0.0,
+          "median": 0.05,
+          "p95": 0.05
+        }
+      },
+      "after_vad_trailing_silence_s_by_label": {
+        "bonafide": {
+          "n": 52,
+          "mean": 0.025,
+          "p5": 0.0,
+          "median": 0.025,
+          "p95": 0.05
+        },
+        "spoof": {
+          "n": 548,
+          "mean": 0.034,
+          "p5": 0.0,
+          "median": 0.05,
+          "p95": 0.05
+        }
+      },
+      "digital_silence_frac_by_label": {
+        "bonafide": {
+          "n": 52,
+          "mean": 0.0,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.0
+        },
+        "spoof": {
+          "n": 548,
+          "mean": 0.0,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.0
+        }
+      }
+    },
+    "dev": {
+      "rows": 24844,
+      "files_on_disk": 24986,
+      "missing_audio": 0,
+      "audio_not_in_protocol": 142,
+      "duplicate_utt_ids": 0,
+      "label_counts": {
+        "bonafide": 2548,
+        "spoof": 22296
+      },
+      "attacks": {
+        "A01": 3716,
+        "A02": 3716,
+        "A03": 3716,
+        "A04": 3716,
+        "A05": 3716,
+        "A06": 3716
+      },
+      "codec_by_label": {
+        "bonafide": {
+          "-": 2548
+        },
+        "spoof": {
+          "-": 22296
+        }
+      },
+      "speakers": 20,
+      "format_checked": 3000,
+      "formats": {
+        "16000Hz/1ch/PCM_16": 3000
+      },
+      "duration_s_by_label": {
+        "bonafide": {
+          "n": 301,
+          "mean": 3.491,
+          "p5": 2.093,
+          "median": 3.322,
+          "p95": 5.289
+        },
+        "spoof": {
+          "n": 2699,
+          "mean": 3.519,
+          "p5": 1.517,
+          "median": 3.322,
+          "p95": 6.263
+        }
+      },
+      "leading_silence_s_by_label": {
+        "bonafide": {
+          "n": 54,
+          "mean": 0.999,
+          "p5": 0.116,
+          "median": 1.0,
+          "p95": 1.876
+        },
+        "spoof": {
+          "n": 546,
+          "mean": 0.475,
+          "p5": 0.0,
+          "median": 0.325,
+          "p95": 1.344
+        }
+      },
+      "trailing_silence_s_by_label": {
+        "bonafide": {
+          "n": 54,
+          "mean": 0.36,
+          "p5": 0.025,
+          "median": 0.213,
+          "p95": 1.009
+        },
+        "spoof": {
+          "n": 546,
+          "mean": 0.322,
+          "p5": 0.0,
+          "median": 0.275,
+          "p95": 0.844
+        }
+      },
+      "after_vad_leading_silence_s_by_label": {
+        "bonafide": {
+          "n": 54,
+          "mean": 0.044,
+          "p5": 0.0,
+          "median": 0.05,
+          "p95": 0.05
+        },
+        "spoof": {
+          "n": 546,
+          "mean": 0.04,
+          "p5": 0.0,
+          "median": 0.05,
+          "p95": 0.05
+        }
+      },
+      "after_vad_trailing_silence_s_by_label": {
+        "bonafide": {
+          "n": 54,
+          "mean": 0.034,
+          "p5": 0.0,
+          "median": 0.038,
+          "p95": 0.05
+        },
+        "spoof": {
+          "n": 546,
+          "mean": 0.034,
+          "p5": 0.0,
+          "median": 0.05,
+          "p95": 0.05
+        }
+      },
+      "digital_silence_frac_by_label": {
+        "bonafide": {
+          "n": 54,
+          "mean": 0.0,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.0
+        },
+        "spoof": {
+          "n": 546,
+          "mean": 0.0,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.0
+        }
+      }
+    },
+    "eval": {
+      "rows": 71237,
+      "files_on_disk": 71933,
+      "missing_audio": 0,
+      "audio_not_in_protocol": 696,
+      "duplicate_utt_ids": 0,
+      "label_counts": {
+        "bonafide": 7355,
+        "spoof": 63882
+      },
+      "attacks": {
+        "A07": 4914,
+        "A08": 4914,
+        "A09": 4914,
+        "A10": 4914,
+        "A11": 4914,
+        "A12": 4914,
+        "A13": 4914,
+        "A14": 4914,
+        "A15": 4914,
+        "A16": 4914,
+        "A17": 4914,
+        "A18": 4914,
+        "A19": 4914
+      },
+      "codec_by_label": {
+        "bonafide": {
+          "-": 7355
+        },
+        "spoof": {
+          "-": 63882
+        }
+      },
+      "speakers": 67,
+      "format_checked": 3000,
+      "formats": {
+        "16000Hz/1ch/PCM_16": 3000
+      },
+      "duration_s_by_label": {
+        "bonafide": {
+          "n": 332,
+          "mean": 3.336,
+          "p5": 2.128,
+          "median": 3.177,
+          "p95": 5.093
+        },
+        "spoof": {
+          "n": 2668,
+          "mean": 3.097,
+          "p5": 1.261,
+          "median": 2.774,
+          "p95": 6.112
+        }
+      },
+      "leading_silence_s_by_label": {
+        "bonafide": {
+          "n": 57,
+          "mean": 0.844,
+          "p5": 0.205,
+          "median": 0.75,
+          "p95": 1.89
+        },
+        "spoof": {
+          "n": 543,
+          "mean": 0.197,
+          "p5": 0.0,
+          "median": 0.05,
+          "p95": 0.972
+        }
+      },
+      "trailing_silence_s_by_label": {
+        "bonafide": {
+          "n": 57,
+          "mean": 0.435,
+          "p5": 0.0,
+          "median": 0.275,
+          "p95": 1.425
+        },
+        "spoof": {
+          "n": 543,
+          "mean": 0.216,
+          "p5": 0.0,
+          "median": 0.15,
+          "p95": 0.7
+        }
+      },
+      "after_vad_leading_silence_s_by_label": {
+        "bonafide": {
+          "n": 57,
+          "mean": 0.041,
+          "p5": 0.0,
+          "median": 0.05,
+          "p95": 0.05
+        },
+        "spoof": {
+          "n": 543,
+          "mean": 0.032,
+          "p5": 0.0,
+          "median": 0.025,
+          "p95": 0.05
+        }
+      },
+      "after_vad_trailing_silence_s_by_label": {
+        "bonafide": {
+          "n": 57,
+          "mean": 0.027,
+          "p5": 0.0,
+          "median": 0.025,
+          "p95": 0.05
+        },
+        "spoof": {
+          "n": 543,
+          "mean": 0.027,
+          "p5": 0.0,
+          "median": 0.025,
+          "p95": 0.05
+        }
+      },
+      "digital_silence_frac_by_label": {
+        "bonafide": {
+          "n": 57,
+          "mean": 0.0,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.0
+        },
+        "spoof": {
+          "n": 543,
+          "mean": 0.003,
+          "p5": 0.0,
+          "median": 0.0,
+          "p95": 0.015
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+asv5=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset5
+artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts
+rcnn=BiLSTM, epochs=10, svm clips=20000, codec aug p=0.5
+device=cuda artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts
+[1/6] integrity audit
+  finding: attacks shared by train and dev: none
+  finding: attacks shared by train and eval: none
+  finding: attacks shared by dev and eval: none
+  finding: train: duration differs between bonafide (14.52) and spoof (10.736)
+  finding: train: leading silence differs between bonafide (0.412) and spoof (0.05)
+  finding: train: trailing silence differs between bonafide (0.213) and spoof (0.025)
+  finding: dev: digital-silence frame fraction (mean) differs between bonafide (0.003) and spoof (0.014)
+[2/6] index clips (decode once, record VAD speech bounds)
+[3/6] SVM branch: growing-buffer snapshots, codec-augmented
+    svm snapshots train: 5000/19994 utts (22 utt/s)
+    svm snapshots train: 10000/19994 utts (24 utt/s)
+    svm snapshots train: 15000/19994 utts (25 utt/s)
+  svm snapshots asv5/train: 19994 utts -> 98527 vectors in 796s
+  SVM fit on 98527 snapshot vectors from 19994 clips in 926s
+[4/6] RCNN branch: random 2 s windows read from FLAC, codec-augmented
+  epoch 1/10: {'epoch': 1, 'loss': 0.03047, 'dev_eer_pct': 19.312, 'minutes': 23.5}
+  epoch 2/10: {'epoch': 2, 'loss': 0.01665, 'dev_eer_pct': 20.575, 'minutes': 22.2}
+  epoch 3/10: {'epoch': 3, 'loss': 0.01277, 'dev_eer_pct': 18.137, 'minutes': 22.0}
+  epoch 4/10: {'epoch': 4, 'loss': 0.00974, 'dev_eer_pct': 18.731, 'minutes': 22.1}
+  epoch 5/10: {'epoch': 5, 'loss': 0.0071, 'dev_eer_pct': 20.875, 'minutes': 22.1}
+  epoch 6/10: {'epoch': 6, 'loss': 0.00607, 'dev_eer_pct': 17.594, 'minutes': 22.2}
+  epoch 7/10: {'epoch': 7, 'loss': 0.00465, 'dev_eer_pct': 18.225, 'minutes': 22.5}
+  epoch 8/10: {'epoch': 8, 'loss': 0.00347, 'dev_eer_pct': 18.262, 'minutes': 22.1}
+  epoch 9/10: {'epoch': 9, 'loss': 0.0025, 'dev_eer_pct': 17.95, 'minutes': 21.9}
+  epoch 10/10: {'epoch': 10, 'loss': 0.00208, 'dev_eer_pct': 17.969, 'minutes': 22.0}
+[5/6] tune on dev (codec-augmented): SVM calibration, fusion weight, risk thresholds
+    svm snapshots dev: 5000/12000 utts (33 utt/s)
+    svm snapshots dev: 10000/12000 utts (38 utt/s)
+  svm snapshots asv5/dev: 12000 utts -> 47396 vectors in 307s
+  svm weight 0.20; risk thresholds: verify >= 0.1690, block >= 0.3718
+  dev (tuned)  n= 12000 | EER at 10 s: svm  21.80%  rcnn  17.59%  fused  15.88%
+               fused EER by seconds of speech: 2s 18.90%  4s 16.91%  6s 16.23%  8s 16.04%  10s 15.88%
+[6/6] test sets (scored once, never tuned on)
+  skipping asv5/eval: audio not found under C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset5
+    index asv19/eval: 20000/71237 (237 utt/s)
+    index asv19/eval: 40000/71237 (318 utt/s)
+    index asv19/eval: 60000/71237 (356 utt/s)
+  indexed asv19/eval: 71237 utts in 197s, 0 without speech
+  scoring asv19/eval: 14997 of 71237 clips
+    svm snapshots eval: 5000/14997 utts (56 utt/s)
+    svm snapshots eval: 10000/14997 utts (81 utt/s)
+  svm snapshots asv19/eval: 14997 utts -> 25040 vectors in 159s
+  asv19/eval   n= 14997 | EER at 10 s: svm  41.35%  rcnn  33.31%  fused  37.80%
+               fused EER by seconds of speech: 2s 32.31%  4s 37.64%  6s 37.81%  8s 37.81%  10s 37.80%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\training_report.json

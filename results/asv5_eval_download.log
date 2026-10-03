@@ -1,0 +1,12 @@
+=== 09:15:23 START flac_E_aa.tar ===
+free disk: 103.3 GB
+/c/Users/Asus/AppData/Local/Temp/claude/c--Users-Asus-OneDrive-Desktop-Audio-Deepfake-Detection/e520f621-21aa-4cab-8f86-e01c876dbf01/scratchpad/download_asv5_eval.sh: line 11: bc: command not found
+downloaded flac_E_aa.tar: 8449 MB
+=== 09:27:37 DONE flac_E_aa ===
+=== 09:27:37 START flac_E_ab.tar ===
+free disk: 94.5 GB
+/c/Users/Asus/AppData/Local/Temp/claude/c--Users-Asus-OneDrive-Desktop-Audio-Deepfake-Detection/e520f621-21aa-4cab-8f86-e01c876dbf01/scratchpad/download_asv5_eval.sh: line 11: bc: command not found
+downloaded flac_E_ab.tar: 8459 MB
+=== 09:39:02 DONE flac_E_ab ===
+=== EVAL SUBSET READY ===
+136376

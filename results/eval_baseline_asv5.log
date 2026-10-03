@@ -1,0 +1,11 @@
+  scoring asv5/eval: 30000 of 136376 clips
+    svm snapshots eval: 5000/30000 utts (36 utt/s)
+    svm snapshots eval: 10000/30000 utts (42 utt/s)
+    svm snapshots eval: 15000/30000 utts (44 utt/s)
+    svm snapshots eval: 20000/30000 utts (46 utt/s)
+    svm snapshots eval: 25000/30000 utts (47 utt/s)
+    svm snapshots eval: 30000/30000 utts (47 utt/s)
+  svm snapshots asv5/eval: 30000 utts -> 119396 vectors in 639s
+  asv5/eval    n= 30000 | EER at 10 s: svm  33.56%  rcnn  37.38%  fused  32.95%
+               fused EER by seconds of speech: 2s 35.64%  4s 33.75%  6s 33.26%  8s 33.05%  10s 32.95%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_asv5_eval.json
