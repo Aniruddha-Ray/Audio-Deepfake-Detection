@@ -69,6 +69,8 @@ def create_app(engine: DetectionEngine | None = None, settings: Settings | None 
         if len(wave) < settings.audio.sample_rate // 2:
             raise HTTPException(400, "audio shorter than 0.5 s")
         verdict = await run_in_threadpool(eng.predict_waveform, wave)
+        if verdict is None:
+            raise HTTPException(422, "no speech detected")
         metrics.record_verdict(verdict, "http")
         return verdict.to_dict()
 

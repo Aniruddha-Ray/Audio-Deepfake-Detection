@@ -10,6 +10,22 @@ import soundfile as sf
 from scipy.signal import resample_poly
 
 
+LSB = 1.0 / 32768.0
+
+
+def fill_digital_silence(wave: np.ndarray, seed: int = 0) -> np.ndarray:
+    """Replace exact-zero samples with +-1 LSB noise. Some TTS systems (e.g. 72% of ASVspoof5 dev
+    attack A11 clips) and VoIP DTX emit exact digital silence, which no microphone produces; left
+    in, it is a trivially removable attack-specific cue and sends log features to -inf. Real audio
+    is left bit-exact; only exact zeros change. Deterministic for a given seed."""
+    zeros = wave == 0
+    if not zeros.any():
+        return wave
+    wave = wave.copy()
+    wave[zeros] = np.random.default_rng(seed).choice(np.array([-LSB, LSB], dtype=np.float32), int(zeros.sum()))
+    return wave
+
+
 def to_mono_target_rate(wave: np.ndarray, sr: int, target_sr: int) -> np.ndarray:
     wave = np.asarray(wave, dtype=np.float32)
     if wave.ndim > 1:
@@ -25,7 +41,7 @@ def load_audio(source, target_sr: int) -> np.ndarray:
     if isinstance(source, (bytes, bytearray)):
         source = io.BytesIO(source)
     wave, sr = sf.read(source, dtype="float32", always_2d=False)
-    return to_mono_target_rate(wave, sr, target_sr)
+    return fill_digital_silence(to_mono_target_rate(wave, sr, target_sr))
 
 
 def pcm16_to_float(data: bytes) -> np.ndarray:

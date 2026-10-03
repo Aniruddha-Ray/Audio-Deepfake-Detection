@@ -23,6 +23,13 @@ def compute_metrics(y: np.ndarray, p: np.ndarray) -> dict:
     }
 
 
+def per_group_eer(y: np.ndarray, p: np.ndarray, groups: np.ndarray) -> dict[str, float]:
+    """EER within each group (e.g. each codec condition), skipping groups missing a class."""
+    y, p, groups = np.asarray(y), np.asarray(p), np.asarray(groups)
+    return {str(g): compute_metrics(y[groups == g], p[groups == g])["eer_pct"]
+            for g in sorted(set(groups)) if len(set(y[groups == g])) == 2}
+
+
 def per_attack_eer(y: np.ndarray, p: np.ndarray, attacks: np.ndarray) -> dict[str, float]:
     """EER of each spoofing attack against all bonafide utterances."""
     y, p, attacks = np.asarray(y), np.asarray(p), np.asarray(attacks)

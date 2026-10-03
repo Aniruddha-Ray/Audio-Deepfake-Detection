@@ -12,6 +12,7 @@ from sklearn.pipeline import Pipeline
 
 from audiodf import __version__
 from audiodf.config import Settings
+from audiodf.features import rcnn_features, svm_features
 from audiodf.models.rcnn import RCNN, load_rcnn
 from audiodf.models.svm import load_svm, save_svm
 
@@ -25,6 +26,10 @@ class ModelBundle:
     manifest: dict
 
 
+def feature_versions() -> dict:
+    return {"svm": svm_features.FEATURE_VERSION, "rcnn": rcnn_features.FEATURE_VERSION}
+
+
 def bundle_dir(settings: Settings) -> Path:
     return Path(settings.paths.artifacts_dir)
 
@@ -35,6 +40,7 @@ def write_manifest(settings: Settings, svm: Pipeline, rcnn: RCNN, metrics: dict 
     manifest = {
         "version": __version__,
         "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "feature_versions": feature_versions(),
         "svm_feature_dim": int(svm.n_features_in_),
         "rcnn_input_shape": list(rcnn.input_shape),
         "rcnn_bidirectional": rcnn.cfg.bidirectional,
@@ -52,9 +58,12 @@ def load_bundle(settings: Settings, device: str | torch.device = "cpu") -> Model
     missing = [f for f in (SVM_FILE, RCNN_FILE, MANIFEST_FILE) if not (out / f).exists()]
     if missing:
         raise FileNotFoundError(f"missing {missing} in {out}; run `audiodf train` first")
+    manifest = json.loads((out / MANIFEST_FILE).read_text())
+    if manifest.get("feature_versions") != feature_versions():
+        raise ValueError(f"artifacts in {out} were built with feature versions "
+                         f"{manifest.get('feature_versions')}, this code computes {feature_versions()}; retrain")
     svm = load_svm(out / SVM_FILE)
     rcnn = load_rcnn(out / RCNN_FILE, device)
-    manifest = json.loads((out / MANIFEST_FILE).read_text())
     expect_shape = (settings.rcnn_features.n_mels, settings.segment_frames)
     if svm.n_features_in_ != settings.svm_features.dim:
         raise ValueError(f"SVM expects {svm.n_features_in_} features, config produces {settings.svm_features.dim}")

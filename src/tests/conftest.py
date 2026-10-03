@@ -8,7 +8,7 @@ from audiodf.config import Settings
 from audiodf.features.svm_features import SvmFeatureExtractor
 from audiodf.inference.engine import DetectionEngine
 from audiodf.models.rcnn import RCNN
-from audiodf.models.svm import build_svm
+from audiodf.models.svm import CalibratedSvm, build_svm
 
 SR = 16000
 
@@ -33,6 +33,7 @@ def engine(settings) -> DetectionEngine:
         spoof = i % 2
         X.append(fx.extract(tone(3, 220 + 40 * i, noise=0.02 if spoof else 0.3, seed=i)))
         y.append(spoof)
-    svm = build_svm(settings.svm_model).fit(np.stack(X), np.array(y))
+    svm = CalibratedSvm(build_svm(settings.svm_model).fit(np.stack(X), np.array(y)))
+    svm.fit_calibrator(np.stack(X), np.array(y))
     rcnn = RCNN(settings.rcnn_features.n_mels, settings.segment_frames, settings.rcnn_model)
     return DetectionEngine(svm, rcnn, settings, "cpu")

@@ -1,4 +1,4 @@
-"""Command line: audiodf {extract,train,evaluate,predict,benchmark,serve,produce,consume}."""
+"""Command line: audiodf {audit,prepare,train,evaluate,predict,benchmark,serve,produce,consume}."""
 
 from __future__ import annotations
 
@@ -9,10 +9,34 @@ from pathlib import Path
 from audiodf.config import load_settings
 
 
-def _cmd_extract(args, settings):
-    from audiodf.data.cache import load_or_build
+def _cmd_audit(args, settings):
+    from audiodf.data.integrity import audit_dataset, write_report
 
-    load_or_build(settings, args.limit, args.workers)
+    report = audit_dataset(settings, args.dataset, None if args.full else args.sample, args.silence_sample)
+    path = write_report(report, settings.paths.results_dir)
+    print(f"{report['dataset']}: {'OK' if report['ok'] else 'FAILED'}  (report: {path})")
+    for e in report["errors"]:
+        print(f"  ERROR   {e}")
+    for f in report["findings"]:
+        print(f"  finding {f}")
+    if not report["ok"]:
+        raise SystemExit(1)
+
+
+def _cmd_prepare(args, settings):
+    from pathlib import Path
+
+    from audiodf.data.prepare import build_index
+    from audiodf.data.protocol import ASV5_SPLITS, ASV19_SPLITS
+
+    table = {"asv5": ASV5_SPLITS, "asv19": ASV19_SPLITS}[args.dataset]
+    root = Path(settings.dataset_root(args.dataset))
+    for split in args.splits:
+        audio = root / table[split][1]
+        if not audio.is_dir():
+            print(f"  skipping {args.dataset}/{split}: audio not downloaded ({audio})")
+            continue
+        build_index(settings, args.dataset, split, args.limit, args.workers)
 
 
 def _cmd_train(args, settings):
@@ -20,18 +44,23 @@ def _cmd_train(args, settings):
 
     if args.epochs:
         settings.rcnn_train.epochs = args.epochs
-    run_training(settings, args.limit, args.workers, Path(args.rcnn_checkpoint) if args.rcnn_checkpoint else None)
+    if args.svm_utts:
+        settings.data.svm_train_utts = args.svm_utts
+    if args.eval_utts is not None:
+        settings.data.eval_utts = args.eval_utts
+    run_training(settings, args.limit, args.workers)
 
 
 def _cmd_evaluate(args, settings):
-    from audiodf.artifacts import load_bundle
-    from audiodf.data.cache import load_or_build
-    from audiodf.training.pipeline import evaluate, pick_device
+    from audiodf.training.pipeline import evaluate_artifacts
 
-    device = pick_device()
-    bundle = load_bundle(settings, device)
-    splits = load_or_build(settings, args.limit, args.workers, splits=("dev", "eval"))
-    print(json.dumps(evaluate(bundle.svm, bundle.rcnn, splits, settings, device), indent=2))
+    from pathlib import Path
+
+    rep = evaluate_artifacts(settings, args.dataset, args.split, args.eval_utts, args.workers, args.limit)
+    out = Path(settings.paths.results_dir) / f"evaluate_{args.dataset}_{args.split}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(rep, indent=2, default=str))
+    print(f"report: {out}")
 
 
 def _cmd_predict(args, settings):
@@ -39,8 +68,8 @@ def _cmd_predict(args, settings):
     from audiodf.inference.engine import DetectionEngine
 
     engine = DetectionEngine.from_artifacts(settings)
-    wave = load_audio(args.audio, settings.audio.sample_rate)
-    print(json.dumps(engine.predict_waveform(wave).to_dict(), indent=2))
+    verdict = engine.predict_waveform(load_audio(args.audio, settings.audio.sample_rate))
+    print(json.dumps(verdict.to_dict(), indent=2) if verdict else "no speech detected")
 
 
 def _cmd_benchmark(args, settings):
@@ -83,15 +112,28 @@ def main(argv=None) -> None:
         sp.set_defaults(fn=fn)
         return sp
 
-    for name, fn, help_ in (("extract", _cmd_extract, "build the feature cache"),
-                            ("train", _cmd_train, "train SVM + RCNN, evaluate, save artifacts"),
-                            ("evaluate", _cmd_evaluate, "evaluate saved artifacts on dev/eval")):
-        sp = add(name, fn, help_)
-        sp.add_argument("--limit", type=int, help="utterances per split (smoke test)")
-        sp.add_argument("--workers", type=int, default=8)
-        if name == "train":
-            sp.add_argument("--epochs", type=int)
-            sp.add_argument("--rcnn-checkpoint", help="reuse this RCNN checkpoint instead of training")
+    sp = add("train", _cmd_train, "train on ASVspoof5, tune on dev, test, save artifacts")
+    sp.add_argument("--limit", type=int, help="utterances per split (smoke test)")
+    sp.add_argument("--workers", type=int, default=8)
+    sp.add_argument("--epochs", type=int)
+    sp.add_argument("--svm-utts", type=int, help="clips the SVM trains on")
+    sp.add_argument("--eval-utts", type=int, help="test clips scored per report (0 = whole split)")
+    sp = add("evaluate", _cmd_evaluate, "score saved artifacts on a dataset split")
+    sp.add_argument("--dataset", choices=["asv5", "asv19"], default="asv5")
+    sp.add_argument("--split", choices=["train", "dev", "eval"], default="eval")
+    sp.add_argument("--eval-utts", type=int, default=60000, help="clips to score (0 = whole split)")
+    sp.add_argument("--limit", type=int)
+    sp.add_argument("--workers", type=int, default=8)
+    sp = add("audit", _cmd_audit, "dataset integrity audit (exit 1 on hard errors)")
+    sp.add_argument("--dataset", choices=["asv5", "asv19"], default="asv5")
+    sp.add_argument("--sample", type=int, default=3000, help="files per split for format/duration checks")
+    sp.add_argument("--silence-sample", type=int, default=600, help="files per split decoded for silence checks")
+    sp.add_argument("--full", action="store_true", help="check the format of every file")
+    sp = add("prepare", _cmd_prepare, "index clips (decode once, record VAD speech bounds)")
+    sp.add_argument("--dataset", choices=["asv5", "asv19"], default="asv5")
+    sp.add_argument("--splits", nargs="+", default=["train", "dev", "eval"])
+    sp.add_argument("--limit", type=int)
+    sp.add_argument("--workers", type=int, default=8)
     add("predict", _cmd_predict, "score one audio file").add_argument("audio")
     add("benchmark", _cmd_benchmark, "per-stage latency")
     sp = add("serve", _cmd_serve, "run the FastAPI service")

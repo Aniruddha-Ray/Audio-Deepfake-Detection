@@ -2,7 +2,8 @@
 # Use with: audiodf --config configs/default.yaml <command>   (or AUDIODF_CONFIG=...)
 
 paths:
-  data_root: dataset/LA/LA        # ASVspoof2019 LA root (also $AUDIODF_DATA)
+  asv5_root: dataset5             # ASVspoof5 (also $AUDIODF_ASV5): the training data
+  data_root: dataset/LA/LA        # ASVspoof2019 LA root (also $AUDIODF_DATA): cross-dataset test only
   artifacts_dir: artifacts        # svm.joblib, rcnn.pt, bundle.json (also $AUDIODF_ARTIFACTS)
   cache_dir: ~/.cache/audiodf     # feature cache
 
@@ -16,9 +17,21 @@ rcnn_model:
   dropout: 0.2
 
 rcnn_train:
-  epochs: 20                      # dev EER was still falling at 5 epochs
+  epochs: 10                      # ~10 min per epoch at 2 windows/clip; keeps the best dev epoch
   batch_size: 64
   lr: 0.001
+
+data:
+  svm_snapshot_seconds: [2.0, 4.0, 6.0, 8.0, 10.0]   # growing-buffer prefixes the SVM trains and is scored on
+  rcnn_windows_per_utt: 2         # random 2 s windows per clip per epoch (inside the first 10 s of speech)
+  svm_train_utts: 20000           # clips the SVM trains on
+  tune_utts: 12000                # dev clips for epoch choice, SVM calibration, fusion weight
+  eval_utts: 60000                # test clips per report (0 = whole split)
+  codec_aug_p: 0.5                # training augmentation, same probability for bonafide and spoof
+  tune_aug_p: 0.75                # dev tuning clips: about the share of eval that is codec-processed
+
+vad:
+  threshold_db: -45.0             # speech starts at the first frame above this (dBFS), trimmed in training too
 
 svm_model:
   C: 10.0
@@ -26,11 +39,13 @@ svm_model:
   class_weight: balanced
 
 ensemble:
-  svm_weight: 0.7                 # 0.7 SVM + 0.3 RCNN; do not tune on dev (see README)
+  svm_weight: 0.7                 # training tunes this on dev and stores it in artifacts/bundle.json, which wins
 
 risk:                             # P(fake) cut-offs: >=high block, >=medium verify, else allow
-  high: 0.80
+  high: 0.80                      # overridden by the values training stores in the bundle
   medium: 0.50
+  block_fpr: 0.01                 # training sets high/medium so 1% / 10% of bonafide dev clips reach them
+  verify_fpr: 0.10
 
 stream:
   window_seconds: 10.0            # decision window; SVM sees up to this much audio at once

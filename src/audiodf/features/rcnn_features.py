@@ -12,6 +12,8 @@ import torchaudio.transforms as AT
 
 from audiodf.config import AudioConfig, RcnnFeatureConfig
 
+FEATURE_VERSION = 1  # bump on any change to the Log-Mel definition; checked when artifacts load
+
 
 class RcnnFeatureExtractor:
     def __init__(self, audio: AudioConfig | None = None, cfg: RcnnFeatureConfig | None = None,

@@ -18,6 +18,13 @@ from scipy.fftpack import dct
 from audiodf.config import AudioConfig, SvmFeatureConfig
 from audiodf.data.segmenter import pad_to_length
 
+# Bump whenever the feature definition changes; artifacts record it and refuse to load on mismatch.
+# v2: log floor at the STFT magnitude of a 1-LSB 16-bit signal (~1e-6) instead of 1e-10, so exact
+# digital silence (VoIP DTX, padded TTS output) no longer produces log values near -23 that swamp
+# the mean/std statistics.
+FEATURE_VERSION = 2
+MAG_FLOOR = 1e-6
+
 
 class SvmFeatureExtractor:
     def __init__(self, audio: AudioConfig | None = None, cfg: SvmFeatureConfig | None = None):
@@ -45,10 +52,10 @@ class SvmFeatureExtractor:
                                     noverlap=a.win_length - a.hop_length, nfft=a.n_fft, axis=-1)
         mag = np.abs(stft)
         n = self.cfg.n_cepstra
-        lfcc = dct(np.log(mag + 1e-10), type=2, axis=1, norm="ortho")[:, :n]
+        lfcc = dct(np.log(mag + MAG_FLOOR), type=2, axis=1, norm="ortho")[:, :n]
         phase = np.angle(stft)
         mgd = np.diff(phase, axis=1, prepend=phase[:, :1]) * mag ** self.cfg.mgd_alpha
-        mgdcc = dct(np.log(np.abs(mgd) + 1e-10), type=2, axis=1, norm="ortho")[:, :n]
+        mgdcc = dct(np.log(np.abs(mgd) + MAG_FLOOR ** self.cfg.mgd_alpha), type=2, axis=1, norm="ortho")[:, :n]
         return torch.from_numpy(lfcc).float(), torch.from_numpy(mgdcc).float()
 
     @torch.no_grad()
