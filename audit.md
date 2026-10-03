@@ -202,6 +202,14 @@ Config: SVM on 19,994 clips (98,527 snapshot vectors, codec aug 0.5), RCNN 10 ep
     I launched anyway without reading its result. Caught within minutes, before run 3 wrote anything: run 2 was copied
     to `artifacts_run2_pooled/` (verified: same files, report shows 31.58%). Rule: confirm each prep step's output
     before launching a long run.
+19. **CI failed on push `573fe30`** (you spotted it): I checked that the push landed but not the GitHub Actions result.
+    Cause: CI runs on Linux, where imageio-ffmpeg ships ffmpeg 7.0.2 **without the libgsm encoder** (Windows ships 7.1
+    with it), so the GSM codec tests failed. The CI log needs admin rights; the cause was confirmed by inspecting the
+    Linux binary (every other catalogue codec is present). Fix: `missing_codecs()` probes the ffmpeg build;
+    rendering refuses to start if a codec it must encode is missing (skipping it would silently change which copies
+    exist, since codec choice is fixed by clip ID); tests skip only what the build lacks; pipeline tests render only
+    with the full catalogue. Verified locally in both modes (real build, and one with libgsm hidden). Rule: after a
+    push, check the CI result.
 
 ## 5. Known limitations (current)
 

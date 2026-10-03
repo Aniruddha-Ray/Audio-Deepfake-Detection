@@ -114,10 +114,23 @@ def _write_split(root, prefix, audio, proto, attacks, n=24, seconds=5.0):
     (root / proto).write_text("\n".join(rows) + "\n")
 
 
+def _settings() -> Settings:
+    """Real-codec rendering (on by default) only where this ffmpeg build has the whole codec catalogue: CI's
+    Linux imageio-ffmpeg lacks GSM, and rendering refuses to run without it. test_ffmpeg_codecs covers rendering."""
+    s = Settings()
+    try:
+        from audiodf.data.ffmpeg_codecs import missing_codecs
+
+        s.data.ffmpeg_codecs = not missing_codecs()
+    except RuntimeError:  # no ffmpeg at all
+        s.data.ffmpeg_codecs = False
+    return s
+
+
 def test_run_training_end_to_end_on_synthetic_asv5(tmp_path):
     _write_split(tmp_path, "T", "flac_T", "ASVspoof5.train.tsv", ["A01", "A02"])
     _write_split(tmp_path, "D", "flac_D", "ASVspoof5.dev.track_1.tsv", ["A09", "A10"])
-    s = Settings()
+    s = _settings()
     s.paths.asv5_root = str(tmp_path)
     s.paths.data_root = str(tmp_path / "no_asv19")
     s.paths.cache_dir = str(tmp_path / "cache")
@@ -165,7 +178,7 @@ def _pooled_settings(tmp_path) -> Settings:
 
     _write_split(tmp_path, "T", "flac_T", "ASVspoof5.train.tsv", ["A01", "A02"])
     _write_split(tmp_path, "D", "flac_D", "ASVspoof5.dev.track_1.tsv", ["A09", "A10"])
-    s = Settings()
+    s = _settings()
     s.paths.asv5_root = str(tmp_path)
     s.paths.data_root = str(_asv19(tmp_path, n=12))
     s.paths.cache_dir, s.paths.artifacts_dir = str(tmp_path / "cache"), str(tmp_path / "artifacts")

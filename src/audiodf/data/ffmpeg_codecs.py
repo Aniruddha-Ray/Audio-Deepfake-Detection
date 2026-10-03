@@ -13,6 +13,7 @@ positions (codec delay is measured and removed), so VAD speech bounds in the ind
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import shutil
 import subprocess
@@ -77,6 +78,28 @@ def ffmpeg_exe() -> str:
     except ImportError as exc:
         raise RuntimeError("realistic codec augmentation needs ffmpeg: pip install imageio-ffmpeg") from exc
     return imageio_ffmpeg.get_ffmpeg_exe()
+
+
+@functools.lru_cache(maxsize=None)
+def _ffmpeg_codec_names(exe: str, kind: str) -> frozenset:
+    """Names in `ffmpeg -encoders` / `-decoders` (lines like ' A....D libgsm   libgsm GSM')."""
+    res = subprocess.run([exe, "-hide_banner", f"-{kind}"], capture_output=True, text=True)
+    names = (line.split()[1] for line in res.stdout.splitlines() if len(line.split()) > 1)
+    return frozenset(names)
+
+
+def missing_codecs(names=None) -> list[str]:
+    """Catalogue codecs this ffmpeg build cannot encode or decode. The imageio-ffmpeg binaries differ by
+    platform: the Windows build (7.1) has every one, the Linux build (7.0.2) lacks libgsm."""
+    exe = ffmpeg_exe()
+    encoders, decoders = _ffmpeg_codec_names(exe, "encoders"), _ffmpeg_codec_names(exe, "decoders")
+    out = []
+    for codec in CODECS if names is None else [BY_NAME[n] for n in names]:
+        enc = codec.encoder[codec.encoder.index("-c:a") + 1]
+        dec = codec.decoder[codec.decoder.index("-c:a") + 1] if codec.decoder else None
+        if enc not in encoders or (dec and dec not in decoders):
+            out.append(codec.name)
+    return out
 
 
 def _run(cmd: list[str], data: bytes) -> bytes:
@@ -144,6 +167,12 @@ def render_copies(idx, utts: np.ndarray, settings, frac: float, seed: int, worke
     if need_gb + 15 > free_gb:
         raise RuntimeError(f"rendering {len(todo)} copies needs ~{need_gb:.0f} GB plus 15 GB headroom; "
                            f"only {free_gb:.0f} GB free")
+    # Codec choice is fixed by clip ID and seed, so a build missing a codec cannot simply skip it: the copies
+    # would differ from every other machine's. Refuse instead (cached copies need no encoder and are fine).
+    missing = missing_codecs(sorted({picks[i][1].name for i in todo})) if todo else []
+    if missing:
+        raise RuntimeError(f"this ffmpeg ({ffmpeg_exe()}) cannot encode/decode {', '.join(missing)}; install an "
+                           f"ffmpeg build that has them and point IMAGEIO_FFMPEG_EXE at it")
 
     def render_one(i: int):
         _, codec, variant = picks[i]

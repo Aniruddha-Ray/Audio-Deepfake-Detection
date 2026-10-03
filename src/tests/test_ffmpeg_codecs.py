@@ -7,12 +7,24 @@ import soundfile as sf
 
 pytest.importorskip("imageio_ffmpeg")
 
-from audiodf.data.ffmpeg_codecs import CODECS, align, choice, render_copies, roundtrip  # noqa: E402
+from audiodf.data.ffmpeg_codecs import CODECS, align, choice, missing_codecs, render_copies, roundtrip  # noqa: E402
 from audiodf.data.prepare import RcnnWindowDataset, build_index, build_svm_snapshots  # noqa: E402
 
 from conftest import SR, tone  # noqa: E402
 from test_prepare import ROWS  # noqa: E402,F401  (fixture data shared with test_prepare)
 from test_prepare import asv5  # noqa: E402,F401
+
+MISSING = set(missing_codecs())  # the Linux imageio-ffmpeg build has no libgsm
+
+
+def _skip_if_missing(codecs):
+    absent = sorted(set(codecs) & MISSING)
+    if absent:
+        pytest.skip(f"this ffmpeg build lacks {', '.join(absent)}")
+
+
+def _skip_unless_renderable(idx, seed, frac=1.0):
+    _skip_if_missing({choice(str(u), seed)[1].name for u in idx.utt_id if choice(str(u), seed)[0] < frac})
 
 
 def _speechlike(seconds=3.0, seed=0):
@@ -24,6 +36,7 @@ def _speechlike(seconds=3.0, seed=0):
 
 @pytest.mark.parametrize("codec", [c.name for c in CODECS])
 def test_every_real_codec_keeps_length_and_timing(codec):
+    _skip_if_missing({codec})
     wave = _speechlike()
     out = roundtrip(wave, codec, 0)
     assert out.shape == wave.shape and np.isfinite(out).all()
@@ -38,7 +51,7 @@ def test_narrowband_codecs_cut_high_frequencies():
     wave = np.random.default_rng(1).standard_normal(SR * 2).astype(np.float32) * 0.1
     power = lambda x: np.abs(np.fft.rfft(x)) ** 2
     above_4k = lambda x: power(x)[len(power(x)) // 2:].sum() / power(x).sum()
-    for codec in ("amr_nb", "opus_nb", "speex_nb", "gsm"):
+    for codec in sorted({"amr_nb", "opus_nb", "speex_nb", "gsm"} - MISSING):
         assert above_4k(roundtrip(wave, codec, 0)) < 0.05 * above_4k(wave), codec
 
 
@@ -62,6 +75,7 @@ def test_codec_choice_is_label_blind_and_reproducible():
 
 def test_render_copies_point_reads_at_aligned_codec_copies(asv5):
     idx = build_index(asv5, "asv5", "train", workers=0)
+    _skip_unless_renderable(idx, 7)
     rendered = render_copies(idx, np.arange(len(idx)), asv5, frac=1.0, seed=7, workers=2, log=lambda *_: None)
     assert rendered.rendered.all() and set(rendered.render_codec) <= {c.name for c in CODECS}
     for i in range(len(idx)):
@@ -85,6 +99,7 @@ def test_disk_guard_estimates_in_the_right_units(asv5, monkeypatch):
     import audiodf.data.ffmpeg_codecs as fc
 
     idx = build_index(asv5, "asv5", "train", workers=0)
+    _skip_unless_renderable(idx, 11)
     usage = collections.namedtuple("usage", "total used free")
     utts = np.arange(len(idx))
     monkeypatch.setattr(fc.shutil, "disk_usage", lambda _: usage(0, 0, 16e9))  # 16 GB: enough for 4 small copies
@@ -109,8 +124,25 @@ class _FakeIdx:
         return len(self.utt_id)
 
 
+def test_render_refuses_a_build_missing_a_chosen_codec(asv5, monkeypatch):
+    """Skipping an unavailable codec would silently change which copies exist; it must stop instead."""
+    import audiodf.data.ffmpeg_codecs as fc
+
+    idx = build_index(asv5, "asv5", "train", workers=0)
+    picked = {choice(str(u), 21)[1].name for u in idx.utt_id}
+    monkeypatch.setattr(fc, "missing_codecs", lambda names=None: sorted(set(names or []) & picked)[:1])
+    with pytest.raises(RuntimeError, match="IMAGEIO_FFMPEG_EXE"):
+        fc.render_copies(idx, np.arange(len(idx)), asv5, frac=1.0, seed=21, workers=1, log=lambda *_: None)
+
+
+def test_missing_codecs_reads_the_build():
+    assert set(missing_codecs()) <= {c.name for c in CODECS}
+    assert "aac" not in missing_codecs()  # ffmpeg's native encoder, present in every build
+
+
 def test_rendered_clips_get_no_simulated_codec_on_top(asv5):
     idx = build_index(asv5, "asv5", "train", workers=0)
+    _skip_unless_renderable(idx, 7)
     rendered = render_copies(idx, np.arange(len(idx)), asv5, frac=1.0, seed=7, workers=2, log=lambda *_: None)
     sub = rendered.subset(np.array([2, 3]), "x")  # render info survives subsetting
     assert sub.is_rendered(0) and sub.path(0) == rendered.path(2)
