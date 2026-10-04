@@ -476,6 +476,58 @@ Recommended next steps, in order:
 3. Optional: the remaining 8 ASV5 eval tars for a full-split number; a stricter cross-dataset test (train without
    ASV2019, test on it) to measure generalisation without the open-condition overlap.
 
+### 7.3k Decisions after run 4 (2026-10-04) and the remaining ML work
+
+Your decisions: **WavLM alone** from now on (SVM/RCNN code kept as an option, not trained or served by default);
+**EnCodec treated like the ffmpeg codecs** (rendered offline, label-blind, part of the codec catalogue) and **only WavLM
+retrained** (run 5); then **real call audio**; GitHub cleanup only at the very end.
+
+Run 5 setup: codec catalogue 2 = the 11 ffmpeg codecs + `encodec` (C04-like, 1.5-24 kbps) + `mp3_encodec` (C07-like,
+MP3 then EnCodec, 25 pairings). 18% of copies get a neural codec (eval: 18.7% of codec-processed clips). Clips that keep
+an ffmpeg codec get exactly their run-3/4 codec and bitrate, so those copies are hard-linked, not re-rendered; only the
+~30k EnCodec copies are new (~32 min on the GPU, batch 8). Everything else as run 4: same pool, held-out tuning set,
+WavLM recipe (8 epochs, top 4 layers), same 30k ASV5 eval clips. Command: `python run.py --eval-utts 30000`.
+
+Decision rule, set before the run (baseline = run 4 **WavLM alone**: overall 5.43%, C04 14.56%, C07 18.51%):
+run 5 replaces run 4 if C04 <= 11.6% **and** C07 <= 15.5% (each >= 3 points better) **and** overall <= 5.73%
+(no regression beyond 0.3 points, the noise level assumed until a second seed measures it).
+
+Remaining ML work, suggested order (before deployment work):
+
+| # | Item | Why | Size |
+|---|---|---|---|
+| 1 | EnCodec augmentation, WavLM retrain (run 5) | C04/C07 are the only conditions above 7% | in progress, ~7.5 h |
+| 2 | Out-of-domain test: In-the-Wild dataset (real-world deepfakes of public figures, ~38 h) and/or ASVspoof 2021 DF eval | Tests generalisation away from LibriVox speech (the open-condition caveat), no retraining needed | download + ~1 h scoring |
+| 3 | Telephony robustness: 8 kHz G.711, packet loss with concealment, background noise, reverberation as label-blind renders | Narrowband conditions (C08-C10, 5.9-6.3%) are the next weakest, and phone calls are narrowband with loss and noise | 1 code day + 1 retrain |
+| 4 | Operating-point calibration on harder data (e.g. a speaker-disjoint slice of extra ASV5 eval tars used only for thresholds) | The tuning set is far easier than eval (0.34% vs 5.5%), so the block/verify thresholds are optimistic | download + scoring |
+| 5 | Second training seed | Measures run-to-run noise, so decision rules can use a real margin instead of the assumed 0.3 points | 1 retrain (~7 h) |
+| 6 | Probability calibration of WavLM scores (Platt on the calibration set) | `fake_probability` should mean what it says; the 0.5 label cut is currently arbitrary | small |
+| 7 | Early-decision accuracy (8.0% EER at 2 s vs 5.5% at 10 s) | Matters if calls must be flagged in the first seconds | analysis first |
+| 8 | Serving cost: inspect the learned layer mix (truncate unused top layers), FP16/INT8 inference, or distil a smaller student | WavLM is 48 ms/window on GPU but ~234 ms on CPU; matters for scale | after the model is final |
+| 9 | Full ASV5 eval (remaining 8 tars, ~68 GB) | Final reported number on the whole split | optional, disk-bound |
+
+Then real call audio (your next step after run 5), where items 2-4 make the result easier to interpret.
+
+### 7.3l Run 5 results (2026-10-04): rule met, but a trade
+
+| WavLM alone, EER at 10 s | run 4 | run 5 (EnCodec added) |
+|---|---|---|
+| ASV5 eval overall (same 30k) | 5.43% | 5.51% (AUC 0.985 -> 0.990) |
+| C04 EnCodec / C07 MP3+EnCodec | 14.56% / 18.51% | **9.40% / 10.54%** |
+| Other 9 codec conditions | 1.45-6.07% | 2.15-8.31% (all worse, +0.1 to +2.3) |
+| Codec-free clips / ASV2019 eval | 1.01% / 4.85% | 1.76% / 5.82% |
+
+All three parts of the pre-set rule hold, so run 5 is the current model (`artifacts/`). The gain on EnCodec came with
+a small, consistent loss elsewhere, including narrowband telephony (C08 narrowband Opus 6.1 -> 8.3%), which matters
+more for phone calls than EnCodec does. Implications:
+- **Real call audio check: score both run 4's and run 5's WavLM** (both bundles are kept). If run 4 is better on real
+  calls, prefer it for the call product and keep run 5 for apps that use neural codecs.
+- The telephony robustness item (7.3k #3) is now more important: it should recover narrowband accuracy and is the
+  natural place to rebalance the codec mix (e.g. a lower neural share, or epoch choice on a tuning set weighted like
+  the deployment channel).
+- A second seed (#5) would tell whether the 0.1-2.3 point losses are partly noise; 10 of 10 conditions moving the
+  same way suggests most of it is real.
+
 ### 7.4 Fusion: don't jump to an ANN yet
 
 Considered a small ANN/learned voting classifier instead of the fixed 0.7/0.3 weight. Verdict:

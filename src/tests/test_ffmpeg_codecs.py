@@ -73,6 +73,74 @@ def test_codec_choice_is_label_blind_and_reproducible():
     assert names == {c.name for c in CODECS}  # every codec family gets used
 
 
+def test_catalogue2_keeps_every_classical_pick_of_catalogue1():
+    """Clips that keep a classical codec get exactly their catalogue-1 codec and variant (so those copies are
+    reused), and about NEURAL_SHARE of clips get EnCodec."""
+    import hashlib
+
+    from audiodf.data.ffmpeg_codecs import CLASSICAL, NEURAL_SHARE, NeuralCodec
+
+    neural = 0
+    for k in range(4000):
+        utt = f"T_{k:010d}"
+        u, codec, variant = choice(utt, 1)
+        h = hashlib.md5(f"1:{utt}".encode()).digest()  # catalogue 1's formula, verbatim
+        old = CLASSICAL[int.from_bytes(h[4:6], "little") % len(CLASSICAL)]
+        assert u == int.from_bytes(h[:4], "little") / 2 ** 32  # membership never changes
+        if isinstance(codec, NeuralCodec):
+            neural += 1
+        else:
+            assert (codec, variant) == (old, int.from_bytes(h[6:8], "little") % len(old.variants))
+    assert abs(neural / 4000 - NEURAL_SHARE) < 0.02
+
+
+def test_encodec_batches_match_single_clips():
+    _skip_if_missing({"encodec"})
+    from audiodf.data.ffmpeg_codecs import encodec_roundtrip
+
+    a, b = _speechlike(3.0, seed=4), _speechlike(2.2, seed=5)
+    batched = encodec_roundtrip([a, b], 6.0)
+    assert [len(x) for x in batched] == [len(a), len(b)]
+    snr = lambda out, ref: 10 * np.log10((ref ** 2).sum() / ((out - ref) ** 2).sum())
+    for wave, out in zip([a, b], batched):
+        single = encodec_roundtrip([wave], 6.0)[0]
+        # Not sample-identical: batch size changes the GPU arithmetic slightly and the quantiser can pick other
+        # codes; the coding quality must be the same, and the copy must stay aligned with the original.
+        assert abs(snr(out, wave) - snr(single, wave)) < 0.5
+        assert np.corrcoef(out, single)[0, 1] > 0.95
+    assert np.array_equal(encodec_roundtrip([a], 6.0)[0], encodec_roundtrip([a], 6.0)[0])  # deterministic per batch
+    assert np.abs(batched[0]).max() < 1.0  # clipped for 16-bit FLAC
+
+
+def test_missing_encodec_package_is_reported(monkeypatch):
+    import audiodf.data.ffmpeg_codecs as fc
+
+    monkeypatch.setattr(fc, "_encodec_installed", lambda: False)
+    assert {"encodec", "mp3_encodec"} <= set(fc.missing_codecs())
+    assert not {"encodec", "mp3_encodec"} & set(fc.missing_codecs(["opus_wb", "aac"]))
+
+
+def test_render_links_catalogue1_copies_and_renders_only_new_picks(asv5):
+    import audiodf.data.ffmpeg_codecs as fc
+
+    idx = build_index(asv5, "asv5", "train", workers=0)
+    kinds = lambda seed: {isinstance(choice(str(u), seed)[1], fc.NeuralCodec) for u in idx.utt_id}
+    seed = next(s for s in range(100, 400) if kinds(s) == {True, False})  # both kinds among the fixture clips
+    _skip_unless_renderable(idx, seed)
+    old = fc.render_dir(asv5.paths.cache_dir, seed, 1)
+    old.mkdir(parents=True)
+    marker = np.full(SR, 0.25, dtype=np.float32)  # stands in for a catalogue-1 copy
+    for u in idx.utt_id:
+        sf.write(old / f"{u}.flac", marker, SR, subtype="PCM_16")
+    lines = []
+    rendered = fc.render_copies(idx, np.arange(len(idx)), asv5, frac=1.0, seed=seed, workers=2, log=lines.append)
+    for i, u in enumerate(idx.utt_id):
+        copy, _ = sf.read(rendered.path(i), dtype="float32")
+        is_marker = len(copy) == SR and np.allclose(copy, 0.25, atol=1e-4)
+        assert is_marker == (not isinstance(choice(str(u), seed)[1], fc.NeuralCodec))  # only classical reused
+    assert any("from codec catalogue 1" in line for line in lines)
+
+
 def test_render_copies_point_reads_at_aligned_codec_copies(asv5):
     idx = build_index(asv5, "asv5", "train", workers=0)
     _skip_unless_renderable(idx, 7)

@@ -1,5 +1,7 @@
 """Fixtures: a tiny trained engine built from synthetic audio, so tests need no dataset or GPU."""
 
+import copy
+
 import numpy as np
 import pytest
 import torch
@@ -36,4 +38,7 @@ def engine(settings) -> DetectionEngine:
     svm = CalibratedSvm(build_svm(settings.svm_model).fit(np.stack(X), np.array(y)))
     svm.fit_calibrator(np.stack(X), np.array(y))
     rcnn = RCNN(settings.rcnn_features.n_mels, settings.segment_frames, settings.rcnn_model)
-    return DetectionEngine({"svm": svm, "rcnn": rcnn}, settings, "cpu")  # default weights: svm 0.7, rcnn 0.3
+    # The serving path with two light branches (no WavLM download in tests); the default config is WavLM alone.
+    s = copy.deepcopy(settings)
+    s.ensemble.weights = {"svm": 0.7, "rcnn": 0.3}
+    return DetectionEngine({"svm": svm, "rcnn": rcnn}, s, "cpu")

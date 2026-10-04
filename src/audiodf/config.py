@@ -83,9 +83,11 @@ class WavlmConfig:
 
 @dataclass
 class EnsembleConfig:
-    branches: tuple = ("svm", "rcnn", "wavlm")  # which branches to train and fuse
+    # Which branches to train and fuse. WavLM alone since run 4 (ASV5 eval 5.43% alone vs 5.51% fused with the
+    # ~29% SVM/RCNN branches, and ~57 ms less compute per verdict); SVM and RCNN stay available.
+    branches: tuple = ("wavlm",)
     # Training tunes these on the held-out set and stores them in the model bundle, which wins at serving time.
-    weights: dict = field(default_factory=lambda: {"svm": 0.7, "rcnn": 0.3})
+    weights: dict = field(default_factory=lambda: {"wavlm": 1.0})
 
 
 @dataclass

@@ -107,19 +107,21 @@ The fusion weight and risk thresholds in `artifacts/bundle.json` override the co
 
 **ASV5 eval** (same 30k clips, 16 unseen attacks, real codecs), EER at the 10 s decision:
 
-| | Run 1: ASV5 train only | Run 2: pooled ASV5 + ASVspoof2019, held-out-attack tuning | Run 3: run 2 + real-codec augmentation | Run 4 (current `artifacts/`): run 3 + WavLM-Base+ branch |
-|---|---|---|---|---|
-| SVM | 33.6% | 31.1% | 29.6% | 29.6% (reused) |
-| RCNN | 37.4% | 31.8% | 29.4% | 29.4% (reused) |
-| WavLM | - | - | - | 5.4% |
-| **Fused** | **33.0%** | **31.6%** | **29.4%** (SVM weight 0) | **5.5%** (svm 0.10, rcnn 0.15, wavlm 0.75) |
-| Codec-free eval clips | 22.8% | 16.2% | 26.3% | 0.7% |
-| Codec score-shift penalty | 0.9 pts | 5.4 pts | 1.0 pts | - |
+| | Run 1: ASV5 train only | Run 2: pooled ASV5 + ASVspoof2019, held-out-attack tuning | Run 3: run 2 + real-codec augmentation | Run 4: run 3 + WavLM-Base+ branch | Run 5 (current `artifacts/`): WavLM alone + EnCodec augmentation |
+|---|---|---|---|---|---|
+| SVM | 33.6% | 31.1% | 29.6% | 29.6% (reused) | - |
+| RCNN | 37.4% | 31.8% | 29.4% | 29.4% (reused) | - |
+| WavLM | - | - | - | 5.4% | **5.5%** |
+| **Fused / served** | **33.0%** | **31.6%** | **29.4%** (SVM weight 0) | **5.5%** (svm 0.10, rcnn 0.15, wavlm 0.75) | **5.5%** (WavLM alone) |
+| Codec-free eval clips | 22.8% | 16.2% | 26.3% | 0.7% | 1.8% |
+| EnCodec C04 / MP3+EnCodec C07 | - | - | 36.0% / 37.0% | 15.8% / 19.3% | 9.4% / 10.5% |
+| Worst codec condition | - | - | 37.0% | 19.3% | 10.5% |
 
-Run 4 is the first model worth piloting. All other codec conditions are at 1.5-6.3%, but the two neural-codec (EnCodec)
-conditions are still weak (15.8% / 19.3%). WavLM's pretraining data includes the audiobook source of ASV5's real speech, and
-nothing has been tested on phone-call audio yet. Serving takes 78 ms to the first verdict on a laptop GPU. Details:
-`results/training_report.json` (run 4), `training_report_run{1,2,3}.json`, `new_plan.md` 7.3d-7.3j, `audit.md` phase 12.
+The model now served is WavLM-Base+ alone (run 5), 65 ms to the first verdict on a laptop GPU. Adding EnCodec to the
+codec augmentation fixed the two neural-codec conditions but cost 0.1-2.3 points on every other condition, including
+narrowband telephony (C08 8.3%), so run 4's WavLM is kept for comparison on real call audio. WavLM's pretraining data
+includes the audiobook source of ASV5's real speech, and nothing has been tested on phone-call audio yet. Details:
+`results/training_report.json` (run 5), `training_report_run{1,2,3,4}.json`, `new_plan.md` 7.3d-7.3l, `audit.md` phases 12-14.
 The earlier ASVspoof2019 prototype (5.7% eval EER) used feature version 1 and an easier benchmark; it is not
 reproducible with this code and not comparable to these numbers.
 

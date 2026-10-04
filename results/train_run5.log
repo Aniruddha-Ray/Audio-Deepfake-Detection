@@ -1,0 +1,63 @@
+asv5=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset5
+artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts
+pool=asv5:train asv5:dev asv19:train asv19:dev  holdout=asv5:A10 asv5:A12 asv5:A15
+branches=wavlm  reused=none
+rcnn=BiLSTM, epochs=10; wavlm epochs=8, top 4 layers fine-tuned; windows/clip/epoch=1, svm clips=20000, codec aug p=0.4
+device=cuda artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts branches=wavlm
+[1/6] integrity audit (training pool: asv5:train, asv5:dev, asv19:train, asv19:dev)
+  finding (asv5): attacks shared by train and dev: none
+  finding (asv5): attacks shared by train and eval: none
+  finding (asv5): attacks shared by dev and eval: none
+  finding (asv5): train: duration differs between bonafide (14.52) and spoof (10.736)
+  finding (asv5): train: leading silence differs between bonafide (0.412) and spoof (0.05)
+  finding (asv5): train: trailing silence differs between bonafide (0.213) and spoof (0.025)
+  finding (asv5): dev: digital-silence frame fraction (mean) differs between bonafide (0.003) and spoof (0.014)
+  finding (asv19): attacks shared by train and dev: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06']
+  finding (asv19): attacks shared by train and eval: none
+  finding (asv19): attacks shared by dev and eval: none
+  finding (asv19): train: leading silence differs between bonafide (1.025) and spoof (0.35)
+  finding (asv19): dev: leading silence differs between bonafide (0.838) and spoof (0.35)
+  finding (asv19): eval: leading silence differs between bonafide (0.775) and spoof (0.05)
+  finding (asv19): eval: trailing silence differs between bonafide (0.825) and spoof (0.175)
+[2/6] index clips (decode once, record VAD speech bounds) and split off the tuning set
+  training clips: 307454 (260166 spoof, 47288 bonafide), 19 attack systems
+  tuning set: held-out attacks asv5:A10, asv5:A12, asv5:A15 + bonafide of 196 held-out asv5:dev speakers: 49077 clips (41106 spoof, 7971 bonafide)
+  rendering real-codec copies (ffmpeg; label-blind; cached on disk)
+  linked 126138 unchanged copies from codec catalogue 1
+C:\Users\Asus\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\torch\nn\utils\weight_norm.py:145: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+    rendered 5120/27357 EnCodec copies (8/s)
+    rendered 10240/27357 EnCodec copies (8/s)
+    rendered 15360/27357 EnCodec copies (8/s)
+    rendered 20480/27357 EnCodec copies (8/s)
+    rendered 25600/27357 EnCodec copies (9/s)
+  rendered 0 ffmpeg + 27357 EnCodec copies in 3079s (126852 reused)
+  linked 7274 unchanged copies from codec catalogue 1
+  rendered 0 ffmpeg + 1667 EnCodec copies in 183s (7300 reused)
+  real-codec copies: 154209 training clips, 8967 of 11998 tuning clips
+[3/6] branches
+  WavLM: random 2 s raw windows, top 4 layers fine-tuned; best tuning epoch kept
+  epoch 1/8: {'epoch': 1, 'loss': 0.06731, 'dev_eer_pct': 1.994, 'minutes': 48.5}
+  epoch 2/8: {'epoch': 2, 'loss': 0.01735, 'dev_eer_pct': 1.281, 'minutes': 47.7}
+  epoch 3/8: {'epoch': 3, 'loss': 0.01091, 'dev_eer_pct': 1.069, 'minutes': 47.1}
+  epoch 4/8: {'epoch': 4, 'loss': 0.0074, 'dev_eer_pct': 0.806, 'minutes': 48.1}
+  epoch 5/8: {'epoch': 5, 'loss': 0.00531, 'dev_eer_pct': 1.1, 'minutes': 47.9}
+  epoch 6/8: {'epoch': 6, 'loss': 0.00369, 'dev_eer_pct': 1.025, 'minutes': 48.7}
+  epoch 7/8: {'epoch': 7, 'loss': 0.0027, 'dev_eer_pct': 0.825, 'minutes': 48.7}
+  epoch 8/8: {'epoch': 8, 'loss': 0.00196, 'dev_eer_pct': 0.95, 'minutes': 48.5}
+[4/6] tune on the held-out set (codec-processed): SVM calibration, fusion weights, risk thresholds
+  scoring wavlm on 11998 clips
+  fusion weights wavlm=1.00; risk thresholds: verify >= 0.0155, block >= 0.2250
+  tuning set   n= 11998 | EER at 10 s: wavlm   0.81%  fused   0.81%
+               fused EER by seconds of speech: 2s 2.62%  4s 1.27%  6s 0.85%  8s 0.82%  10s 0.81%
+[5/6] test sets (scored once, never tuned on)
+  scoring asv5/eval: 30000 of 136376 clips
+  scoring wavlm on 30000 clips
+  asv5/eval    n= 30000 | EER at 10 s: wavlm   5.51%  fused   5.51%
+               fused EER by seconds of speech: 2s 6.79%  4s 6.15%  6s 5.76%  8s 5.57%  10s 5.51%
+  scoring asv19/eval: 29988 of 71237 clips
+  scoring wavlm on 29988 clips
+  asv19/eval   n= 29988 | EER at 10 s: wavlm   5.82%  fused   5.82%
+               fused EER by seconds of speech: 2s 6.30%  4s 5.89%  6s 5.82%  8s 5.82%  10s 5.82%
+[6/6] save the bundle
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\training_report.json

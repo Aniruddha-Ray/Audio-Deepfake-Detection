@@ -34,7 +34,7 @@ data:
   svm_train_utts: 20000           # clips the SVM trains on
   tune_utts: 12000                # tuning clips for epoch choice, SVM calibration, fusion weight
   eval_utts: 60000                # test clips per report (0 = whole split)
-  ffmpeg_codecs: true             # real-codec copies (Opus, AMR, Speex, AAC, MP3, SBC, G.722, GSM) rendered offline
+  ffmpeg_codecs: true             # real-codec copies (Opus, AMR, Speex, AAC, MP3, SBC, G.722, GSM, EnCodec) rendered offline
   render_frac: 0.5                # label-blind share of training clips with a real-codec copy
   tune_render_frac: 0.75          # tuning clips with a real-codec copy (about eval's codec-processed share)
   codec_aug_p: 0.4                # simulated codecs for training clips without a copy; same probability for both classes
@@ -56,8 +56,8 @@ wavlm:                            # third branch: WavLM-Base+ on raw 2 s windows
   backbone_lr: 0.00002            # fine-tuned transformer layers
 
 ensemble:
-  branches: [svm, rcnn, wavlm]    # branches to train and fuse
-  weights: {svm: 0.7, rcnn: 0.3}  # training tunes these on the held-out set and stores them in bundle.json, which wins
+  branches: [wavlm]               # WavLM alone since run 4; add svm / rcnn to train and fuse them too
+  weights: {wavlm: 1.0}           # training tunes these on the held-out set and stores them in bundle.json, which wins
 
 risk:                             # P(fake) cut-offs: >=high block, >=medium verify, else allow
   high: 0.80                      # overridden by the values training stores in the bundle

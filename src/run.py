@@ -3,8 +3,9 @@
   1. audit      integrity checks; training refuses to start on hard errors
   2. index      decode every clip once, record where speech starts and ends (VAD); pool the training
                 splits and cut out the tuning set (held-out attacks + held-out speakers)
-  3. branches   SVM: growing-buffer snapshots (2-10 s); RCNN: random 2 s Log-Mel windows; WavLM: random 2 s raw
-                windows, top layers of WavLM-Base+ fine-tuned. All codec-augmented; best tuning epoch kept.
+  3. branches   WavLM (default): random 2 s raw windows, top layers of WavLM-Base+ fine-tuned. Optional: SVM on
+                growing-buffer snapshots (2-10 s), RCNN on 2 s Log-Mel windows. All codec-augmented (ffmpeg codecs
+                + EnCodec copies rendered offline); best tuning epoch kept.
   4. tune       on the held-out set only: SVM calibration, fusion weights, risk thresholds
   5. test       ASV5 eval (and ASV2019 eval as a cross-dataset check), scored once
   6. save       artifacts/ (models + tuned operating point) and results/training_report.json
@@ -31,7 +32,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", help="YAML settings file")
     ap.add_argument("--branches", nargs="+", choices=["svm", "rcnn", "wavlm"],
-                    help="branches to train and fuse (default svm rcnn wavlm)")
+                    help="branches to train and fuse (default: wavlm alone)")
     ap.add_argument("--epochs", type=int, help="RCNN epochs (default from config)")
     ap.add_argument("--wavlm-epochs", type=int, help="WavLM epochs (default from config)")
     ap.add_argument("--svm-utts", type=int, help="clips the SVM trains on (default from config)")

@@ -156,7 +156,7 @@ def test_run_training_end_to_end_on_synthetic_asv5(tmp_path):
     engine = DetectionEngine.from_artifacts(s2, "cpu")
     assert (engine.settings.ensemble.weights, engine.settings.risk.high, engine.settings.risk.medium) == (
         {"svm": 0.35, "rcnn": 0.65}, 0.4, 0.2)  # the bundle's tuned operating point wins over the config...
-    assert s2.ensemble.weights == {"svm": 0.7, "rcnn": 0.3}  # ...without mutating the caller's settings
+    assert s2.ensemble.weights == {"wavlm": 1.0}  # ...without mutating the caller's settings (default: WavLM alone)
     verdict = engine.predict_waveform(tone(5, noise=0.2, seed=3))
     assert verdict is not None and 0 <= verdict.fake_probability <= 1
     assert abs(verdict.fake_probability - (0.35 * verdict.svm_probability + 0.65 * verdict.rcnn_probability)) < 1e-3
