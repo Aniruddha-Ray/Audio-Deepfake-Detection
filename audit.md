@@ -7,13 +7,13 @@ Last updated: 2026-10-04 (after run 5). Companion docs: `new_plan.md` (plan and 
 
 | Item | State |
 |---|---|
-| Codebase | `src/audiodf/` (33 modules), 103 passing tests. Pushed through `756e79e`; CI green. Run 5 code (EnCodec, WavLM-only default) not yet pushed. |
+| Codebase | `src/audiodf/` (33 modules), 103 passing tests. Everything pushed through `34467a8` (run 5); CI green (Linux tests incl. EnCodec + Docker build). |
 | Trained model | `artifacts/` = run 5 (**WavLM-Base+ alone**, EnCodec in the codec augmentation). Copy in `artifacts_run5_encodec/`; run 4 (3-branch) in `artifacts_run4_wavlm/`; runs 1-3 kept. |
 | Previous model | `artifacts_prev_asv2019/` (ASV2019 prototype, feature v1, cannot load in current code). Kept, git-ignored. |
 | Best honest number | ASV5 eval EER **5.51%**, worst codec condition 10.5% (run 5, WavLM alone; run 4 WavLM alone 5.43% with a worst condition of 18.5%; run 3 29.4%). ASV2019 eval 5.82% (in-domain). |
 | Deployment | FastAPI tested for real (65 ms to first verdict on GPU, WavLM alone); **Kafka, Docker runtime, Kubernetes, Grafana untested**. No real phone-call audio. |
 | Disk | Data: `dataset/LA` 7.1 GB, `dataset5/` ~75 GB (train, dev, 2 of 10 eval tars); codec renders in the cache (catalogue 1 ~35 GB, catalogue 2 adds ~7 GB, the rest hard links). |
-| Next | Real call audio (score both run 4 and run 5 WavLM); then the remaining ML list in `new_plan.md` 7.3k (phase 14). |
+| Next | Real call audio check, scoring both run 4 and run 5 WavLM (section 9 has the step-by-step plan). |
 
 ## 2. Timeline
 
@@ -240,6 +240,11 @@ Config: SVM on 19,994 clips (98,527 snapshot vectors, codec aug 0.5), RCNN 10 ep
   points to a real shift.
 - Saved: `artifacts/` and `artifacts_run5_encodec/` (hashes verified), `results/training_report_run5.json` (also
   `training_report.json`), `results/train_run5.log`.
+- `.gitignore`: you replaced the per-run `artifacts_run*` lines with one `artifacts_*/` pattern during the run; kept as
+  is (a duplicate line I appended was removed).
+- Pushed as `34467a8` (your yes); CI green: Linux tests, including the EnCodec tests (CPU, model downloaded in CI), and
+  the Docker build. Free disk afterwards: 130 GB.
+- Paused here at your request (2026-10-04 evening); continue with section 9.
 
 ## 3. Decisions and the reasoning behind them
 
@@ -351,12 +356,48 @@ python -m pytest                           # 103 tests
 | Pretrained speech front end (WavLM) | done: run 4, **5.51%** (target <= 24.4%) |
 | EnCodec (neural codec) augmentation for C04/C07 | done: run 5, C04 9.4%, C07 10.5% (rule met; trade-off on other conditions) |
 | Serve WavLM alone | done: your call, default from run 5 |
-| Real call audio check, scoring run 4 and run 5 WavLM | **next** (your order) |
+| Real call audio check, scoring run 4 and run 5 WavLM | **next** (your order; plan in section 9) |
 | Remaining ML list (`new_plan.md` 7.3k): out-of-domain test, telephony robustness, calibration, second seed, ... | open |
 | Investigate A12 inversion and the cross-dataset collapse | superseded: run 4 has no inverted eval attack |
 | Download the remaining 8 ASV5 eval tars (~68 GB; needs space) for the final number | optional |
 | Delete the obsolete ASV2019 cache | done (8.60 GB freed) |
 | Kafka / Docker runtime / Kubernetes / Grafana verification | not started (Docker image builds in CI) |
-| Real call audio (VoIP) evaluation | not started |
 | `configs/default.yaml` paths are relative to the working directory (`artifacts` from `src/` misses the repo's folder) | open, minor |
-| Commits | `573fe30` (code), `bef9ad7` (CI fix), `756e79e` (run 4) pushed; run 5 code + results not yet committed |
+| Commits | `573fe30` (code), `bef9ad7` (CI fix), `756e79e` (run 4), `34467a8` (run 5) pushed; all CI green; nothing uncommitted |
+| GitHub cleanup | at the very end, after everything is final (your decision); push as we go until then |
+
+## 9. Next steps (written 2026-10-04, after run 5)
+
+**Step 1: real call audio check (next).** Goal: does the model hold up on phone calls, and which WavLM (run 4 or
+run 5) should the call product use?
+
+1. **Choose the call data (your decision).** Options, best first:
+   - *Our own recordings*: genuine calls (several speakers, phones, networks: mobile, VoIP app, landline) plus fake
+     calls made by playing TTS / voice-clone output into a real call. Most realistic; needs consent from speakers.
+   - *Replay through a real channel*: play a balanced sample of ASV5 eval clips (bonafide and spoof) into a phone or
+     VoIP call and record the far end. Labels come for free; tests the channel, not new attacks.
+   - *Public data*: no public phone-call deepfake set matches our case well; In-the-Wild (real-world deepfakes of
+     public figures) is the closest out-of-domain set, though not phone audio (see step 2).
+   - Aim for at least ~200 genuine and ~200 fake calls, so EER and false-alarm rates are not dominated by noise.
+2. **Tooling to build** (small): `audiodf evaluate-calls --dir <folder> --labels <csv>` that streams each recording
+   through `CallSession` exactly as live audio (0.5 s chunks, VAD gate), and a `--branch wavlm` option so a
+   multi-branch bundle (run 4) can be scored as WavLM alone. Reuse the existing metrics.
+3. **Report for both models:** EER; false-alarm rate on genuine calls at the stored verify / block thresholds (the
+   number users would feel); detection rate on fake calls; time to decision (2 / 4 / 6 / 10 s); per-channel results;
+   latency per verdict.
+4. **Decide:** which WavLM goes forward for calls; whether thresholds must be re-set on call-like audio (likely,
+   since the tuning set is easier than eval).
+
+**Step 2: remaining ML work** (`new_plan.md` 7.3k), order to revisit after step 1's results:
+1. Out-of-domain test (In-the-Wild and/or ASVspoof 2021 DF): no retraining, checks the audiobook-overlap caveat.
+2. Telephony robustness: label-blind renders with 8 kHz G.711, packet loss with concealment, background noise,
+   reverberation; also rebalance the codec mix (run 5 showed EnCodec gains cost narrowband accuracy). Retrain WavLM.
+3. Thresholds calibrated on harder, call-like data; probability calibration of the WavLM score.
+4. Second training seed, to measure run-to-run noise before the next decision rule.
+5. Early-decision accuracy (first 2 s), serving cost (layer mix, FP16/INT8, distillation), full ASV5 eval.
+
+**Step 3: deployment work** (after the model is final): Kafka end-to-end with real chunked audio, Docker runtime
+test, Kubernetes manifests, monitoring (Grafana), CPU vs GPU serving capacity; fix the relative paths in
+`configs/default.yaml`.
+
+**Step 4: finalise** documentation, then the GitHub cleanup you planned.

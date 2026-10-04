@@ -528,6 +528,9 @@ more for phone calls than EnCodec does. Implications:
 - A second seed (#5) would tell whether the 0.1-2.3 point losses are partly noise; 10 of 10 conditions moving the
   same way suggests most of it is real.
 
+The step-by-step plan from here (real call audio check, then the remaining ML work, deployment, finalising) is kept
+in `audit.md` section 9.
+
 ### 7.4 Fusion: don't jump to an ANN yet
 
 Considered a small ANN/learned voting classifier instead of the fixed 0.7/0.3 weight. Verdict:
