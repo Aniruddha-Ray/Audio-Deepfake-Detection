@@ -107,17 +107,19 @@ The fusion weight and risk thresholds in `artifacts/bundle.json` override the co
 
 **ASV5 eval** (same 30k clips, 16 unseen attacks, real codecs), EER at the 10 s decision:
 
-| | Run 1: ASV5 train only | Run 2: pooled ASV5 + ASVspoof2019, held-out-attack tuning | Run 3 (current `artifacts/`): run 2 + real-codec augmentation |
-|---|---|---|---|
-| SVM | 33.6% | 31.1% | 29.6% |
-| RCNN | 37.4% | 31.8% | 29.4% |
-| **Fused** | **33.0%** | **31.6%** | **29.4%** (SVM weight 0) |
-| Codec-free eval clips | 22.8% | 16.2% | 26.3% |
-| Codec score-shift penalty | 0.9 pts | 5.4 pts | 1.0 pts |
+| | Run 1: ASV5 train only | Run 2: pooled ASV5 + ASVspoof2019, held-out-attack tuning | Run 3: run 2 + real-codec augmentation | Run 4 (current `artifacts/`): run 3 + WavLM-Base+ branch |
+|---|---|---|---|---|
+| SVM | 33.6% | 31.1% | 29.6% | 29.6% (reused) |
+| RCNN | 37.4% | 31.8% | 29.4% | 29.4% (reused) |
+| WavLM | - | - | - | 5.4% |
+| **Fused** | **33.0%** | **31.6%** | **29.4%** (SVM weight 0) | **5.5%** (svm 0.10, rcnn 0.15, wavlm 0.75) |
+| Codec-free eval clips | 22.8% | 16.2% | 26.3% | 0.7% |
+| Codec score-shift penalty | 0.9 pts | 5.4 pts | 1.0 pts | - |
 
-**Not production-ready.** Real-codec augmentation aligned scores across codecs but cost accuracy on clean audio;
-cross-attack generalisation is the remaining limit, so the next step is a pretrained WavLM front end. Details:
-`results/training_report.json` (run 3), `training_report_run2.json`, `training_report_run1.json`, `new_plan.md` 7.3d-7.3h.
+Run 4 is the first model worth piloting. All other codec conditions are at 1.5-6.3%, but the two neural-codec (EnCodec)
+conditions are still weak (15.8% / 19.3%). WavLM's pretraining data includes the audiobook source of ASV5's real speech, and
+nothing has been tested on phone-call audio yet. Serving takes 78 ms to the first verdict on a laptop GPU. Details:
+`results/training_report.json` (run 4), `training_report_run{1,2,3}.json`, `new_plan.md` 7.3d-7.3j, `audit.md` phase 12.
 The earlier ASVspoof2019 prototype (5.7% eval EER) used feature version 1 and an easier benchmark; it is not
 reproducible with this code and not comparable to these numbers.
 

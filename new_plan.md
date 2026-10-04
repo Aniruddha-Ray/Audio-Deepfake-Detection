@@ -443,6 +443,39 @@ EER and the WavLM-alone EER on ASV5 eval with run 3 (29.4%), per attack (especia
 per codec; check codec-free clips separately (run 3 lost ground there). If WavLM alone wins but fusion does not,
 the tuning set is again picking weights that don't transfer.
 
+### 7.3j Run 4 results (2026-10-04): WavLM meets the bar by a wide margin
+
+| EER at 10 s (same subsets as run 3) | run 3 | run 4 |
+|---|---|---|
+| ASV5 eval (30k), fused | 29.4% | **5.51%** (WavLM alone 5.43%) |
+| ASV5 eval, codec-free clips | 26.3% | 0.72% |
+| ASV5 eval, EnCodec C04 / MP3+EnCodec C07 | 36.0% / 37.0% | 15.8% / 19.3% |
+| ASV5 eval, every other codec condition | 23-31% | 1.5-6.3% |
+| ASV2019 eval (30k, in-domain) | 16.0% | 4.85% |
+| Held-out tuning set, fused | 12.9% | 0.34% |
+
+- Fusion weights tuned on the held-out set: svm 0.10, rcnn 0.15, wavlm 0.75. Best WavLM epoch 6 of 8.
+- Time to decision (fused, ASV5 eval): 8.0% after 2 s of speech, 6.2% at 4 s, 5.6% at 6 s.
+- All 16 eval attacks improved; none inverted any more (A18 65.7 -> 6.0%, A30 64.8 -> 10.8%).
+- Read with care: (1) WavLM's self-supervised pretraining data includes LibriVox audiobooks, the source of ASV5 bonafide
+  speech, so this is an open-condition number; (2) the tuning set is still much easier than eval, so thresholds tuned on
+  it are optimistic; (3) nothing here is phone-call audio.
+
+What the result says about the plan:
+- The bottleneck in runs 1-3 was the hand-made front ends, not data volume or augmentation alone. A pretrained speech
+  model generalises to unseen attacks and to real codecs it never saw rendered.
+- The SVM and RCNN no longer carry their weight on eval (fused 5.51% vs WavLM 5.43%). Options: keep the ensemble as
+  tuned (the agreed procedure), or serve WavLM alone (simpler, ~57 ms less compute per verdict) and keep SVM/RCNN as a
+  fallback. Choosing between them by eval EER would be tuning on eval; latency and simplicity are fair grounds.
+
+Recommended next steps, in order:
+1. **EnCodec augmentation**: render label-blind EnCodec copies (the `encodec` package or `transformers` EncodecModel, 24 kHz,
+   1.5-24 kbps) the same way as the ffmpeg codecs; retrain only WavLM. Targets C04/C07, the two conditions still above 7%.
+2. **Real call audio**: record or source a small set of genuine and synthetic phone calls (VoIP and PSTN) to check the
+   operating point outside audiobook speech before anything user-facing.
+3. Optional: the remaining 8 ASV5 eval tars for a full-split number; a stricter cross-dataset test (train without
+   ASV2019, test on it) to measure generalisation without the open-condition overlap.
+
 ### 7.4 Fusion: don't jump to an ANN yet
 
 Considered a small ANN/learned voting classifier instead of the fixed 0.7/0.3 weight. Verdict:

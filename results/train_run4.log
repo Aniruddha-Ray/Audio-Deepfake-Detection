@@ -1,0 +1,60 @@
+asv5=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset5
+artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts
+pool=asv5:train asv5:dev asv19:train asv19:dev  holdout=asv5:A10 asv5:A12 asv5:A15
+branches=svm rcnn wavlm  reused=svm:..\artifacts_run3_codecs\svm.joblib rcnn:..\artifacts_run3_codecs\rcnn.pt
+rcnn=BiLSTM, epochs=10; wavlm epochs=8, top 4 layers fine-tuned; windows/clip/epoch=1, svm clips=20000, codec aug p=0.4
+device=cuda artifacts=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\artifacts branches=svm,rcnn,wavlm
+[1/6] integrity audit (training pool: asv5:train, asv5:dev, asv19:train, asv19:dev)
+  finding (asv5): attacks shared by train and dev: none
+  finding (asv5): attacks shared by train and eval: none
+  finding (asv5): attacks shared by dev and eval: none
+  finding (asv5): train: duration differs between bonafide (14.52) and spoof (10.736)
+  finding (asv5): train: leading silence differs between bonafide (0.412) and spoof (0.05)
+  finding (asv5): train: trailing silence differs between bonafide (0.213) and spoof (0.025)
+  finding (asv5): dev: digital-silence frame fraction (mean) differs between bonafide (0.003) and spoof (0.014)
+  finding (asv19): attacks shared by train and dev: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06']
+  finding (asv19): attacks shared by train and eval: none
+  finding (asv19): attacks shared by dev and eval: none
+  finding (asv19): train: leading silence differs between bonafide (1.025) and spoof (0.35)
+  finding (asv19): dev: leading silence differs between bonafide (0.838) and spoof (0.35)
+  finding (asv19): eval: leading silence differs between bonafide (0.775) and spoof (0.05)
+  finding (asv19): eval: trailing silence differs between bonafide (0.825) and spoof (0.175)
+[2/6] index clips (decode once, record VAD speech bounds) and split off the tuning set
+  training clips: 307454 (260166 spoof, 47288 bonafide), 19 attack systems
+  tuning set: held-out attacks asv5:A10, asv5:A12, asv5:A15 + bonafide of 196 held-out asv5:dev speakers: 49077 clips (41106 spoof, 7971 bonafide)
+  rendering real-codec copies (ffmpeg; label-blind; cached on disk)
+  real-codec copies: 154209 training clips, 8967 of 11998 tuning clips
+[3/6] branches
+  reusing svm from ..\artifacts_run3_codecs\svm.joblib (training skipped)
+  reusing rcnn from ..\artifacts_run3_codecs\rcnn.pt (training skipped)
+  WavLM: random 2 s raw windows, top 4 layers fine-tuned; best tuning epoch kept
+  epoch 1/8: {'epoch': 1, 'loss': 0.06276, 'dev_eer_pct': 1.2, 'minutes': 47.0}
+  epoch 2/8: {'epoch': 2, 'loss': 0.01393, 'dev_eer_pct': 0.919, 'minutes': 49.7}
+  epoch 3/8: {'epoch': 3, 'loss': 0.00865, 'dev_eer_pct': 0.95, 'minutes': 48.5}
+  epoch 4/8: {'epoch': 4, 'loss': 0.00556, 'dev_eer_pct': 0.6, 'minutes': 49.0}
+  epoch 5/8: {'epoch': 5, 'loss': 0.00395, 'dev_eer_pct': 0.55, 'minutes': 47.1}
+  epoch 6/8: {'epoch': 6, 'loss': 0.00282, 'dev_eer_pct': 0.406, 'minutes': 47.2}
+  epoch 7/8: {'epoch': 7, 'loss': 0.00181, 'dev_eer_pct': 0.469, 'minutes': 47.4}
+  epoch 8/8: {'epoch': 8, 'loss': 0.0014, 'dev_eer_pct': 0.425, 'minutes': 47.3}
+[4/6] tune on the held-out set (codec-processed): SVM calibration, fusion weights, risk thresholds
+  scoring svm on 11998 clips
+  scoring rcnn on 11998 clips
+  scoring wavlm on 11998 clips
+  fusion weights svm=0.10 rcnn=0.15 wavlm=0.75; risk thresholds: verify >= 0.0835, block >= 0.1784
+  tuning set   n= 11998 | EER at 10 s: svm  26.97%  rcnn  12.95%  wavlm   0.41%  fused   0.34%
+               fused EER by seconds of speech: 2s 2.38%  4s 0.76%  6s 0.39%  8s 0.37%  10s 0.34%
+[5/6] test sets (scored once, never tuned on)
+  scoring asv5/eval: 30000 of 136376 clips
+  scoring svm on 30000 clips
+  scoring rcnn on 30000 clips
+  scoring wavlm on 30000 clips
+  asv5/eval    n= 30000 | EER at 10 s: svm  29.58%  rcnn  29.36%  wavlm   5.43%  fused   5.51%
+               fused EER by seconds of speech: 2s 8.02%  4s 6.23%  6s 5.62%  8s 5.54%  10s 5.51%
+  scoring asv19/eval: 29988 of 71237 clips
+  scoring svm on 29988 clips
+  scoring rcnn on 29988 clips
+  scoring wavlm on 29988 clips
+  asv19/eval   n= 29988 | EER at 10 s: svm  25.18%  rcnn  15.99%  wavlm   4.85%  fused   4.85%
+               fused EER by seconds of speech: 2s 5.23%  4s 4.89%  6s 4.85%  8s 4.85%  10s 4.85%
+[6/6] save the bundle
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\training_report.json

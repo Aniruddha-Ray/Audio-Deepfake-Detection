@@ -1,19 +1,19 @@
 # Audit log: Real-Time Deepfake Voice Detection
 
 Running record of what was done, what was found, what turned out wrong, and what is open.
-Last updated: 2026-10-03. Companion docs: `new_plan.md` (plan and analysis), `src/README.md` (usage).
+Last updated: 2026-10-04. Companion docs: `new_plan.md` (plan and analysis), `src/README.md` (usage).
 
 ## 1. Current state at a glance
 
 | Item | State |
 |---|---|
-| Codebase | `src/audiodf/` (30 modules), 88 passing tests. Last commit `a839261`; **41 files changed since, uncommitted**. |
-| Trained model | `artifacts/` = run 3 (pooled data + real-codec augmentation). **Not production-ready.** Runs 1-2 kept alongside. |
+| Codebase | `src/audiodf/` (33 modules), 97 passing tests. Pushed through `bef9ad7`; CI green (Linux tests + Docker build). |
+| Trained model | `artifacts/` = run 4 (SVM + RCNN + WavLM-Base+, fused 0.10/0.15/0.75). Copy in `artifacts_run4_wavlm/`; runs 1-3 kept alongside. |
 | Previous model | `artifacts_prev_asv2019/` (ASV2019 prototype, feature v1, cannot load in current code). Kept, git-ignored. |
-| Best honest number | ASV5 eval fused EER **29.4%** (run 3; run 2 31.6%, run 1 33.0%). ASV2019 eval is no longer a cross-dataset test. |
-| Deployment | FastAPI tested for real; **Kafka, Docker, Kubernetes, Grafana scaffolds untested**. No real phone-call audio. |
-| Disk | C: 87.7 GB free. Data: `dataset/LA` 7.1 GB, `dataset5/` ~75 GB (train, dev, 2 of 10 eval tars). |
-| Next | WavLM front end (run 3 missed the 28.6% significance line; phase 10). |
+| Best honest number | ASV5 eval fused EER **5.51%** (run 4; run 3 29.4%, run 2 31.6%, run 1 33.0%). ASV2019 eval 4.85% (in-domain, not cross-dataset). |
+| Deployment | FastAPI tested for real (78 ms to first verdict on GPU with WavLM); **Kafka, Docker runtime, Kubernetes, Grafana untested**. No real phone-call audio. |
+| Disk | Data: `dataset/LA` 7.1 GB, `dataset5/` ~75 GB (train, dev, 2 of 10 eval tars); codec renders ~35 GB in the cache. |
+| Next | Neural-codec (EnCodec) augmentation for the two weak eval conditions; real call audio; full ASV5 eval (phase 12). |
 
 ## 2. Timeline
 
@@ -158,13 +158,48 @@ Config: SVM on 19,994 clips (98,527 snapshot vectors, codec aug 0.5), RCNN 10 ep
 - 95 tests pass (WavLM tests build the architecture without downloading weights).
 - Run 3 preserved in `artifacts_run3_codecs/` (hashes verified) and `results/training_report_run3.json`. The duplicate
   `artifacts/rcnn_run2_epoch5.pt` was removed after confirming it is byte-identical to `artifacts_run2_pooled/rcnn.pt`.
+- Smoke test (400 clips per split, 1 WavLM epoch) ran every stage; serving benchmark 77 ms to first verdict on GPU.
+
+### Phase 12: run 4 results (2026-10-04 02:08-09:17, ~7.1 h)
+- WavLM tuning EER by epoch: 1.20, 0.92, 0.95, 0.60, 0.55, **0.41** (epoch 6 kept), 0.47, 0.43%; ~47-50 min per epoch
+  including tuning-set scoring (estimate was 35 min).
+- Fusion tuned on the held-out set: **svm 0.10, rcnn 0.15, wavlm 0.75** (the most balanced weighting within 0.05 EER
+  points of the best). Tuning set EER: svm 26.97%, rcnn 12.95%, wavlm 0.41%, fused 0.34%. Operating point: verify
+  >= 0.0835, block >= 0.1784 (tuning set: 10% / 1% of bonafide flagged; catches 99.95% / 99.8% of spoofs).
+
+| EER at 10 s, same test subsets | run 3 | run 4 |
+|---|---|---|
+| ASV5 eval (30k clips), fused | 29.36% (AUC 0.765) | **5.51%** (AUC 0.979) |
+| ASV5 eval, WavLM alone | - | 5.43% (AUC 0.985) |
+| ASV5 eval, codec-free clips | 26.30% | 0.72% |
+| ASV2019 eval (30k), fused | 15.99% | 4.85% |
+| ASV5 eval fused, by seconds of speech | - | 2 s 8.02%, 4 s 6.23%, 6 s 5.62%, 10 s 5.51% |
+
+- **Success criterion met** (<= 24.4%), by 19 points. SVM and RCNN scores are identical to run 3 (29.58% / 29.36%),
+  confirming the comparison uses the same clips and scoring.
+- Every eval attack improved; run 3's inverted attacks are fixed (A18 65.7 -> 6.0%, A30 64.8 -> 10.8%, A32 51.9 ->
+  3.9%, A31 48.7 -> 8.8%). Worst now: A30 10.8%, A28 10.7%, A31 8.8%.
+- Every codec condition improved. Two remain weak, both the **neural codec EnCodec**, the one family ffmpeg cannot
+  render for augmentation: C04 EnCodec 36.0 -> 15.8%, C07 MP3+EnCodec 37.0 -> 19.3%. Next worst: C08 narrowband Opus
+  6.3%, C10 narrowband Speex 5.9%. All others 1.5-3.7%.
+- On eval, fusion adds nothing over WavLM alone (5.51% vs 5.43%, AUC 0.979 vs 0.985): the SVM and RCNN are ~29%
+  branches. The weights were chosen on the tuning set as agreed, so they are not changed after seeing eval.
+- Caveat: WavLM-Base+ was pretrained (without labels) on 94k h including Libri-Light, which is LibriVox audiobooks;
+  ASV5 bonafide speech is also LibriVox (MLS). In ASVspoof5 terms this is an open-condition result, in line with
+  published SSL-front-end systems; it says less about live phone audio, which remains untested.
+- Serving with the run 4 bundle: 78 ms to first verdict on GPU (WavLM 48 ms per window, SVM features 41 ms, RCNN 7 ms).
+- Run 4 bundle copied to `artifacts_run4_wavlm/` (hashes verified); report `results/training_report_run4.json`
+  (also `training_report.json`), log `results/train_run4.log`. 97 tests pass after the CI fix.
 
 ## 3. Decisions and the reasoning behind them
 
 - **Train on ASV5 only, drop ASV2019 (run 1).** Chosen because ASV5 dev gives attack-disjoint tuning and ASV2019 has a silence
   shortcut. The cross-dataset result (37.8%) now weakens this: mixed training is coded and tested but not run.
 - **Codec augmentation is label-blind** (augmenter takes no label), so it cannot create a "codec means real/fake" shortcut.
-- **Fusion weight tie-break:** among weights within 0.05 EER points of the best, pick the one closest to 0.5.
+- **Fusion weight tie-break:** among weights within 0.05 EER points of the best, pick the most balanced one
+  (closest to 0.5 with two branches, to equal weights with three).
+- **Run 4 reused run 3's SVM and RCNN** so the only change was the WavLM branch (identical pool, renders, tuning set, tests).
+- **Rendering refuses an incomplete ffmpeg build** rather than skipping codecs (codec choice is fixed per clip ID).
 - **Risk thresholds from bonafide quantiles** (1% block, 10% verify) instead of the slide's fixed 0.8/0.5.
 - **Bundle carries its operating point** (fusion weight, thresholds) and overrides the config at serving time.
 - **Eval scored on a stratified subset** (SVM runs ~35-80 clips/s), not the whole split.
@@ -213,18 +248,25 @@ Config: SVM on 19,994 clips (98,527 snapshot vectors, codec aug 0.5), RCNN 10 ep
 
 ## 5. Known limitations (current)
 
-- Weak generalisation to unseen attacks and real codecs (section 2, phase 6). Dev is not a reliable proxy for eval.
-- ASV5 clips are crowdsourced speech, not live VoIP audio (packet loss, DTX, echo untested).
-- Simulated codecs cover Opus/MP3/Vorbis/G.711/narrowband only; AMR, Speex, EnCodec, AAC, Bluetooth device channels are not simulated.
-- SVM recomputed per verdict (~41-49 ms per 10 s buffer); first-verdict compute ~22-27 ms on GPU.
-- ASV5 eval has been used to compare candidates (baseline now); never tune on it.
-- Cross-dataset (ASV5 -> ASV2019) near chance; reverse direction untested.
+- Neural codecs: EnCodec conditions (C04, C07) are at 15.8% / 19.3% EER vs 1.5-6.3% for every other condition;
+  no EnCodec augmentation exists yet (ffmpeg has no EnCodec).
+- The tuning set is far easier than eval (run 4: 0.34% vs 5.51%; run 3: 12.9% vs 29.4%); it ranks candidates but its
+  absolute numbers and thresholds do not transfer. Risk thresholds tuned there will flag more bonafide on eval-like audio.
+- ASV5 clips are read audiobook speech, not live VoIP audio (packet loss, DTX, echo untested). WavLM's pretraining
+  includes the same audiobook source (open condition).
+- Only 2 of 10 ASV5 eval tars (20%, verified representative); the 30k-clip subset is used for every comparison.
+- WavLM needs a GPU to serve many calls (48 ms per window on GPU, ~234 ms on CPU). SVM features cost ~41 ms per verdict
+  for a 0.10 weight.
+- ASV5 eval has been used to compare candidates; never tune on it.
+- No true cross-dataset test since run 2 (ASV2019 train/dev are in the pool).
 
 ## 6. Inventory
 
 - Code: `src/audiodf/` (data, features, models, training, evaluation, inference, serving, streaming, monitoring), `src/run.py`, `src/tests/` (6 test files), `src/deploy/`, `.github/workflows/ci.yml`.
 - Docs: `new_plan.md`, `src/README.md`, `audit.md`.
-- Results: `results/training_report.json`, `evaluate_asv5_eval.json`, `data_integrity_asv5.json`, `data_integrity_asv19.json`, `segmented_baseline_bilstm.json`, logs (`train_asv5.log`, `asvspoof5_download.log`, ...).
+- Models (git-ignored): `artifacts/` = run 4; `artifacts_run4_wavlm/`, `artifacts_run3_codecs/`, `artifacts_run2_pooled/`,
+  `artifacts_run1_asv5/`, `artifacts_prev_asv2019/`.
+- Results: `results/training_report.json` (run 4), `training_report_run{1,2,3,4}.json`, `train_run{2,3,4}.log`, `evaluate_asv5_eval.json`, `data_integrity_asv5.json`, `data_integrity_asv19.json`, `segmented_baseline_bilstm.json`, logs (`train_asv5.log`, `asvspoof5_download.log`, ...).
 - Cache (outside the repo): `~/.cache/audiodf/prep_vad-45_0.025_0.05_svmv2_melv1/` (indexes + SVM snapshots, 0.38 GB). The obsolete
   ASV2019 v1 feature caches (`seg2s_hop1s*`, 8.60 GB) were **deleted on 2026-10-03** after checking that nothing in `src/` reads them (only
   `experiments/segmented_baseline.py` did; it rebuilds them in ~28 min). Their one model file, the prototype's 5-epoch RCNN, was kept as
@@ -234,12 +276,14 @@ Config: SVM on 19,994 clips (98,527 snapshot vectors, codec aug 0.5), RCNN 10 ep
 
 ```
 cd src
-python run.py                              # train on ASV5 (audit, index, SVM, RCNN, tune, test)
-python run.py --train-on asv5 asv19        # mixed training
+python run.py --eval-utts 30000           # all three branches from scratch (pooled data, held-out tuning, both tests)
+python run.py --eval-utts 30000 --svm-checkpoint ../artifacts_run3_codecs/svm.joblib \
+              --rcnn-checkpoint ../artifacts_run3_codecs/rcnn.pt     # run 4 exactly (only WavLM trains, ~7 h)
 python -m audiodf audit --dataset asv5     # integrity audit
 python -m audiodf evaluate --dataset asv5 --split eval --eval-utts 30000
+python -m audiodf benchmark                # serving latency of artifacts/
 python -m audiodf serve --port 8000        # API
-python -m pytest                           # 69 tests
+python -m pytest                           # 97 tests
 ```
 
 ## 8. Open items
@@ -248,10 +292,13 @@ python -m pytest                           # 69 tests
 |---|---|
 | Run 2: pooled data + held-out-attack tuning (options 1+2 combined) | done: ASV5 eval 31.6% (run 1 33.0%) |
 | Real-codec augmenter via ffmpeg (encoders confirmed available) | done: run 3, 29.4% (not significant) |
-| Pretrained speech front end (WavLM) | **next** |
-| Investigate A12 inversion and the cross-dataset collapse | open |
+| Pretrained speech front end (WavLM) | done: run 4, **5.51%** (target <= 24.4%) |
+| EnCodec (neural codec) augmentation for C04/C07 | **suggested next** |
+| Decide whether to serve WavLM alone (eval EER 5.43% vs fused 5.51%; drops ~57 ms of SVM+RCNN compute per verdict) | open, your call |
+| Investigate A12 inversion and the cross-dataset collapse | superseded: run 4 has no inverted eval attack |
 | Download the remaining 8 ASV5 eval tars (~68 GB; needs space) for the final number | optional |
 | Delete the obsolete ASV2019 cache | done (8.60 GB freed) |
-| Kafka / Docker / Kubernetes / Grafana verification | not started |
+| Kafka / Docker runtime / Kubernetes / Grafana verification | not started (Docker image builds in CI) |
 | Real call audio (VoIP) evaluation | not started |
-| Commit the 41 uncommitted changes | not requested |
+| `configs/default.yaml` paths are relative to the working directory (`artifacts` from `src/` misses the repo's folder) | open, minor |
+| Commits | `573fe30` (code), `bef9ad7` (CI fix) pushed; run 4 results not yet committed |
