@@ -531,6 +531,32 @@ more for phone calls than EnCodec does. Implications:
 The step-by-step plan from here (real call audio check, then the remaining ML work, deployment, finalising) is kept
 in `audit.md` section 9.
 
+### 7.3m Telephony check (2026-10-06): run 4's WavLM is the better call model; thresholds are too loose
+
+ASVspoof 2019 PA was not usable (replay attacks, no phone channel, deleted earlier); ASVspoof 2021 LA eval was: the 2019
+LA eval utterances sent over real VoIP and the public phone network, with a-law, mu-law, GSM, G.722 and Opus. Scored on
+the same 29,994 clips, WavLM alone, EER at 10 s:
+
+| | run 4 | run 5 |
+|---|---|---|
+| All clips | **8.81%** | 9.96% |
+| No channel / VoIP codecs (a-law, mu-law, G.722, Opus) | 6.0% / 7.5-8.6% | 7.1% / 8.6-9.6% |
+| GSM / public phone network (Spain) | 10.6% / 11.5% | 13.0% / 12.6% |
+
+Findings (detail in `audit.md` phase 15):
+- Run 4 is better in every codec and route and on 11 of 13 attacks, as on ASV5: the EnCodec augmentation of run 5 costs
+  about one point and gives nothing on telephone channels. **For calls, use run 4's WavLM; keep run 5 for audio that may
+  have been through neural codecs.**
+- The phone channel adds about 2-5.5 points of EER over the untouched reference; the attacks A10 (24%) and A11 (15%)
+  matter more than any channel.
+- **The stored risk thresholds flag too many genuine calls on phone audio** (run 5: 14.6% at the 10% "verify" level, 6.2% at
+  the 1% "block" level; GSM 26% / 12%), and the score shifts with the channel. The tuning set (held-out ASV5 attacks) is
+  too easy to set thresholds for calls.
+- Not yet shown: live calls (noise, echo, packet loss, real phones), new speakers or attack families on a phone channel.
+
+Next: build a WavLM-only bundle from run 4 and set its thresholds on speaker-disjoint phone-channel data
+(`audit.md` section 9 step 1a), then the live-call check (step 1b).
+
 ### 7.4 Fusion: don't jump to an ANN yet
 
 Considered a small ANN/learned voting classifier instead of the fixed 0.7/0.3 weight. Verdict:

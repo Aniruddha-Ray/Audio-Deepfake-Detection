@@ -2,3 +2,4 @@
 pytest
 httpx
 websockets
+pyarrow  # unpacking the ASVspoof 2021 parquet download (audiodf prepare21) and its tests

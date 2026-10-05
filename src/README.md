@@ -1,7 +1,11 @@
 # audiodf: real-time deepfake voice detection (SVM + RCNN ensemble)
 
-Production-shaped version of the notebook prototype. Two independent branches, each with its own
-audio processing, fused into one P(fake) and mapped to Allow / Verify / Block. Trained on ASVspoof5.
+Production-shaped version of the notebook prototype. Independent branches (SVM, RCNN, WavLM), each with its own
+audio processing, fused into one P(fake) and mapped to Allow / Verify / Block. Trained on ASVspoof5 + ASVspoof2019.
+
+**Current default: WavLM alone** (`ensemble.branches = [wavlm]`, run 5). The SVM and RCNN branches described below
+are still in the code (`run.py --branches svm rcnn wavlm`) but add nothing on eval once WavLM is present; the diagram
+and branch table show all three. Results and the telephony check are at the end of this file.
 
 ```
 audio chunks (0.5 s, PCM16)
@@ -91,12 +95,16 @@ python run.py --train-splits asv5:train --holdout-attacks   # run-1 setup: ASV5 
 python -m audiodf audit --dataset asv5       # integrity audit, exit 1 on hard errors
 python -m audiodf prepare                    # index clips (decode once; cached)
 python -m audiodf evaluate --dataset asv5 --split eval   # score saved artifacts
+# options: --bundle DIR (another model folder), --branches wavlm (one branch of a fused bundle), --tag T, --save-scores
+python -m audiodf prepare21                  # unpack the ASVspoof 2021 LA eval parquet download (real phone channels)
+python -m audiodf evaluate --dataset asv21 --eval-utts 30000 --save-scores
+python -m audiodf.evaluation.channel_report --protocol ../dataset21/ASVspoof2021.LA.eval.tsv --runs a=... b=...
 python -m audiodf predict some.flac          # one file -> verdict JSON
 python -m audiodf benchmark                  # per-stage latency
 python -m audiodf serve --port 8000          # API: /predict, /stream/{id}, /health, /metrics
 python -m audiodf consume                    # Kafka worker (needs a broker + confluent-kafka)
 python -m audiodf produce call.wav --realtime
-python -m pytest                             # 72 tests, no dataset or GPU needed
+python -m pytest                             # 108 tests, no dataset or GPU needed
 ```
 
 Stream over a WebSocket: send binary frames of 16 kHz mono PCM16, receive a JSON verdict each time a
@@ -122,6 +130,19 @@ codec augmentation fixed the two neural-codec conditions but cost 0.1-2.3 points
 narrowband telephony (C08 8.3%), so run 4's WavLM is kept for comparison on real call audio. WavLM's pretraining data
 includes the audiobook source of ASV5's real speech, and nothing has been tested on phone-call audio yet. Details:
 `results/training_report.json` (run 5), `training_report_run{1,2,3,4}.json`, `new_plan.md` 7.3d-7.3l, `audit.md` phases 12-14.
+
+**Telephony check** (ASVspoof 2021 LA eval: the 2019 LA eval utterances sent over real VoIP and public-phone-network
+channels; 29,994 clips, WavLM alone, EER at 10 s):
+
+| | Run 4's WavLM | Run 5's WavLM |
+|---|---|---|
+| All clips | **8.8%** | 10.0% |
+| No channel / a-law / mu-law / G.722 / Opus | 6.0 / 8.6 / 8.4 / 7.8 / 7.5% | 7.1 / 9.6 / 8.6 / 8.4 / 8.6% |
+| GSM / public phone network (Spain) | 10.6% / 11.5% | 13.0% / 12.6% |
+
+Run 4's WavLM is the better call model (better in every channel). **The stored verify/block thresholds are too loose on phone
+audio** (designed for 10% / 1% of genuine clips flagged; measured 14.6% / 6.2% for run 5): re-calibrate on phone-channel
+data before relying on the risk levels. Details: `audit.md` phase 15, `new_plan.md` 7.3m.
 The earlier ASVspoof2019 prototype (5.7% eval EER) used feature version 1 and an easier benchmark; it is not
 reproducible with this code and not comparable to these numbers.
 

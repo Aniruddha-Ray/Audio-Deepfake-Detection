@@ -25,7 +25,7 @@ dependencies = [
 
 [project.optional-dependencies]
 kafka = ["confluent-kafka"]
-dev = ["pytest", "httpx", "websockets"]
+dev = ["pytest", "httpx", "websockets", "pyarrow"]
 
 [project.scripts]
 audiodf = "audiodf.cli:main"

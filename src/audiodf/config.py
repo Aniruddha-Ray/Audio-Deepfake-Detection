@@ -158,6 +158,7 @@ class DataConfig:
 class PathsConfig:
     data_root: str = str(REPO_ROOT / "dataset" / "LA" / "LA")
     asv5_root: str = str(REPO_ROOT / "dataset5")
+    asv21_root: str = str(REPO_ROOT / "dataset21")  # ASVspoof 2021 LA eval: telephony test set (data/asv21.py)
     cache_dir: str = str(Path.home() / ".cache" / "audiodf")
     artifacts_dir: str = str(REPO_ROOT / "artifacts")
     results_dir: str = str(REPO_ROOT / "results")
@@ -183,7 +184,7 @@ class Settings:
 
     def dataset_root(self, dataset: str | None = None) -> str:
         dataset = dataset or self.data.dataset
-        return {"asv19": self.paths.data_root, "asv5": self.paths.asv5_root}[dataset]
+        return {"asv19": self.paths.data_root, "asv5": self.paths.asv5_root, "asv21": self.paths.asv21_root}[dataset]
 
     @property
     def segment_samples(self) -> int:
@@ -227,10 +228,12 @@ def load_settings(path: str | Path | None = None) -> Settings:
         settings.paths.data_root = os.environ["AUDIODF_DATA"]
     if os.environ.get("AUDIODF_ASV5"):
         settings.paths.asv5_root = os.environ["AUDIODF_ASV5"]
+    if os.environ.get("AUDIODF_ASV21"):
+        settings.paths.asv21_root = os.environ["AUDIODF_ASV21"]
     if os.environ.get("AUDIODF_ARTIFACTS"):
         settings.paths.artifacts_dir = os.environ["AUDIODF_ARTIFACTS"]
     if os.environ.get("KAFKA_BOOTSTRAP_SERVERS"):
         settings.kafka.bootstrap_servers = os.environ["KAFKA_BOOTSTRAP_SERVERS"]
-    for name in ("data_root", "asv5_root", "cache_dir", "artifacts_dir", "results_dir"):
+    for name in ("data_root", "asv5_root", "asv21_root", "cache_dir", "artifacts_dir", "results_dir"):
         setattr(settings.paths, name, os.path.expanduser(getattr(settings.paths, name)))
     return settings

@@ -23,7 +23,7 @@ from audiodf.data.ffmpeg_codecs import render_copies
 from audiodf.data.prepare import SplitIndex, build_index, build_svm_snapshots, holdout_split, stratified_subset
 from audiodf.data.protocol import ASV5_SPLITS, ASV19_SPLITS
 from audiodf.evaluation.metrics import compute_metrics
-from audiodf.evaluation.stream_eval import StreamScores, score_split, summarize
+from audiodf.evaluation.stream_eval import StreamScores, operating_point_report, score_split, summarize, write_scores  # noqa: F401
 from audiodf.models.ensemble import BRANCHES, simplex_grid
 from audiodf.models.rcnn import load_rcnn
 from audiodf.models.svm import load_svm
@@ -82,12 +82,20 @@ def _subset(idx: SplitIndex, n: int, seed: int = 0) -> np.ndarray:
 
 
 def evaluate_on(models: dict, settings: Settings, dataset: str, split: str, n_utts: int, device, workers: int,
-                limit: int | None = None, log=print) -> dict:
+                limit: int | None = None, log=print, risk: dict | None = None, scores_path=None) -> dict:
+    """risk: stored {"high", "medium"} thresholds; when given the report also says what they do on this data.
+    scores_path: also write every clip's scores (CSV) for further breakdowns."""
     idx = build_index(settings, dataset, split, limit, workers, log, available_only=True)  # test splits may be partial
     utts = _subset(idx, n_utts)
     log(f"  scoring {dataset}/{split}: {len(utts)} of {len(idx)} clips")
     scores = score_split(models, idx, utts, settings, device, workers, f"{split}{len(utts)}", log)
-    return summarize(scores, settings.ensemble.weights)
+    rep = summarize(scores, settings.ensemble.weights)
+    if risk:
+        rep["operating_point"] = operating_point_report(scores, settings.ensemble.weights, risk)
+    if scores_path:
+        write_scores(scores, settings.ensemble.weights, scores_path)
+        rep["scores_csv"] = str(scores_path)
+    return rep
 
 
 def _print_summary(name: str, rep: dict, log) -> None:
@@ -249,13 +257,27 @@ def run_training(settings: Settings, limit: int | None = None, workers: int = 8,
 
 
 def evaluate_artifacts(settings: Settings, dataset: str, split: str, n_utts: int, workers: int,
-                       limit: int | None = None, log=print) -> dict:
-    """Score a saved bundle on any dataset/split with its own tuned fusion weights (every branch is scored, so
-    the report shows each one, including branches the fusion gave no weight)."""
+                       limit: int | None = None, log=print, branches=None, scores_path=None) -> dict:
+    """Score a saved bundle (settings.paths.artifacts_dir) on any dataset/split with its own tuned fusion weights
+    (every branch is scored, so the report shows each one, including branches the fusion gave no weight).
+
+    branches: score only these branches of the bundle (e.g. ("wavlm",) to take one branch out of a fused bundle); the
+    fusion is then those branches with their tuned weights renormalised. The bundle's risk thresholds were tuned for its
+    own fusion, so the operating-point section is reported only when all branches are used."""
     device = pick_device()
     bundle = load_bundle(settings, device)
     settings = copy.deepcopy(settings)
-    settings.ensemble.weights = bundle.weights
-    rep = evaluate_on(bundle.models, settings, dataset, split, n_utts, device, workers, limit, log)
+    models, weights, risk = bundle.models, bundle.weights, bundle.manifest["risk"]
+    if branches:
+        missing = sorted(set(branches) - set(models))
+        if missing:
+            raise ValueError(f"bundle has branches {sorted(models)}, not {missing}")
+        models = {b: models[b] for b in branches}
+        total = sum(weights.get(b, 0.0) for b in branches)
+        weights = ({b: weights[b] / total for b in branches} if total > 0
+                   else {b: 1 / len(branches) for b in branches})
+        risk = None
+    settings.ensemble.weights = weights
+    rep = evaluate_on(models, settings, dataset, split, n_utts, device, workers, limit, log, risk, scores_path)
     _print_summary(f"{dataset}/{split}", rep, log)
     return rep

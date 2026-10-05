@@ -1,19 +1,20 @@
 # Audit log: Real-Time Deepfake Voice Detection
 
 Running record of what was done, what was found, what turned out wrong, and what is open.
-Last updated: 2026-10-04 (after run 5). Companion docs: `new_plan.md` (plan and analysis), `src/README.md` (usage).
+Last updated: 2026-10-06 (after the telephony check). Companion docs: `new_plan.md` (plan and analysis), `src/README.md` (usage).
 
 ## 1. Current state at a glance
 
 | Item | State |
 |---|---|
-| Codebase | `src/audiodf/` (33 modules), 103 passing tests. Everything pushed through `34467a8` (run 5); CI green (Linux tests incl. EnCodec + Docker build). |
+| Codebase | `src/audiodf/` (35 modules), 108 passing tests. Pushed through `38fe200`; CI green. The telephony-test code (phase 15) is not yet pushed. |
 | Trained model | `artifacts/` = run 5 (**WavLM-Base+ alone**, EnCodec in the codec augmentation). Copy in `artifacts_run5_encodec/`; run 4 (3-branch) in `artifacts_run4_wavlm/`; runs 1-3 kept. |
 | Previous model | `artifacts_prev_asv2019/` (ASV2019 prototype, feature v1, cannot load in current code). Kept, git-ignored. |
 | Best honest number | ASV5 eval EER **5.51%**, worst codec condition 10.5% (run 5, WavLM alone; run 4 WavLM alone 5.43% with a worst condition of 18.5%; run 3 29.4%). ASV2019 eval 5.82% (in-domain). |
 | Deployment | FastAPI tested for real (65 ms to first verdict on GPU, WavLM alone); **Kafka, Docker runtime, Kubernetes, Grafana untested**. No real phone-call audio. |
 | Disk | Data: `dataset/LA` 7.1 GB, `dataset5/` ~75 GB (train, dev, 2 of 10 eval tars); codec renders in the cache (catalogue 1 ~35 GB, catalogue 2 adds ~7 GB, the rest hard links). |
-| Next | Real call audio check, scoring both run 4 and run 5 WavLM (section 9 has the step-by-step plan). |
+| Telephony check | ASVspoof 2021 LA eval (real VoIP/PSTN channels), 30k clips, WavLM alone: **run 4 8.81%, run 5 9.96%**; run 4 better in every channel. Stored thresholds are too loose for phone audio (phase 15). |
+| Next | Decide the call model (run 4's WavLM recommended) and re-calibrate its thresholds on speaker-disjoint phone-channel data (section 9). |
 
 ## 2. Timeline
 
@@ -244,9 +245,65 @@ Config: SVM on 19,994 clips (98,527 snapshot vectors, codec aug 0.5), RCNN 10 ep
   is (a duplicate line I appended was removed).
 - Pushed as `34467a8` (your yes); CI green: Linux tests, including the EnCodec tests (CPU, model downloaded in CI), and
   the Docker build. Free disk afterwards: 130 GB.
-- Paused here at your request (2026-10-04 evening); continue with section 9.
+- Paused here at your request (2026-10-04 evening); resumed 2026-10-06 with section 9 step 1 (phase 15).
 
-## 3. Decisions and the reasoning behind them
+### Phase 15: telephony check on ASVspoof 2021 LA eval (2026-10-06)
+- **Why this set, not ASV2019 PA** (your question): PA is replay (a genuine voice played through a loudspeaker; its
+  "spoof" label is not synthetic speech) and simulates rooms, not phone channels; we had also deleted it on 2026-10-03.
+  ASVspoof 2021 LA eval is the organisers' own version of "play it through a real phone/VoIP channel": the 2019 LA eval
+  utterances transmitted over a real Asterisk VoIP exchange (some routed France -> Italy / Singapore) and the public
+  phone network in Spain, with codecs a-law, mu-law, GSM (8 kHz), G.722, Opus (16 kHz) and an untouched reference.
+- **Download:** Zenodo ran at 320 KB/s (~6.7 h); the Hugging Face packaging `SpeechAntiSpoofingBenchmarks/
+  ASVspoof2021_LA` ran at 16 MB/s (8 min, 24 parquet files, 7.6 GB). Verified: 24 files, 181,566 rows, 18,452 genuine +
+  163,114 fake (the published counts). Its README says the audio was decoded from the official FLACs (which libsndfile
+  often cannot read) and re-encoded as clean 16 kHz FLAC with the samples unchanged; **I did not verify that against the
+  official files**. Unpacked to `dataset21/` (181,566 FLAC + `ASVspoof2021.LA.eval.tsv` with codec, transmission route,
+  phase and trim per clip; git-ignored via `dataset*/`). Indexing (decode + VAD) took 496 s, no clip without speech.
+- **Code:** `data/asv21.py` (unpack, resumable, checks label vs attack), `asv21` registered in `data/protocol.py`
+  (test-only: training refuses it), `paths.asv21_root`, `audiodf prepare21`, `evaluate --dataset asv21 --bundle DIR
+  --branches wavlm --tag T --save-scores`, `operating_point_report` (genuine flagged / fakes caught at the stored
+  thresholds, per codec), `write_scores`, and `evaluation/channel_report.py` (breakdown by codec, route, phase, trim,
+  attack; runs side by side; flagged/caught at the single global threshold). `pyarrow` added to the dev requirements.
+  108 tests (5 new), also green with GSM hidden.
+- **Test set:** the same 29,994 clips for both models (10,000 genuine + 19,994 fake, 13 attacks A07-A19 x 1,538), WavLM
+  alone, EER at 10 s of speech. Run 4's WavLM was taken out of its 3-branch bundle with `--branches wavlm`.
+
+| EER at 10 s, WavLM alone, same clips | run 4 | run 5 |
+|---|---|---|
+| **All clips** (AUC 0.969 / 0.961) | **8.81%** | 9.96% |
+| No channel (reference) | 5.98% | 7.11% |
+| a-law / mu-law | 8.60% / 8.36% | 9.64% / 8.55% |
+| G.722 / Opus | 7.82% / 7.48% | 8.41% / 8.57% |
+| GSM | 10.64% | 13.03% |
+| Public phone network (Madrid, PSTN) | 11.49% | 12.57% |
+| Routes: local / Italy / Singapore | 9.07 / 8.75 / 7.75% | 10.38 / 9.71 / 8.75% |
+| Silence-trimmed "hidden" clips (2,833) | 13.14% | 14.70% |
+| After only 2 s of speech | 8.91% | 10.02% |
+
+- **Run 4's WavLM is better than run 5's on real telephony in every codec (7 of 7), every route (5 of 5) and 11 of 13
+  attacks** (the other two within 0.35 points), including the untouched reference (5.98 vs 7.11%). This is the same
+  direction as on ASV5 eval (run 5 lost 0.1-2.3 points on non-EnCodec conditions): the EnCodec augmentation buys
+  nothing on phone channels and costs about one point. Same clips for both, so the comparison is paired; the
+  breakdowns overlap, so they are not independent evidence, and seed noise is still unmeasured.
+- The phone channel costs about 2-5.5 points of EER over the reference (VoIP codecs 7.5-8.6%, GSM 10.6%, public phone
+  network 11.5% for run 4). Attacks matter more than channels: A10 (24% EER, 44% caught) and A11 (15%) are the
+  hardest, 3-8x worse than the easy ones (A09 2.2%, A17 2.4%, A19 3.1%). A16 and A19 repeat the systems of 2019's A04 and
+  A06 (as I recall from the 2019 paper, not re-checked), which fits their low error.
+- **The stored thresholds are too loose for phone audio** (run 5, whose thresholds are for WavLM alone): at the verify
+  threshold (designed for 10% of genuine flagged) 14.6% of genuine clips were flagged and 93.3% of fakes caught; at the
+  block threshold (designed for 1%) 6.2% of genuine clips were blocked and 84.8% of fakes caught. GSM: 26% / 12% of
+  genuine clips flagged; the public phone network: only 87% / 73% of fakes caught. This confirms limitation "the tuning
+  set is far easier than eval". Run 4's WavLM has no valid thresholds yet (its bundle's belong to the 3-branch fusion).
+- Scores shift with the channel at one global threshold: genuine clips flagged 5.5-6.2% with no channel vs 15-19% on GSM.
+- Silence-trimmed clips (hidden phase, speech only) are harder (13-14.7% EER; ~29% of genuine flagged at the global
+  threshold): relevant if a call pipeline cuts audio down to speech only.
+- Caveat: these are the 2019 LA eval utterances (same speakers and attack families) sent through real channels: a real
+  telephony test, but not a new-speaker or new-attack test, and not live call audio (no noise, echo, packet loss
+  concealment, or real phones).
+- Files: `results/evaluate_asv21_eval_run{5,4_wavlm}.json`, per-clip `..._scores.csv` (2.9 MB each),
+  `results/channel_report_asv21.json`, logs `eval_asv21_run{5,4}.log`.
+
+## 3. Decisions
 
 - **Train on ASV5 only, drop ASV2019 (run 1).** Chosen because ASV5 dev gives attack-disjoint tuning and ASV2019 has a silence
   shortcut. The cross-dataset result (37.8%) now weakens this: mixed training is coded and tested but not run.
@@ -258,6 +315,8 @@ Config: SVM on 19,994 clips (98,527 snapshot vectors, codec aug 0.5), RCNN 10 ep
 - **WavLM alone** from run 5 on (your call): same eval EER as the 3-branch fusion, 13 ms less per verdict, one model.
 - **EnCodec added without disturbing earlier picks**: catalogue 2 keeps every catalogue-1 assignment that stays
   classical, so copies are reused and runs 4 and 5 differ only in the EnCodec share.
+- **ASVspoof 2021 LA eval is test-only**, and no choice (checkpoint, threshold) is to be tuned on the 30k scored clips
+  and then reported on them: threshold calibration uses a speaker-disjoint split of them (see section 9).
 - **Decision rules are fixed before each run** and applied as written (run 5 adopted although it trades other
   conditions for EnCodec; the trade is reported, not hidden).
 - **Risk thresholds from bonafide quantiles** (1% block, 10% verify) instead of the slide's fixed 0.8/0.5.
@@ -305,6 +364,11 @@ Config: SVM on 19,994 clips (98,527 snapshot vectors, codec aug 0.5), RCNN 10 ep
     exist, since codec choice is fixed by clip ID); tests skip only what the build lacks; pipeline tests render only
     with the full catalogue. Verified locally in both modes (real build, and one with libgsm hidden). Rule: after a
     push, check the CI result.
+20. Small slips while building the telephony test (2026-10-06), all caught before they mattered: I estimated the
+    unpacking of 181,566 files at about an hour from an early file count (it took ~6 min); a `du` over those files in the
+    OneDrive folder blocked for minutes; two of my own test assertions were loose (a stray `or True`, an `or` that made a
+    check vacuous) and one expectation was numerically wrong (3% of simulated genuine scores fall below 0.1). Fixed
+    before running or on the first run. Rule: write each assertion so it can fail; do not size jobs from early partial counts.
 
 ## 5. Known limitations (current)
 
@@ -312,7 +376,8 @@ Config: SVM on 19,994 clips (98,527 snapshot vectors, codec aug 0.5), RCNN 10 ep
   ASV2019 lost 0.1-2.3 points; narrowband telephony codecs (C08 8.3%, C10 6.2%) are now the weakest after EnCodec.
 - Run-to-run (seed) noise is unmeasured, so differences under ~1 point per condition are uncertain.
 - The tuning set is far easier than eval (run 4: 0.34% vs 5.51%; run 3: 12.9% vs 29.4%); it ranks candidates but its
-  absolute numbers and thresholds do not transfer. Risk thresholds tuned there will flag more bonafide on eval-like audio.
+  absolute numbers and thresholds do not transfer. **Measured on phone audio (phase 15): thresholds designed for 10% / 1%
+  of genuine clips flagged flag 14.6% / 6.2%.** Re-calibrate before any user-facing use.
 - ASV5 clips are read audiobook speech, not live VoIP audio (packet loss, DTX, echo untested). WavLM's pretraining
   includes the same audiobook source (open condition).
 - Only 2 of 10 ASV5 eval tars (20%, verified representative); the 30k-clip subset is used for every comparison.
@@ -344,7 +409,12 @@ python -m audiodf audit --dataset asv5     # integrity audit
 python -m audiodf evaluate --dataset asv5 --split eval --eval-utts 30000
 python -m audiodf benchmark                # serving latency of artifacts/
 python -m audiodf serve --port 8000        # API
-python -m pytest                           # 103 tests
+# telephony test (pip install pyarrow; download SpeechAntiSpoofingBenchmarks/ASVspoof2021_LA parquet files into dataset21/data/)
+python -m audiodf prepare21                # unpack to dataset21/flac_eval + protocol (~6 min)
+python -m audiodf evaluate --dataset asv21 --eval-utts 30000 --tag run5 --save-scores
+python -m audiodf evaluate --dataset asv21 --eval-utts 30000 --bundle ../artifacts_run4_wavlm --branches wavlm --tag run4_wavlm --save-scores
+python -m audiodf.evaluation.channel_report --protocol ../dataset21/ASVspoof2021.LA.eval.tsv --runs run4=... run5=... --column wavlm_10s
+python -m pytest                           # 108 tests
 ```
 
 ## 8. Open items
@@ -356,32 +426,48 @@ python -m pytest                           # 103 tests
 | Pretrained speech front end (WavLM) | done: run 4, **5.51%** (target <= 24.4%) |
 | EnCodec (neural codec) augmentation for C04/C07 | done: run 5, C04 9.4%, C07 10.5% (rule met; trade-off on other conditions) |
 | Serve WavLM alone | done: your call, default from run 5 |
-| Real call audio check, scoring run 4 and run 5 WavLM | **next** (your order; plan in section 9) |
+| Telephony check on real phone channels (ASVspoof 2021 LA eval), run 4 and run 5 WavLM | done: run 4 8.81% vs run 5 9.96% (phase 15) |
+| Pick the call model + re-calibrate thresholds on speaker-disjoint phone data | **next** (section 9 step 1a; run 4's WavLM recommended) |
+| Live call audio check | open (section 9 step 1b); needs your choice of data source |
 | Remaining ML list (`new_plan.md` 7.3k): out-of-domain test, telephony robustness, calibration, second seed, ... | open |
 | Investigate A12 inversion and the cross-dataset collapse | superseded: run 4 has no inverted eval attack |
 | Download the remaining 8 ASV5 eval tars (~68 GB; needs space) for the final number | optional |
 | Delete the obsolete ASV2019 cache | done (8.60 GB freed) |
 | Kafka / Docker runtime / Kubernetes / Grafana verification | not started (Docker image builds in CI) |
 | `configs/default.yaml` paths are relative to the working directory (`artifacts` from `src/` misses the repo's folder) | open, minor |
-| Commits | `573fe30` (code), `bef9ad7` (CI fix), `756e79e` (run 4), `34467a8` (run 5) pushed; all CI green; nothing uncommitted |
+| Commits | `573fe30` (code), `bef9ad7` (CI fix), `756e79e` (run 4), `34467a8` (run 5), `38fe200` (docs) pushed; all CI green; the telephony-test code and results are uncommitted |
 | GitHub cleanup | at the very end, after everything is final (your decision); push as we go until then |
 
-## 9. Next steps (written 2026-10-04, after run 5)
+## 9. Next steps (written 2026-10-04 after run 5; updated 2026-10-06 after the telephony check)
 
-**Step 1: real call audio check (next).** Goal: does the model hold up on phone calls, and which WavLM (run 4 or
-run 5) should the call product use?
+**Done 2026-10-06: telephony check on ASVspoof 2021 LA eval (phase 15).** Result: run 4's WavLM beats run 5's on every
+real phone channel (8.81% vs 9.96%); thresholds are too loose for phone audio. Next, in order:
+
+**Step 1a: pick the call model and re-calibrate its thresholds (recommended next, no retraining).**
+1. Call model = **run 4's WavLM alone** (recommended; revisit if the second seed or live-call data says otherwise).
+2. Build a WavLM-only bundle from run 4 (`wavlm.pt`, `branches: [wavlm]`, weights `{wavlm: 1.0}`), kept separate from
+   `artifacts/` (run 5) until you approve swapping.
+3. Calibrate verify / block thresholds on **phone-channel data that is speaker-disjoint from the data used to report
+   them**: split the 30k scored ASVspoof 2021 clips by speaker (the per-clip scores are saved, so no new scoring), set the
+   thresholds on one half (1% / 10% of genuine clips flagged, per the existing policy, ideally per the worst channel or
+   pooled over channels), report false-alarm and catch rates on the other half. Check whether one global threshold is
+   acceptable or the channel-dependent score shift (GSM, PSTN) needs a channel-aware offset.
+4. Same for run 5, so the two bundles are compared on equal terms.
+
+**Step 1b: live call audio (still open, still wanted).** The 2021 set is a real-telephony test but not live calls.
 
 1. **Choose the call data (your decision).** Options, best first:
    - *Our own recordings*: genuine calls (several speakers, phones, networks: mobile, VoIP app, landline) plus fake
      calls made by playing TTS / voice-clone output into a real call. Most realistic; needs consent from speakers.
    - *Replay through a real channel*: play a balanced sample of ASV5 eval clips (bonafide and spoof) into a phone or
      VoIP call and record the far end. Labels come for free; tests the channel, not new attacks.
-   - *Public data*: no public phone-call deepfake set matches our case well; In-the-Wild (real-world deepfakes of
-     public figures) is the closest out-of-domain set, though not phone audio (see step 2).
+   - *Public data*: ASVspoof 2019 PA was ruled out (replay, not synthetic; no phone channel); ASVspoof 2021 LA is done
+     (above); In-the-Wild (real-world deepfakes of public figures) is the closest out-of-domain set, though not phone
+     audio (see step 2).
    - Aim for at least ~200 genuine and ~200 fake calls, so EER and false-alarm rates are not dominated by noise.
 2. **Tooling to build** (small): `audiodf evaluate-calls --dir <folder> --labels <csv>` that streams each recording
-   through `CallSession` exactly as live audio (0.5 s chunks, VAD gate), and a `--branch wavlm` option so a
-   multi-branch bundle (run 4) can be scored as WavLM alone. Reuse the existing metrics.
+   through `CallSession` exactly as live audio (0.5 s chunks, VAD gate). (The `--bundle` and `--branches wavlm` options
+   for scoring one branch of a multi-branch bundle already exist.) Reuse the existing metrics.
 3. **Report for both models:** EER; false-alarm rate on genuine calls at the stored verify / block thresholds (the
    number users would feel); detection rate on fake calls; time to decision (2 / 4 / 6 / 10 s); per-channel results;
    latency per verdict.

@@ -123,6 +123,42 @@ def score_split(models: dict, idx: SplitIndex, utts: np.ndarray, settings: Setti
     return StreamScores(utts, idx.label[utts].astype(np.int64), idx.attack[utts], idx.codec[utts], grid, branches)
 
 
+def operating_point_report(scores: StreamScores, weights: dict, risk: dict) -> dict:
+    """What the stored risk thresholds do on this data, at the decision horizon: the share of genuine clips flagged
+    (verify / block) and of fakes caught, overall and per codec condition. `risk` = {"high": block, "medium": verify}.
+    Only meaningful for the weights the thresholds were tuned with."""
+    p, y = scores.fused(weights)[:, -1], scores.label
+
+    def rates(mask):
+        bona, spoof = p[mask & (y == 0)], p[mask & (y == 1)]
+        out = {}
+        for name, thr in (("verify", risk["medium"]), ("block", risk["high"])):
+            out[name] = {"threshold": round(float(thr), 5),
+                         "bonafide_flagged": round(float((bona >= thr).mean()), 4) if len(bona) else None,
+                         "spoof_caught": round(float((spoof >= thr).mean()), 4) if len(spoof) else None}
+        return out
+
+    out = {"overall": rates(np.ones(len(y), dtype=bool))}
+    if len(set(scores.codec)) > 1:
+        out["per_codec"] = {str(c): rates(scores.codec == c) for c in sorted(set(scores.codec))}
+    return out
+
+
+def write_scores(scores: StreamScores, weights: dict, path) -> None:
+    """One row per clip: ids, label, attack, codec condition, and every branch's (and the fused) P(spoof) at each
+    time-to-decision, so any further breakdown (e.g. by transmission route) needs no re-scoring."""
+    import csv
+
+    cols = {**scores.branches, "fused": scores.fused(weights)}
+    head = ["clip_index", "label", "attack", "codec"] + [f"{b}_{t:g}s" for b in cols for t in scores.grid]
+    with open(path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(head)
+        for i, u in enumerate(scores.utts):
+            w.writerow([int(u), int(scores.label[i]), scores.attack[i], scores.codec[i]]
+                       + [f"{cols[b][i, k]:.5f}" for b in cols for k in range(len(scores.grid))])
+
+
 def summarize(scores: StreamScores, weights: dict) -> dict:
     """Metrics at the decision horizon (last grid time) plus the time-to-decision curve."""
     fused = scores.fused(weights)

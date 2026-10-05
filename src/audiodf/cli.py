@@ -27,11 +27,13 @@ def _cmd_prepare(args, settings):
     from pathlib import Path
 
     from audiodf.data.prepare import build_index
-    from audiodf.data.protocol import ASV5_SPLITS, ASV19_SPLITS
+    from audiodf.data.protocol import SPLIT_TABLES
 
-    table = {"asv5": ASV5_SPLITS, "asv19": ASV19_SPLITS}[args.dataset]
+    table = SPLIT_TABLES[args.dataset]
     root = Path(settings.dataset_root(args.dataset))
     for split in args.splits:
+        if split not in table:
+            continue  # e.g. asv21 has only eval
         audio = root / table[split][1]
         if not audio.is_dir():
             print(f"  skipping {args.dataset}/{split}: audio not downloaded ({audio})")
@@ -56,11 +58,23 @@ def _cmd_evaluate(args, settings):
 
     from pathlib import Path
 
-    rep = evaluate_artifacts(settings, args.dataset, args.split, args.eval_utts, args.workers, args.limit)
-    out = Path(settings.paths.results_dir) / f"evaluate_{args.dataset}_{args.split}.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
+    if args.bundle:
+        settings.paths.artifacts_dir = args.bundle
+    name = f"evaluate_{args.dataset}_{args.split}{f'_{args.tag}' if args.tag else ''}"
+    results = Path(settings.paths.results_dir)
+    results.mkdir(parents=True, exist_ok=True)
+    rep = evaluate_artifacts(settings, args.dataset, args.split, args.eval_utts, args.workers, args.limit,
+                             branches=tuple(args.branches) if args.branches else None,
+                             scores_path=results / f"{name}_scores.csv" if args.save_scores else None)
+    out = results / f"{name}.json"
     out.write_text(json.dumps(rep, indent=2, default=str))
     print(f"report: {out}")
+
+
+def _cmd_prepare21(args, settings):
+    from audiodf.data.asv21 import extract
+
+    extract(args.parquet_dir or Path(settings.paths.asv21_root) / "data", settings.paths.asv21_root)
 
 
 def _cmd_predict(args, settings):
@@ -119,11 +133,19 @@ def main(argv=None) -> None:
     sp.add_argument("--svm-utts", type=int, help="clips the SVM trains on")
     sp.add_argument("--eval-utts", type=int, help="test clips scored per report (0 = whole split)")
     sp = add("evaluate", _cmd_evaluate, "score saved artifacts on a dataset split")
-    sp.add_argument("--dataset", choices=["asv5", "asv19"], default="asv5")
+    sp.add_argument("--dataset", choices=["asv5", "asv19", "asv21"], default="asv5",
+                    help="asv21 = ASVspoof 2021 LA eval, real telephony channels (run `prepare21` first)")
     sp.add_argument("--split", choices=["train", "dev", "eval"], default="eval")
     sp.add_argument("--eval-utts", type=int, default=60000, help="clips to score (0 = whole split)")
     sp.add_argument("--limit", type=int)
     sp.add_argument("--workers", type=int, default=8)
+    sp.add_argument("--bundle", help="artifacts folder to score (default: paths.artifacts_dir)")
+    sp.add_argument("--branches", nargs="+", choices=["svm", "rcnn", "wavlm"],
+                    help="score only these branches of the bundle (e.g. wavlm out of a fused bundle)")
+    sp.add_argument("--tag", help="suffix for the report file name, e.g. run4_wavlm")
+    sp.add_argument("--save-scores", action="store_true", help="also write every clip's scores to a CSV")
+    sp = add("prepare21", _cmd_prepare21, "unpack the ASVspoof 2021 LA eval parquet download into FLAC + protocol")
+    sp.add_argument("--parquet-dir", help="folder with test-*.parquet (default: <asv21_root>/data)")
     sp = add("audit", _cmd_audit, "dataset integrity audit (exit 1 on hard errors)")
     sp.add_argument("--dataset", choices=["asv5", "asv19"], default="asv5")
     sp.add_argument("--sample", type=int, default=3000, help="files per split for format/duration checks")

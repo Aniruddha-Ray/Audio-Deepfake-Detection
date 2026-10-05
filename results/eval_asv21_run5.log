@@ -1,0 +1,15 @@
+    index asv21/eval: 20000/181566 (235 utt/s)
+    index asv21/eval: 40000/181566 (317 utt/s)
+    index asv21/eval: 60000/181566 (355 utt/s)
+    index asv21/eval: 80000/181566 (368 utt/s)
+    index asv21/eval: 100000/181566 (378 utt/s)
+    index asv21/eval: 120000/181566 (385 utt/s)
+    index asv21/eval: 140000/181566 (384 utt/s)
+    index asv21/eval: 160000/181566 (377 utt/s)
+    index asv21/eval: 180000/181566 (371 utt/s)
+  indexed asv21/eval: 181566 utts in 496s, 0 without speech
+  scoring asv21/eval: 29994 of 181566 clips
+  scoring wavlm on 29994 clips
+  asv21/eval   n= 29994 | EER at 10 s: wavlm   9.96%  fused   9.96%
+               fused EER by seconds of speech: 2s 10.02%  4s 9.97%  6s 9.97%  8s 9.96%  10s 9.96%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_asv21_eval_run5.json

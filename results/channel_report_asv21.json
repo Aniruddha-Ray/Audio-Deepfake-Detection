@@ -1,0 +1,606 @@
+{
+  "run4": {
+    "overall": {
+      "n": 29994,
+      "eer": 8.814,
+      "auc": 0.96912,
+      "global_threshold": 0.0121
+    },
+    "codec": {
+      "alaw": {
+        "n": 4215,
+        "eer": 8.602,
+        "flagged": 0.0735,
+        "caught": 0.9031
+      },
+      "g722": {
+        "n": 4279,
+        "eer": 7.824,
+        "flagged": 0.0978,
+        "caught": 0.9381
+      },
+      "gsm": {
+        "n": 4266,
+        "eer": 10.637,
+        "flagged": 0.1536,
+        "caught": 0.9303
+      },
+      "none": {
+        "n": 4251,
+        "eer": 5.983,
+        "flagged": 0.0545,
+        "caught": 0.9333
+      },
+      "opus": {
+        "n": 4277,
+        "eer": 7.481,
+        "flagged": 0.0874,
+        "caught": 0.9325
+      },
+      "pstn": {
+        "n": 4351,
+        "eer": 11.487,
+        "flagged": 0.0746,
+        "caught": 0.8409
+      },
+      "ulaw": {
+        "n": 4355,
+        "eer": 8.359,
+        "flagged": 0.0732,
+        "caught": 0.9068
+      }
+    },
+    "transmission": {
+      "-": {
+        "n": 4251,
+        "eer": 5.983,
+        "flagged": 0.0545,
+        "caught": 0.9333
+      },
+      "ita_tx": {
+        "n": 4491,
+        "eer": 8.748,
+        "flagged": 0.1011,
+        "caught": 0.9209
+      },
+      "loc_tx": {
+        "n": 12327,
+        "eer": 9.069,
+        "flagged": 0.1063,
+        "caught": 0.924
+      },
+      "mad_tx": {
+        "n": 4351,
+        "eer": 11.487,
+        "flagged": 0.0746,
+        "caught": 0.8409
+      },
+      "sin_tx": {
+        "n": 4574,
+        "eer": 7.752,
+        "flagged": 0.072,
+        "caught": 0.9182
+      }
+    },
+    "codec/transmission": {
+      "alaw/ita_tx": {
+        "n": 882,
+        "eer": 7.83,
+        "flagged": 0.0717,
+        "caught": 0.9151
+      },
+      "alaw/loc_tx": {
+        "n": 2403,
+        "eer": 9.089,
+        "flagged": 0.0838,
+        "caught": 0.904
+      },
+      "alaw/sin_tx": {
+        "n": 930,
+        "eer": 7.761,
+        "flagged": 0.0489,
+        "caught": 0.8892
+      },
+      "g722/ita_tx": {
+        "n": 875,
+        "eer": 8.411,
+        "flagged": 0.1207,
+        "caught": 0.9402
+      },
+      "g722/loc_tx": {
+        "n": 2492,
+        "eer": 8.631,
+        "flagged": 0.1093,
+        "caught": 0.9361
+      },
+      "g722/sin_tx": {
+        "n": 912,
+        "eer": 5.647,
+        "flagged": 0.0444,
+        "caught": 0.9418
+      },
+      "gsm/ita_tx": {
+        "n": 938,
+        "eer": 11.273,
+        "flagged": 0.1631,
+        "caught": 0.9127
+      },
+      "gsm/loc_tx": {
+        "n": 2399,
+        "eer": 10.466,
+        "flagged": 0.1524,
+        "caught": 0.9371
+      },
+      "gsm/sin_tx": {
+        "n": 929,
+        "eer": 10.215,
+        "flagged": 0.1472,
+        "caught": 0.9303
+      },
+      "none/-": {
+        "n": 4251,
+        "eer": 5.983,
+        "flagged": 0.0545,
+        "caught": 0.9333
+      },
+      "opus/ita_tx": {
+        "n": 902,
+        "eer": 7.336,
+        "flagged": 0.074,
+        "caught": 0.9289
+      },
+      "opus/loc_tx": {
+        "n": 2487,
+        "eer": 8.212,
+        "flagged": 0.0986,
+        "caught": 0.9324
+      },
+      "opus/sin_tx": {
+        "n": 888,
+        "eer": 6.543,
+        "flagged": 0.0721,
+        "caught": 0.9367
+      },
+      "pstn/mad_tx": {
+        "n": 4351,
+        "eer": 11.487,
+        "flagged": 0.0746,
+        "caught": 0.8409
+      },
+      "ulaw/ita_tx": {
+        "n": 894,
+        "eer": 8.239,
+        "flagged": 0.0714,
+        "caught": 0.9078
+      },
+      "ulaw/loc_tx": {
+        "n": 2546,
+        "eer": 8.795,
+        "flagged": 0.0854,
+        "caught": 0.9108
+      },
+      "ulaw/sin_tx": {
+        "n": 915,
+        "eer": 6.852,
+        "flagged": 0.0405,
+        "caught": 0.895
+      }
+    },
+    "phase": {
+      "eval": {
+        "n": 24406,
+        "eer": 7.967,
+        "flagged": 0.0638,
+        "caught": 0.908
+      },
+      "hidden": {
+        "n": 2833,
+        "eer": 13.136,
+        "flagged": 0.2974,
+        "caught": 0.9501
+      },
+      "progress": {
+        "n": 2755,
+        "eer": 7.45,
+        "flagged": 0.0628,
+        "caught": 0.9094
+      }
+    },
+    "trim": {
+      "notrim": {
+        "n": 27161,
+        "eer": 7.923,
+        "flagged": 0.0637,
+        "caught": 0.9082
+      },
+      "only_speech": {
+        "n": 2833,
+        "eer": 13.136,
+        "flagged": 0.2974,
+        "caught": 0.9501
+      }
+    },
+    "attack": {
+      "A07": {
+        "n": 11538,
+        "eer": 5.918,
+        "flagged": 0.0882,
+        "caught": 0.9642
+      },
+      "A08": {
+        "n": 11538,
+        "eer": 3.521,
+        "flagged": 0.0882,
+        "caught": 0.9935
+      },
+      "A09": {
+        "n": 11538,
+        "eer": 2.215,
+        "flagged": 0.0882,
+        "caught": 1.0
+      },
+      "A10": {
+        "n": 11538,
+        "eer": 24.389,
+        "flagged": 0.0882,
+        "caught": 0.4421
+      },
+      "A11": {
+        "n": 11538,
+        "eer": 14.932,
+        "flagged": 0.0882,
+        "caught": 0.7198
+      },
+      "A12": {
+        "n": 11538,
+        "eer": 5.398,
+        "flagged": 0.0882,
+        "caught": 0.9675
+      },
+      "A13": {
+        "n": 11538,
+        "eer": 4.431,
+        "flagged": 0.0882,
+        "caught": 0.987
+      },
+      "A14": {
+        "n": 11538,
+        "eer": 7.936,
+        "flagged": 0.0882,
+        "caught": 0.935
+      },
+      "A15": {
+        "n": 11538,
+        "eer": 4.618,
+        "flagged": 0.0882,
+        "caught": 0.9811
+      },
+      "A16": {
+        "n": 11538,
+        "eer": 3.426,
+        "flagged": 0.0882,
+        "caught": 0.985
+      },
+      "A17": {
+        "n": 11538,
+        "eer": 2.393,
+        "flagged": 0.0882,
+        "caught": 0.9987
+      },
+      "A18": {
+        "n": 11538,
+        "eer": 9.876,
+        "flagged": 0.0882,
+        "caught": 0.8836
+      },
+      "A19": {
+        "n": 11538,
+        "eer": 3.058,
+        "flagged": 0.0882,
+        "caught": 0.9974
+      }
+    }
+  },
+  "run5": {
+    "overall": {
+      "n": 29994,
+      "eer": 9.961,
+      "auc": 0.96064,
+      "global_threshold": 0.05562
+    },
+    "codec": {
+      "alaw": {
+        "n": 4215,
+        "eer": 9.638,
+        "flagged": 0.0865,
+        "caught": 0.8935
+      },
+      "g722": {
+        "n": 4279,
+        "eer": 8.408,
+        "flagged": 0.0985,
+        "caught": 0.9271
+      },
+      "gsm": {
+        "n": 4266,
+        "eer": 13.032,
+        "flagged": 0.1904,
+        "caught": 0.9184
+      },
+      "none": {
+        "n": 4251,
+        "eer": 7.109,
+        "flagged": 0.0622,
+        "caught": 0.923
+      },
+      "opus": {
+        "n": 4277,
+        "eer": 8.567,
+        "flagged": 0.0915,
+        "caught": 0.9216
+      },
+      "pstn": {
+        "n": 4351,
+        "eer": 12.573,
+        "flagged": 0.0836,
+        "caught": 0.8175
+      },
+      "ulaw": {
+        "n": 4355,
+        "eer": 8.549,
+        "flagged": 0.0801,
+        "caught": 0.9031
+      }
+    },
+    "transmission": {
+      "-": {
+        "n": 4251,
+        "eer": 7.109,
+        "flagged": 0.0622,
+        "caught": 0.923
+      },
+      "ita_tx": {
+        "n": 4491,
+        "eer": 9.711,
+        "flagged": 0.1096,
+        "caught": 0.9145
+      },
+      "loc_tx": {
+        "n": 12327,
+        "eer": 10.376,
+        "flagged": 0.1228,
+        "caught": 0.9153
+      },
+      "mad_tx": {
+        "n": 4351,
+        "eer": 12.573,
+        "flagged": 0.0836,
+        "caught": 0.8175
+      },
+      "sin_tx": {
+        "n": 4574,
+        "eer": 8.749,
+        "flagged": 0.0785,
+        "caught": 0.9041
+      }
+    },
+    "codec/transmission": {
+      "alaw/ita_tx": {
+        "n": 882,
+        "eer": 9.361,
+        "flagged": 0.0853,
+        "caught": 0.8998
+      },
+      "alaw/loc_tx": {
+        "n": 2403,
+        "eer": 10.154,
+        "flagged": 0.0964,
+        "caught": 0.8966
+      },
+      "alaw/sin_tx": {
+        "n": 930,
+        "eer": 9.135,
+        "flagged": 0.0619,
+        "caught": 0.8796
+      },
+      "g722/ita_tx": {
+        "n": 875,
+        "eer": 9.699,
+        "flagged": 0.1172,
+        "caught": 0.9299
+      },
+      "g722/loc_tx": {
+        "n": 2492,
+        "eer": 9.12,
+        "flagged": 0.1144,
+        "caught": 0.9284
+      },
+      "g722/sin_tx": {
+        "n": 912,
+        "eer": 7.048,
+        "flagged": 0.0375,
+        "caught": 0.9208
+      },
+      "gsm/ita_tx": {
+        "n": 938,
+        "eer": 13.072,
+        "flagged": 0.1782,
+        "caught": 0.9077
+      },
+      "gsm/loc_tx": {
+        "n": 2399,
+        "eer": 13.553,
+        "flagged": 0.206,
+        "caught": 0.9256
+      },
+      "gsm/sin_tx": {
+        "n": 929,
+        "eer": 12.035,
+        "flagged": 0.1626,
+        "caught": 0.9104
+      },
+      "none/-": {
+        "n": 4251,
+        "eer": 7.109,
+        "flagged": 0.0622,
+        "caught": 0.923
+      },
+      "opus/ita_tx": {
+        "n": 902,
+        "eer": 7.581,
+        "flagged": 0.0836,
+        "caught": 0.9272
+      },
+      "opus/loc_tx": {
+        "n": 2487,
+        "eer": 9.246,
+        "flagged": 0.1036,
+        "caught": 0.9199
+      },
+      "opus/sin_tx": {
+        "n": 888,
+        "eer": 7.12,
+        "flagged": 0.069,
+        "caught": 0.9209
+      },
+      "pstn/mad_tx": {
+        "n": 4351,
+        "eer": 12.573,
+        "flagged": 0.0836,
+        "caught": 0.8175
+      },
+      "ulaw/ita_tx": {
+        "n": 894,
+        "eer": 7.821,
+        "flagged": 0.0779,
+        "caught": 0.9078
+      },
+      "ulaw/loc_tx": {
+        "n": 2546,
+        "eer": 9.032,
+        "flagged": 0.0903,
+        "caught": 0.9061
+      },
+      "ulaw/sin_tx": {
+        "n": 915,
+        "eer": 7.762,
+        "flagged": 0.0541,
+        "caught": 0.8901
+      }
+    },
+    "phase": {
+      "eval": {
+        "n": 24406,
+        "eer": 9.018,
+        "flagged": 0.0782,
+        "caught": 0.8968
+      },
+      "hidden": {
+        "n": 2833,
+        "eer": 14.703,
+        "flagged": 0.2869,
+        "caught": 0.9451
+      },
+      "progress": {
+        "n": 2755,
+        "eer": 9.081,
+        "flagged": 0.0726,
+        "caught": 0.8892
+      }
+    },
+    "trim": {
+      "notrim": {
+        "n": 27161,
+        "eer": 9.052,
+        "flagged": 0.0776,
+        "caught": 0.896
+      },
+      "only_speech": {
+        "n": 2833,
+        "eer": 14.703,
+        "flagged": 0.2869,
+        "caught": 0.9451
+      }
+    },
+    "attack": {
+      "A07": {
+        "n": 11538,
+        "eer": 6.896,
+        "flagged": 0.0996,
+        "caught": 0.9571
+      },
+      "A08": {
+        "n": 11538,
+        "eer": 4.518,
+        "flagged": 0.0996,
+        "caught": 0.9863
+      },
+      "A09": {
+        "n": 11538,
+        "eer": 3.978,
+        "flagged": 0.0996,
+        "caught": 0.9961
+      },
+      "A10": {
+        "n": 11538,
+        "eer": 26.942,
+        "flagged": 0.0996,
+        "caught": 0.433
+      },
+      "A11": {
+        "n": 11538,
+        "eer": 17.683,
+        "flagged": 0.0996,
+        "caught": 0.6671
+      },
+      "A12": {
+        "n": 11538,
+        "eer": 5.681,
+        "flagged": 0.0996,
+        "caught": 0.9655
+      },
+      "A13": {
+        "n": 11538,
+        "eer": 8.831,
+        "flagged": 0.0996,
+        "caught": 0.9337
+      },
+      "A14": {
+        "n": 11538,
+        "eer": 9.226,
+        "flagged": 0.0996,
+        "caught": 0.9187
+      },
+      "A15": {
+        "n": 11538,
+        "eer": 7.229,
+        "flagged": 0.0996,
+        "caught": 0.961
+      },
+      "A16": {
+        "n": 11538,
+        "eer": 3.381,
+        "flagged": 0.0996,
+        "caught": 0.9844
+      },
+      "A17": {
+        "n": 11538,
+        "eer": 3.506,
+        "flagged": 0.0996,
+        "caught": 0.9954
+      },
+      "A18": {
+        "n": 11538,
+        "eer": 9.526,
+        "flagged": 0.0996,
+        "caught": 0.9103
+      },
+      "A19": {
+        "n": 11538,
+        "eer": 3.833,
+        "flagged": 0.0996,
+        "caught": 0.9961
+      }
+    }
+  }
+}

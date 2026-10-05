@@ -1,0 +1,5 @@
+  scoring asv21/eval: 29994 of 181566 clips
+  scoring wavlm on 29994 clips
+  asv21/eval   n= 29994 | EER at 10 s: wavlm   8.81%  fused   8.81%
+               fused EER by seconds of speech: 2s 8.91%  4s 8.82%  6s 8.82%  8s 8.81%  10s 8.81%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_asv21_eval_run4_wavlm.json

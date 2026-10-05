@@ -1,0 +1,96 @@
+{
+  "n": 29994,
+  "spoof_fraction": 0.6666,
+  "fusion_weights": {
+    "wavlm": 1.0
+  },
+  "at_horizon": {
+    "wavlm": {
+      "eer_pct": 8.814,
+      "auc": 0.96946,
+      "acc_at_eer_thr": 0.91188,
+      "recall_spoof": 0.91192,
+      "fpr_bonafide_flagged": 0.0882,
+      "acc_at_0.5": 0.8562,
+      "eer_threshold": 0.0121
+    },
+    "fused": {
+      "eer_pct": 8.814,
+      "auc": 0.96946,
+      "acc_at_eer_thr": 0.91188,
+      "recall_spoof": 0.91192,
+      "fpr_bonafide_flagged": 0.0882,
+      "acc_at_0.5": 0.8562,
+      "eer_threshold": 0.0121
+    }
+  },
+  "per_attack_eer_pct": {
+    "wavlm": {
+      "A07": 5.918,
+      "A08": 3.521,
+      "A09": 2.215,
+      "A10": 24.414,
+      "A11": 14.932,
+      "A12": 5.398,
+      "A13": 4.431,
+      "A14": 7.936,
+      "A15": 4.618,
+      "A16": 3.426,
+      "A17": 2.393,
+      "A18": 9.876,
+      "A19": 3.058
+    },
+    "fused": {
+      "A07": 5.918,
+      "A08": 3.521,
+      "A09": 2.215,
+      "A10": 24.414,
+      "A11": 14.932,
+      "A12": 5.398,
+      "A13": 4.431,
+      "A14": 7.936,
+      "A15": 4.618,
+      "A16": 3.426,
+      "A17": 2.393,
+      "A18": 9.876,
+      "A19": 3.058
+    }
+  },
+  "time_to_decision_eer_pct": {
+    "wavlm": {
+      "2s": 8.911,
+      "4s": 8.821,
+      "6s": 8.816,
+      "8s": 8.814,
+      "10s": 8.814
+    },
+    "fused": {
+      "2s": 8.911,
+      "4s": 8.821,
+      "6s": 8.816,
+      "8s": 8.814,
+      "10s": 8.814
+    }
+  },
+  "per_codec_eer_pct": {
+    "wavlm": {
+      "-": 5.983,
+      "alaw": 8.602,
+      "g722": 7.824,
+      "gsm": 10.637,
+      "opus": 7.481,
+      "pstn": 11.487,
+      "ulaw": 8.359
+    },
+    "fused": {
+      "-": 5.983,
+      "alaw": 8.602,
+      "g722": 7.824,
+      "gsm": 10.637,
+      "opus": 7.481,
+      "pstn": 11.487,
+      "ulaw": 8.359
+    }
+  },
+  "scores_csv": "C:\\Users\\Asus\\OneDrive\\Desktop\\Audio-Deepfake-Detection\\results\\evaluate_asv21_eval_run4_wavlm_scores.csv"
+}
