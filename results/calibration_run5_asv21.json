@@ -1,0 +1,351 @@
+{
+  "policy": {
+    "block_fpr": 0.01,
+    "verify_fpr": 0.1
+  },
+  "seed": 0,
+  "risk": {
+    "high": 0.9631439,
+    "medium": 0.018484000000000195
+  },
+  "half_a": {
+    "clips": 15647,
+    "speakers": 33,
+    "overall": {
+      "verify": {
+        "threshold": 0.01848,
+        "bonafide_flagged": 0.1002,
+        "spoof_caught": 0.9186
+      },
+      "block": {
+        "threshold": 0.96314,
+        "bonafide_flagged": 0.0101,
+        "spoof_caught": 0.5889
+      }
+    },
+    "per_group": {
+      "alaw": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.0804,
+          "spoof_caught": 0.9054
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0109,
+          "spoof_caught": 0.5919
+        }
+      },
+      "g722": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.1092,
+          "spoof_caught": 0.9434
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0071,
+          "spoof_caught": 0.6711
+        }
+      },
+      "gsm": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.1838,
+          "spoof_caught": 0.9318
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0154,
+          "spoof_caught": 0.5655
+        }
+      },
+      "none": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.0674,
+          "spoof_caught": 0.9386
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.007,
+          "spoof_caught": 0.6482
+        }
+      },
+      "opus": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.0963,
+          "spoof_caught": 0.9437
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0134,
+          "spoof_caught": 0.6524
+        }
+      },
+      "pstn": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.0773,
+          "spoof_caught": 0.8501
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.008,
+          "spoof_caught": 0.3807
+        }
+      },
+      "ulaw": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.0811,
+          "spoof_caught": 0.9186
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0084,
+          "spoof_caught": 0.6146
+        }
+      }
+    }
+  },
+  "half_b": {
+    "clips": 14347,
+    "speakers": 34,
+    "overall": {
+      "verify": {
+        "threshold": 0.01848,
+        "bonafide_flagged": 0.1783,
+        "spoof_caught": 0.9395
+      },
+      "block": {
+        "threshold": 0.96314,
+        "bonafide_flagged": 0.0198,
+        "spoof_caught": 0.6188
+      }
+    },
+    "per_group": {
+      "alaw": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.1758,
+          "spoof_caught": 0.9364
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0168,
+          "spoof_caught": 0.6335
+        }
+      },
+      "g722": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.182,
+          "spoof_caught": 0.9561
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0256,
+          "spoof_caught": 0.6825
+        }
+      },
+      "gsm": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.3185,
+          "spoof_caught": 0.9604
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0306,
+          "spoof_caught": 0.6005
+        }
+      },
+      "none": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.125,
+          "spoof_caught": 0.9516
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0028,
+          "spoof_caught": 0.6737
+        }
+      },
+      "opus": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.1581,
+          "spoof_caught": 0.9534
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0264,
+          "spoof_caught": 0.6752
+        }
+      },
+      "pstn": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.1506,
+          "spoof_caught": 0.88
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0172,
+          "spoof_caught": 0.4331
+        }
+      },
+      "ulaw": {
+        "verify": {
+          "threshold": 0.01848,
+          "bonafide_flagged": 0.1361,
+          "spoof_caught": 0.9406
+        },
+        "block": {
+          "threshold": 0.96314,
+          "bonafide_flagged": 0.0194,
+          "spoof_caught": 0.6349
+        }
+      }
+    }
+  },
+  "half_b_at_stored_thresholds": {
+    "overall": {
+      "verify": {
+        "threshold": 0.01546,
+        "bonafide_flagged": 0.1871,
+        "spoof_caught": 0.943
+      },
+      "block": {
+        "threshold": 0.22502,
+        "bonafide_flagged": 0.0825,
+        "spoof_caught": 0.8626
+      }
+    },
+    "per_group": {
+      "alaw": {
+        "verify": {
+          "threshold": 0.01546,
+          "bonafide_flagged": 0.1865,
+          "spoof_caught": 0.9394
+        },
+        "block": {
+          "threshold": 0.22502,
+          "bonafide_flagged": 0.0749,
+          "spoof_caught": 0.8766
+        }
+      },
+      "g722": {
+        "verify": {
+          "threshold": 0.01546,
+          "bonafide_flagged": 0.1925,
+          "spoof_caught": 0.9582
+        },
+        "block": {
+          "threshold": 0.22502,
+          "bonafide_flagged": 0.0857,
+          "spoof_caught": 0.8934
+        }
+      },
+      "gsm": {
+        "verify": {
+          "threshold": 0.01546,
+          "bonafide_flagged": 0.3352,
+          "spoof_caught": 0.9635
+        },
+        "block": {
+          "threshold": 0.22502,
+          "bonafide_flagged": 0.1711,
+          "spoof_caught": 0.8829
+        }
+      },
+      "none": {
+        "verify": {
+          "threshold": 0.01546,
+          "bonafide_flagged": 0.1319,
+          "spoof_caught": 0.9553
+        },
+        "block": {
+          "threshold": 0.22502,
+          "bonafide_flagged": 0.0403,
+          "spoof_caught": 0.8917
+        }
+      },
+      "opus": {
+        "verify": {
+          "threshold": 0.01546,
+          "bonafide_flagged": 0.164,
+          "spoof_caught": 0.9556
+        },
+        "block": {
+          "threshold": 0.22502,
+          "bonafide_flagged": 0.0732,
+          "spoof_caught": 0.8827
+        }
+      },
+      "pstn": {
+        "verify": {
+          "threshold": 0.01546,
+          "bonafide_flagged": 0.1549,
+          "spoof_caught": 0.8858
+        },
+        "block": {
+          "threshold": 0.22502,
+          "bonafide_flagged": 0.0603,
+          "spoof_caught": 0.7498
+        }
+      },
+      "ulaw": {
+        "verify": {
+          "threshold": 0.01546,
+          "bonafide_flagged": 0.1431,
+          "spoof_caught": 0.9449
+        },
+        "block": {
+          "threshold": 0.22502,
+          "bonafide_flagged": 0.0708,
+          "spoof_caught": 0.864
+        }
+      }
+    }
+  },
+  "repeated_speaker_splits": {
+    "splits": 20,
+    "verify_bonafide_flagged": {
+      "mean": 0.1064,
+      "std": 0.0259,
+      "min": 0.0696,
+      "max": 0.1783
+    },
+    "verify_spoof_caught": {
+      "mean": 0.9036,
+      "std": 0.0164,
+      "min": 0.8695,
+      "max": 0.9395
+    },
+    "block_bonafide_flagged": {
+      "mean": 0.0115,
+      "std": 0.0041,
+      "min": 0.0057,
+      "max": 0.0204
+    },
+    "block_spoof_caught": {
+      "mean": 0.524,
+      "std": 0.0474,
+      "min": 0.4416,
+      "max": 0.625
+    }
+  },
+  "source": {
+    "scores": "../results/evaluate_asv21_eval_run5_scores.csv",
+    "protocol": "../dataset21/ASVspoof2021.LA.eval.tsv",
+    "column": "wavlm_10s"
+  },
+  "risk_all_speakers": {
+    "high": 0.9914223,
+    "medium": 0.054410000000000035
+  }
+}

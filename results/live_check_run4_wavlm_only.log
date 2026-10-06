@@ -1,0 +1,2 @@
+  live path vs batched on 400 clips: EER 4.25% vs 4.5%, |diff| median 0.0, p95 0.00106; verdict latency p50 52.6 ms
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\live_check_run4_wavlm_only.json

@@ -557,6 +557,35 @@ Findings (detail in `audit.md` phase 15):
 Next: build a WavLM-only bundle from run 4 and set its thresholds on speaker-disjoint phone-channel data
 (`audit.md` section 9 step 1a), then the live-call check (step 1b).
 
+### 7.3n Simulated live calls (2026-10-06): run 4's WavLM replaces run 5 as the served model
+
+You cannot provide call recordings, and real VoIP calls cannot be placed from this machine, so a software "live call"
+was built from clean ASV5 eval clips: background noise (white / pink / brown, SNR 15-35 dB, 75% of calls) -> a real VoIP
+codec (Opus, AMR, G.722, G.711, GSM; mix is my assumption) -> packet loss (half of the calls, 1-5% of 20 ms packets, crude
+concealment); every choice from the clip ID only, so genuine and fake calls get the same conditions. 9,600 calls.
+
+| WavLM alone, EER at 10 s | run 4 (WavLM-only bundle) | run 5 |
+|---|---|---|
+| 9,600 simulated calls | **4.96%** | 7.45% (difference +2.49, 95% interval 2.01-2.83) |
+| ASVspoof 2021 real phone channels (30k) | 8.81% | 9.96% |
+
+The pre-set swap rule (lower EER and a paired bootstrap interval excluding zero) was met, so **`artifacts/` now holds
+run 4's WavLM alone** (run 5 stays in `artifacts_run5_encodec/`). Its verify / block thresholds are set on all 67 phone-
+channel speakers of ASVspoof 2021 (validated by 20 random speaker splits: 10.6% +- 2.2% of genuine clips flagged on unseen
+speakers at the 10% level). The live code path (CallSession in 0.5 s chunks) reproduces the batched scores (median
+difference 0.0) with ~53 ms per verdict on the GPU.
+
+What it showed the model still lacks, which is the next training target:
+- **Packet loss:** genuine calls flagged at the verify threshold go from 6% (no loss) to 42% (5% loss). The concealment in the
+  test is cruder than real codecs', so the size is uncertain, but nothing in training had packet loss.
+- **White noise** doubles the EER (2.9% -> 7.5%); the hardest attacks are A28 (15.6%), A31 and A30.
+- **Block threshold:** at a 1% false-alarm budget it catches only 39% of fakes on simulated calls.
+
+Proposed next (`audit.md` section 9): a telephony-robust retrain (run 6: packet loss with several concealment styles, more
+noise types, G.711, a smaller EnCodec share), judged first on ASV5 eval and ASVspoof 2021 (real channels) because the
+simulated call set shares my chain with the training augmentation; and a second threshold pass on call-like data with loss,
+on different speakers.
+
 ### 7.4 Fusion: don't jump to an ANN yet
 
 Considered a small ANN/learned voting classifier instead of the fixed 0.7/0.3 weight. Verdict:

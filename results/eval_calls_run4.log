@@ -1,0 +1,5 @@
+  scoring calls/eval: 9600 of 9600 clips
+  scoring wavlm on 9600 clips
+  calls/eval   n=  9600 | EER at 10 s: wavlm   4.96%  fused   4.96%
+               fused EER by seconds of speech: 2s 6.50%  4s 5.85%  6s 5.28%  8s 5.00%  10s 4.96%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run4_wavlm_only.json

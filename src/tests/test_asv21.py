@@ -138,3 +138,11 @@ def test_evaluate_a_bundle_on_asv21_with_a_branch_subset(tmp_path):
     assert one["at_horizon"]["rcnn"]["eer_pct"] == both["at_horizon"]["rcnn"]["eer_pct"]  # same scores either way
     with pytest.raises(ValueError, match="not"):
         evaluate_artifacts(s, "asv21", "eval", 0, 0, log=quiet, branches=("wavlm",))
+
+    # the live path (CallSession, 0.5 s chunks) agrees with the batched scores it is compared with
+    from audiodf.evaluation.live_check import live_check
+
+    live = live_check(s, "asv21", "eval", tmp_path / "all.csv", "fused_10s", n=12, log=quiet)
+    assert live["clips"] == 12 and live["verdicts_per_call_median"] >= 1
+    assert live["abs_diff"]["median"] < 0.05 and live["verdict_latency_ms"]["p50"] > 0
+    assert 0 <= live["eer_live_pct"] <= 100

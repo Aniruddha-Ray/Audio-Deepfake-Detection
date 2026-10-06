@@ -1,0 +1,6 @@
+9600 clean ASV5 eval clips -> simulated VoIP calls in C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls
+    rendered 2000/9600 calls (21/s)
+    rendered 4000/9600 calls (21/s)
+    rendered 6000/9600 calls (22/s)
+    rendered 8000/9600 calls (23/s)
+rendered 9600 calls in 418s -> C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls\ASV5.eval.calls.tsv

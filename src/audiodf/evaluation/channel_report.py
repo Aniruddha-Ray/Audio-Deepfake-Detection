@@ -20,21 +20,24 @@ from pathlib import Path
 
 import numpy as np
 
-from audiodf.data.asv21 import COLUMNS
+from audiodf.data import asv21, voip_sim
 from audiodf.evaluation.metrics import compute_metrics
 
-GROUPS = ("codec", "transmission", "codec/transmission", "phase", "trim", "attack")
+# protocol layouts this tool reads (kind -> (columns, default groups))
+KINDS = {"asv21": (asv21.COLUMNS, ("codec", "transmission", "phase", "trim")),
+         "calls": (voip_sim.CALL_COLUMNS, ("codec", "noise", "snr_bin", "loss"))}
 
 
-def load_protocol(path) -> dict:
+def load_protocol(path, columns=asv21.COLUMNS) -> dict:
     """Protocol rows as column arrays, in file order (= clip_index order of the evaluation)."""
     with open(path) as f:
         rows = [line.split() for line in f if line.strip()]
-    bad = [r for r in rows if len(r) != len(COLUMNS)]
+    bad = [r for r in rows if len(r) != len(columns)]
     if bad:
-        raise ValueError(f"{path}: expected {len(COLUMNS)} columns, got {len(bad[0])} in {bad[0]!r}")
-    cols = {c: np.array([r[i] for r in rows]) for i, c in enumerate(COLUMNS)}
-    cols["codec/transmission"] = np.char.add(np.char.add(cols["codec"], "/"), cols["transmission"])
+        raise ValueError(f"{path}: expected {len(columns)} columns, got {len(bad[0])} in {bad[0]!r}")
+    cols = {c: np.array([r[i] for r in rows]) for i, c in enumerate(columns)}
+    if "codec" in cols and "transmission" in cols:
+        cols["codec/transmission"] = np.char.add(np.char.add(cols["codec"], "/"), cols["transmission"])
     cols["label"] = (cols["key"] == "spoof").astype(int)
     return cols
 
@@ -53,12 +56,12 @@ def load_scores(path, protocol: dict, column: str) -> tuple[np.ndarray, np.ndarr
     return idx, np.array(score)
 
 
-def breakdown(protocol: dict, idx: np.ndarray, score: np.ndarray, min_class: int = 20) -> dict:
+def breakdown(protocol: dict, idx: np.ndarray, score: np.ndarray, groups, min_class: int = 20) -> dict:
     y = protocol["label"][idx]
     overall = compute_metrics(y, score)
     thr = overall["eer_threshold"]
     out = {"overall": {"n": len(y), "eer": overall["eer_pct"], "auc": overall["auc"], "global_threshold": thr}}
-    for g in GROUPS:
+    for g in groups:
         vals = protocol["attack"][idx] if g == "attack" else protocol[g][idx]
         res = {}
         for v in sorted(set(vals)):
@@ -77,9 +80,11 @@ def breakdown(protocol: dict, idx: np.ndarray, score: np.ndarray, min_class: int
     return out
 
 
-def compare(runs: dict, protocol_path, column: str = "fused_10s") -> dict:
-    protocol = load_protocol(protocol_path)
-    return {name: breakdown(protocol, *load_scores(path, protocol, column)) for name, path in runs.items()}
+def compare(runs: dict, protocol_path, column: str = "fused_10s", kind: str = "asv21", groups=None) -> dict:
+    columns, default_groups = KINDS[kind]
+    protocol = load_protocol(protocol_path, columns)
+    return {name: breakdown(protocol, *load_scores(path, protocol, column), groups or default_groups)
+            for name, path in runs.items()}
 
 
 def format_table(report: dict, group: str) -> str:
@@ -99,18 +104,22 @@ def format_table(report: dict, group: str) -> str:
 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--protocol", required=True, help="ASVspoof2021.LA.eval.tsv written by `audiodf prepare21`")
+    ap.add_argument("--protocol", required=True,
+                    help="ASVspoof2021.LA.eval.tsv (`audiodf prepare21`) or ASV5.eval.calls.tsv (`audiodf render-calls`)")
+    ap.add_argument("--kind", choices=sorted(KINDS), default="asv21", help="which protocol layout (default asv21)")
     ap.add_argument("--runs", nargs="+", required=True, metavar="NAME=SCORES.csv")
     ap.add_argument("--column", default="fused_10s", help="score column, e.g. fused_10s, wavlm_4s (default fused_10s)")
     ap.add_argument("--out", help="write the full breakdown as JSON")
-    ap.add_argument("--groups", nargs="+", default=["codec", "transmission", "phase", "trim"], choices=GROUPS)
+    ap.add_argument("--groups", nargs="+", help="protocol columns to break down by (default depends on --kind); "
+                    "'attack' is always available")
     args = ap.parse_args(argv)
     runs = dict(r.split("=", 1) for r in args.runs)
-    report = compare(runs, args.protocol, args.column)
+    report = compare(runs, args.protocol, args.column, args.kind, args.groups)
+    groups = args.groups or KINDS[args.kind][1]
     for n, r in report.items():
         o = r["overall"]
         print(f"{n}: n={o['n']} EER {o['eer']:.2f}% AUC {o['auc']:.4f} (global threshold {o['global_threshold']})")
-    for g in args.groups:
+    for g in groups:
         print("\n" + format_table(report, g))
     if args.out:
         Path(args.out).write_text(json.dumps(report, indent=2))

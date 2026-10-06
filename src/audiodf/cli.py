@@ -77,6 +77,73 @@ def _cmd_prepare21(args, settings):
     extract(args.parquet_dir or Path(settings.paths.asv21_root) / "data", settings.paths.asv21_root)
 
 
+def _cmd_render_calls(args, settings):
+    from audiodf.data.prepare import build_index
+    from audiodf.data.voip_sim import render_calls, select_sources
+
+    idx = build_index(settings, "asv5", "eval", None, args.workers, available_only=True)
+    sources = select_sources(idx, args.n_genuine, args.n_per_attack, args.seed)
+    print(f"{len(sources)} clean ASV5 eval clips -> simulated VoIP calls in {settings.paths.calls_root}")
+    render_calls(idx, sources, settings, settings.paths.calls_root, args.seed, args.workers)
+
+
+def _cmd_calibrate(args, settings):
+    from audiodf.calibrate import calibrate, make_wavlm_bundle, policy_thresholds, repeated_check
+    from audiodf.evaluation.channel_report import KINDS, load_protocol, load_scores
+
+    protocol = load_protocol(args.protocol, KINDS[args.kind][0])
+    clips, scores = load_scores(args.scores, protocol, args.column)
+    stored = json.loads((Path(args.stored) / "bundle.json").read_text())["risk"] if args.stored else None
+    rep = calibrate(scores, protocol["label"][clips], protocol["speaker"][clips], protocol["codec"][clips],
+                    settings.risk.block_fpr, settings.risk.verify_fpr, args.seed, stored)
+    if args.repeat:
+        rep["repeated_speaker_splits"] = repeated_check(scores, protocol["label"][clips], protocol["speaker"][clips],
+                                                        args.repeat, settings.risk.block_fpr, settings.risk.verify_fpr,
+                                                        args.seed)
+    rep["source"] = {"scores": str(args.scores), "protocol": str(args.protocol), "column": args.column}
+    rep["risk_all_speakers"] = policy_thresholds(scores, protocol["label"][clips], settings.risk.block_fpr,
+                                                 settings.risk.verify_fpr)
+    if args.out_bundle:
+        # Thresholds from half the speakers move with which speakers are in that half (the repeated check shows it),
+        # so the shipped bundle can use all of them; the half / half and repeated checks validate the procedure.
+        bundle_risk = rep["risk_all_speakers"] if args.thresholds_from == "all" else rep["risk"]
+        make_wavlm_bundle(args.src_bundle, args.out_bundle, bundle_risk,
+                          {k: rep[k] for k in ("policy", "seed", "source")}
+                          | {"thresholds_from": args.thresholds_from, "clips_used": len(scores) if args.thresholds_from
+                             == "all" else rep["half_a"]["clips"], "half_a_clips": rep["half_a"]["clips"],
+                             "half_b_clips": rep["half_b"]["clips"],
+                             "repeated_speaker_splits": rep.get("repeated_speaker_splits")})
+        rep["bundle"] = str(args.out_bundle)
+        rep["bundle_risk"] = bundle_risk
+    out = Path(settings.paths.results_dir) / f"calibration_{args.tag}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(rep, indent=2))
+    for half in ("half_a", "half_b"):
+        o = rep[half]["overall"]
+        print(f"{half} ({rep[half]['clips']} clips, {rep[half]['speakers']} speakers): verify flags "
+              f"{o['verify']['bonafide_flagged']:.1%} of genuine, catches {o['verify']['spoof_caught']:.1%}; block flags "
+              f"{o['block']['bonafide_flagged']:.1%}, catches {o['block']['spoof_caught']:.1%}")
+    if "repeated_speaker_splits" in rep:
+        r = rep["repeated_speaker_splits"]
+        for k in ("verify", "block"):
+            f, c = r[f"{k}_bonafide_flagged"], r[f"{k}_spoof_caught"]
+            print(f"{r['splits']} speaker splits, held-out half, {k}: genuine flagged {f['mean']:.1%} +- {f['std']:.1%} "
+                  f"(range {f['min']:.1%}-{f['max']:.1%}), fakes caught {c['mean']:.1%} +- {c['std']:.1%}")
+    print(f"thresholds (set on half A): verify >= {rep['risk']['medium']:.5f}, block >= {rep['risk']['high']:.5f}\n"
+          f"report: {out}")
+
+
+def _cmd_live_check(args, settings):
+    from audiodf.evaluation.live_check import live_check
+
+    if args.bundle:
+        settings.paths.artifacts_dir = args.bundle
+    rep = live_check(settings, args.dataset, "eval", args.scores, args.column, args.n)
+    out = Path(settings.paths.results_dir) / f"live_check_{args.tag}.json"
+    out.write_text(json.dumps(rep, indent=2))
+    print(f"report: {out}")
+
+
 def _cmd_predict(args, settings):
     from audiodf.data.audio import load_audio
     from audiodf.inference.engine import DetectionEngine
@@ -133,8 +200,9 @@ def main(argv=None) -> None:
     sp.add_argument("--svm-utts", type=int, help="clips the SVM trains on")
     sp.add_argument("--eval-utts", type=int, help="test clips scored per report (0 = whole split)")
     sp = add("evaluate", _cmd_evaluate, "score saved artifacts on a dataset split")
-    sp.add_argument("--dataset", choices=["asv5", "asv19", "asv21"], default="asv5",
-                    help="asv21 = ASVspoof 2021 LA eval, real telephony channels (run `prepare21` first)")
+    sp.add_argument("--dataset", choices=["asv5", "asv19", "asv21", "calls"], default="asv5",
+                    help="asv21 = ASVspoof 2021 LA eval, real telephony channels (run `prepare21` first); "
+                         "calls = simulated VoIP calls from ASV5 eval clips (run `render-calls` first)")
     sp.add_argument("--split", choices=["train", "dev", "eval"], default="eval")
     sp.add_argument("--eval-utts", type=int, default=60000, help="clips to score (0 = whole split)")
     sp.add_argument("--limit", type=int)
@@ -146,6 +214,33 @@ def main(argv=None) -> None:
     sp.add_argument("--save-scores", action="store_true", help="also write every clip's scores to a CSV")
     sp = add("prepare21", _cmd_prepare21, "unpack the ASVspoof 2021 LA eval parquet download into FLAC + protocol")
     sp.add_argument("--parquet-dir", help="folder with test-*.parquet (default: <asv21_root>/data)")
+    sp = add("render-calls", _cmd_render_calls, "build simulated VoIP calls (noise, codec, packet loss) from clean "
+             "ASV5 eval clips")
+    sp.add_argument("--n-genuine", type=int, default=4800)
+    sp.add_argument("--n-per-attack", type=int, default=300)
+    sp.add_argument("--seed", type=int, default=0)
+    sp.add_argument("--workers", type=int, default=8)
+    sp = add("calibrate", _cmd_calibrate, "set verify/block thresholds on one half of the speakers of scored phone-"
+             "channel clips, check them on the other half, optionally write a WavLM-only bundle")
+    sp.add_argument("--scores", required=True, help="per-clip scores CSV from `evaluate --save-scores`")
+    sp.add_argument("--protocol", required=True)
+    sp.add_argument("--kind", choices=["asv21", "calls"], default="asv21")
+    sp.add_argument("--column", default="wavlm_10s")
+    sp.add_argument("--seed", type=int, default=0, help="speaker split seed")
+    sp.add_argument("--repeat", type=int, default=0, help="also check over this many random speaker splits")
+    sp.add_argument("--tag", required=True, help="name of the report file (results/calibration_<tag>.json)")
+    sp.add_argument("--stored", help="a bundle folder whose stored thresholds are also checked on half B")
+    sp.add_argument("--src-bundle", help="bundle to take the WavLM branch from (with --out-bundle)")
+    sp.add_argument("--out-bundle", help="write a WavLM-only bundle with the calibrated thresholds here")
+    sp.add_argument("--thresholds-from", choices=["half_a", "all"], default="all",
+                    help="thresholds for the bundle: from half A only, or from all speakers (default; more stable)")
+    sp = add("live-check", _cmd_live_check, "stream clips through CallSession and compare with batched scores")
+    sp.add_argument("--scores", required=True, help="scores CSV of the same bundle on the same dataset")
+    sp.add_argument("--dataset", choices=["asv21", "calls"], default="calls")
+    sp.add_argument("--bundle", help="bundle to serve (default: paths.artifacts_dir)")
+    sp.add_argument("--column", default="fused_10s")
+    sp.add_argument("--n", type=int, default=400)
+    sp.add_argument("--tag", required=True)
     sp = add("audit", _cmd_audit, "dataset integrity audit (exit 1 on hard errors)")
     sp.add_argument("--dataset", choices=["asv5", "asv19"], default="asv5")
     sp.add_argument("--sample", type=int, default=3000, help="files per split for format/duration checks")

@@ -3,7 +3,8 @@
 Production-shaped version of the notebook prototype. Independent branches (SVM, RCNN, WavLM), each with its own
 audio processing, fused into one P(fake) and mapped to Allow / Verify / Block. Trained on ASVspoof5 + ASVspoof2019.
 
-**Current default: WavLM alone** (`ensemble.branches = [wavlm]`, run 5). The SVM and RCNN branches described below
+**Current default: WavLM alone** (`ensemble.branches = [wavlm]`). The served model in `artifacts/` is **run 4's WavLM**
+(it beat run 5 on real phone channels and on simulated live calls). The SVM and RCNN branches described below
 are still in the code (`run.py --branches svm rcnn wavlm`) but add nothing on eval once WavLM is present; the diagram
 and branch table show all three. Results and the telephony check are at the end of this file.
 
@@ -98,13 +99,17 @@ python -m audiodf evaluate --dataset asv5 --split eval   # score saved artifacts
 # options: --bundle DIR (another model folder), --branches wavlm (one branch of a fused bundle), --tag T, --save-scores
 python -m audiodf prepare21                  # unpack the ASVspoof 2021 LA eval parquet download (real phone channels)
 python -m audiodf evaluate --dataset asv21 --eval-utts 30000 --save-scores
+python -m audiodf render-calls               # simulated VoIP calls from clean ASV5 eval clips (noise + codec + packet loss)
+python -m audiodf evaluate --dataset calls --eval-utts 0 --save-scores
+python -m audiodf calibrate --scores S.csv --protocol P.tsv --tag T --repeat 20   # thresholds on speaker halves
+python -m audiodf live-check --scores S.csv --bundle DIR --tag T   # stream through CallSession vs batched scores
 python -m audiodf.evaluation.channel_report --protocol ../dataset21/ASVspoof2021.LA.eval.tsv --runs a=... b=...
 python -m audiodf predict some.flac          # one file -> verdict JSON
 python -m audiodf benchmark                  # per-stage latency
 python -m audiodf serve --port 8000          # API: /predict, /stream/{id}, /health, /metrics
 python -m audiodf consume                    # Kafka worker (needs a broker + confluent-kafka)
 python -m audiodf produce call.wav --realtime
-python -m pytest                             # 108 tests, no dataset or GPU needed
+python -m pytest                             # 126 tests, no dataset or GPU needed
 ```
 
 Stream over a WebSocket: send binary frames of 16 kHz mono PCM16, receive a JSON verdict each time a
@@ -140,9 +145,15 @@ channels; 29,994 clips, WavLM alone, EER at 10 s):
 | No channel / a-law / mu-law / G.722 / Opus | 6.0 / 8.6 / 8.4 / 7.8 / 7.5% | 7.1 / 9.6 / 8.6 / 8.4 / 8.6% |
 | GSM / public phone network (Spain) | 10.6% / 11.5% | 13.0% / 12.6% |
 
-Run 4's WavLM is the better call model (better in every channel). **The stored verify/block thresholds are too loose on phone
-audio** (designed for 10% / 1% of genuine clips flagged; measured 14.6% / 6.2% for run 5): re-calibrate on phone-channel
-data before relying on the risk levels. Details: `audit.md` phase 15, `new_plan.md` 7.3m.
+Run 4's WavLM is the better call model (better in every channel). Run 5's stored verify/block thresholds were too loose on
+phone audio (designed for 10% / 1% of genuine clips flagged; measured 14.6% / 6.2%), so run 4's bundle has thresholds set on
+phone-channel data instead.
+
+**Simulated live calls** (9,600 calls: clean ASV5 eval clips -> background noise -> real VoIP codec -> packet loss; EER at
+10 s, WavLM alone): **run 4 4.96% vs run 5 7.45%** (difference 2.49 points, 95% interval 2.01-2.83), so run 4's WavLM is the
+model now in `artifacts/`. **Known weak spots:** packet loss (genuine calls flagged at the verify level: 6% with no loss,
+42% at 5% loss in the simulation), white noise (EER 2.9% -> 7.5%), the hardest attacks (A28 15.6%), and the block level
+(catches 39% of fakes at a 1% false-alarm budget). Details: `audit.md` phases 15-16, `new_plan.md` 7.3m-7.3n.
 The earlier ASVspoof2019 prototype (5.7% eval EER) used feature version 1 and an easier benchmark; it is not
 reproducible with this code and not comparable to these numbers.
 

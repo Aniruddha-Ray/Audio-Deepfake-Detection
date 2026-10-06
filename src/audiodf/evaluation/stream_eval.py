@@ -127,20 +127,11 @@ def operating_point_report(scores: StreamScores, weights: dict, risk: dict) -> d
     """What the stored risk thresholds do on this data, at the decision horizon: the share of genuine clips flagged
     (verify / block) and of fakes caught, overall and per codec condition. `risk` = {"high": block, "medium": verify}.
     Only meaningful for the weights the thresholds were tuned with."""
-    p, y = scores.fused(weights)[:, -1], scores.label
+    from audiodf.calibrate import threshold_rates
 
-    def rates(mask):
-        bona, spoof = p[mask & (y == 0)], p[mask & (y == 1)]
-        out = {}
-        for name, thr in (("verify", risk["medium"]), ("block", risk["high"])):
-            out[name] = {"threshold": round(float(thr), 5),
-                         "bonafide_flagged": round(float((bona >= thr).mean()), 4) if len(bona) else None,
-                         "spoof_caught": round(float((spoof >= thr).mean()), 4) if len(spoof) else None}
-        return out
-
-    out = {"overall": rates(np.ones(len(y), dtype=bool))}
-    if len(set(scores.codec)) > 1:
-        out["per_codec"] = {str(c): rates(scores.codec == c) for c in sorted(set(scores.codec))}
+    out = threshold_rates(scores.fused(weights)[:, -1], scores.label, scores.codec, risk)
+    if "per_group" in out:
+        out["per_codec"] = out.pop("per_group")
     return out
 
 

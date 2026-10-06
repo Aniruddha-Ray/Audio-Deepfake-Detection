@@ -1,0 +1,256 @@
+{
+  "policy": {
+    "block_fpr": 0.01,
+    "verify_fpr": 0.1
+  },
+  "seed": 0,
+  "risk": {
+    "high": 0.9823408000000003,
+    "medium": 0.0027770000000000164
+  },
+  "half_a": {
+    "clips": 15647,
+    "speakers": 33,
+    "overall": {
+      "verify": {
+        "threshold": 0.00278,
+        "bonafide_flagged": 0.1002,
+        "spoof_caught": 0.9327
+      },
+      "block": {
+        "threshold": 0.98234,
+        "bonafide_flagged": 0.0101,
+        "spoof_caught": 0.6191
+      }
+    },
+    "per_group": {
+      "alaw": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.0777,
+          "spoof_caught": 0.9208
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.0095,
+          "spoof_caught": 0.6067
+        }
+      },
+      "g722": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.0979,
+          "spoof_caught": 0.9566
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.0099,
+          "spoof_caught": 0.7151
+        }
+      },
+      "gsm": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.1915,
+          "spoof_caught": 0.9466
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.018,
+          "spoof_caught": 0.5858
+        }
+      },
+      "none": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.0674,
+          "spoof_caught": 0.9546
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.007,
+          "spoof_caught": 0.7029
+        }
+      },
+      "opus": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.0922,
+          "spoof_caught": 0.9484
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.012,
+          "spoof_caught": 0.6952
+        }
+      },
+      "pstn": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.088,
+          "spoof_caught": 0.8784
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.0053,
+          "spoof_caught": 0.3912
+        }
+      },
+      "ulaw": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.0797,
+          "spoof_caught": 0.9245
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.0084,
+          "spoof_caught": 0.6395
+        }
+      }
+    }
+  },
+  "half_b": {
+    "clips": 14347,
+    "speakers": 34,
+    "overall": {
+      "verify": {
+        "threshold": 0.00278,
+        "bonafide_flagged": 0.162,
+        "spoof_caught": 0.9469
+      },
+      "block": {
+        "threshold": 0.98234,
+        "bonafide_flagged": 0.0119,
+        "spoof_caught": 0.6459
+      }
+    },
+    "per_group": {
+      "alaw": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.1376,
+          "spoof_caught": 0.9476
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.0122,
+          "spoof_caught": 0.6387
+        }
+      },
+      "g722": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.1744,
+          "spoof_caught": 0.9561
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.015,
+          "spoof_caught": 0.7257
+        }
+      },
+      "gsm": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.2976,
+          "spoof_caught": 0.9713
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.0139,
+          "spoof_caught": 0.6261
+        }
+      },
+      "none": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.1028,
+          "spoof_caught": 0.9569
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.0014,
+          "spoof_caught": 0.726
+        }
+      },
+      "opus": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.142,
+          "spoof_caught": 0.9534
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.0205,
+          "spoof_caught": 0.7218
+        }
+      },
+      "pstn": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.1521,
+          "spoof_caught": 0.9009
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.0086,
+          "spoof_caught": 0.4309
+        }
+      },
+      "ulaw": {
+        "verify": {
+          "threshold": 0.00278,
+          "bonafide_flagged": 0.125,
+          "spoof_caught": 0.9442
+        },
+        "block": {
+          "threshold": 0.98234,
+          "bonafide_flagged": 0.0125,
+          "spoof_caught": 0.6543
+        }
+      }
+    }
+  },
+  "repeated_speaker_splits": {
+    "splits": 20,
+    "verify_bonafide_flagged": {
+      "mean": 0.106,
+      "std": 0.0223,
+      "min": 0.071,
+      "max": 0.162
+    },
+    "verify_spoof_caught": {
+      "mean": 0.9225,
+      "std": 0.0109,
+      "min": 0.9033,
+      "max": 0.9469
+    },
+    "block_bonafide_flagged": {
+      "mean": 0.0105,
+      "std": 0.0024,
+      "min": 0.0043,
+      "max": 0.0146
+    },
+    "block_spoof_caught": {
+      "mean": 0.6187,
+      "std": 0.0352,
+      "min": 0.5302,
+      "max": 0.6837
+    }
+  },
+  "source": {
+    "scores": "../results/evaluate_asv21_eval_run4_wavlm_scores.csv",
+    "protocol": "../dataset21/ASVspoof2021.LA.eval.tsv",
+    "column": "wavlm_10s"
+  },
+  "risk_all_speakers": {
+    "high": 0.9876679000000002,
+    "medium": 0.0076730000000000105
+  },
+  "bundle": "../artifacts_run4_wavlm_only",
+  "bundle_risk": {
+    "high": 0.9876679000000002,
+    "medium": 0.0076730000000000105
+  }
+}

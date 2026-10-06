@@ -1,0 +1,62 @@
+{
+  "first": "run4_wavlm_only",
+  "second": "run5",
+  "column": "wavlm_10s",
+  "n": 9600,
+  "eer_first": 4.958,
+  "eer_second": 7.448,
+  "diff_second_minus_first": 2.49,
+  "ci95": [
+    2.01,
+    2.833
+  ],
+  "share_first_better": 1.0,
+  "n_boot": 2000,
+  "per_group": {
+    "alaw": {
+      "n": 769,
+      "eer_first": 4.164,
+      "eer_second": 6.633
+    },
+    "amr_nb": {
+      "n": 997,
+      "eer_first": 5.015,
+      "eer_second": 6.42
+    },
+    "amr_wb": {
+      "n": 1654,
+      "eer_first": 5.018,
+      "eer_second": 8.525
+    },
+    "g722": {
+      "n": 926,
+      "eer_first": 4.965,
+      "eer_second": 8.207
+    },
+    "gsm": {
+      "n": 489,
+      "eer_first": 3.892,
+      "eer_second": 6.551
+    },
+    "none": {
+      "n": 471,
+      "eer_first": 6.167,
+      "eer_second": 9.977
+    },
+    "opus_nb": {
+      "n": 755,
+      "eer_first": 5.563,
+      "eer_second": 5.563
+    },
+    "opus_wb": {
+      "n": 2864,
+      "eer_first": 4.399,
+      "eer_second": 7.927
+    },
+    "ulaw": {
+      "n": 675,
+      "eer_first": 4.446,
+      "eer_second": 5.481
+    }
+  }
+}

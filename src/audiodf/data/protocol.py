@@ -25,7 +25,9 @@ ASV5_SPLITS = {
 }
 # Written by data/asv21.py from the parquet download. Test only: it is never part of a training pool.
 ASV21_SPLITS = {"eval": ("ASVspoof2021.LA.eval.tsv", "flac_eval")}
-SPLIT_TABLES = {"asv19": ASV19_SPLITS, "asv5": ASV5_SPLITS, "asv21": ASV21_SPLITS}
+# Simulated VoIP calls built from clean ASV5 eval clips (data/voip_sim.py). Test only.
+CALLS_SPLITS = {"eval": ("ASV5.eval.calls.tsv", "flac")}
+SPLIT_TABLES = {"asv19": ASV19_SPLITS, "asv5": ASV5_SPLITS, "asv21": ASV21_SPLITS, "calls": CALLS_SPLITS}
 
 
 @dataclass(frozen=True)
@@ -89,10 +91,26 @@ def _read_asv21(root: Path, split: str) -> list[Sample]:
     return out
 
 
+def _read_calls(root: Path, split: str) -> list[Sample]:
+    """Columns: utt_id speaker codec noise snr_bin snr_db loss attack key (see data/voip_sim.CALL_COLUMNS). The condition
+    used for per-condition reporting is the VoIP codec profile ("none" = no codec)."""
+    proto, audio_dir = CALLS_SPLITS[split]
+    out = []
+    with open(root / proto) as f:
+        for line in f:
+            p = line.split()
+            if len(p) != 9:
+                raise ValueError(f"{proto}: expected 9 columns, got {len(p)}: {line!r}")
+            utt, speaker, codec, _, _, _, _, attack, key = p
+            out.append(Sample(str(root / audio_dir / f"{utt}.flac"), int(key == "spoof"),
+                              attack if key == "spoof" else "-", utt, speaker, codec, "calls"))
+    return out
+
+
 def read_protocol(data_root: str | Path, split: str, limit: int | None = None,
                   dataset: str = "asv19", available_only: bool = False) -> list[Sample]:
     """available_only keeps just the clips whose audio is on disk (a partially downloaded test split)."""
-    readers = {"asv19": _read_asv19, "asv5": _read_asv5, "asv21": _read_asv21}
+    readers = {"asv19": _read_asv19, "asv5": _read_asv5, "asv21": _read_asv21, "calls": _read_calls}
     if dataset not in readers:
         raise ValueError(f"unknown dataset {dataset!r}; expected one of {sorted(readers)}")
     samples = readers[dataset](Path(data_root), split)
