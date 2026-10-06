@@ -7,14 +7,14 @@ Last updated: 2026-10-06 (after the live-call check and the swap to run 4's WavL
 
 | Item | State |
 |---|---|
-| Codebase | `src/audiodf/` (39 modules), 126 passing tests. Pushed through `4a69e80`; CI green. The call-test code (phase 16) is not yet pushed. |
-| Trained model | `artifacts/` = **run 4's WavLM-Base+ alone** (swapped in 2026-10-06 after beating run 5 on simulated live calls, 4.96% vs 7.45%); thresholds set on 67 phone-channel speakers. Run 5 in `artifacts_run5_encodec/`; run 4's 3-branch bundle in `artifacts_run4_wavlm/`; WavLM-only copy in `artifacts_run4_wavlm_only/`; runs 1-3 kept. |
+| Codebase | `src/audiodf/` (44 modules), 147 passing tests. Pushed through `2cfc76a`; CI green. Phase 17 code (noise bank, impairments, v2 calls, denoise test) and results are not yet pushed. |
+| Trained model | `artifacts/` = **run 4's WavLM-Base+ alone** (swapped in 2026-10-06 after beating run 5 on simulated live calls, 4.96% vs 7.45%); thresholds set on 67 phone-channel speakers. Run 6 (noise / echo / loss robust, not adopted yet) in `artifacts_run6/`; run 5 in `artifacts_run5_encodec/`; run 4's 3-branch bundle in `artifacts_run4_wavlm/`; WavLM-only copy in `artifacts_run4_wavlm_only/`; runs 1-3 kept. |
 | Previous model | `artifacts_prev_asv2019/` (ASV2019 prototype, feature v1, cannot load in current code). Kept, git-ignored. |
 | Best honest number | Served model (run 4's WavLM): ASV5 eval EER **5.43%** (worst codec condition, EnCodec, 18.5%), ASVspoof 2021 real-phone-channel EER **8.81%**, simulated live calls **4.96%**. Run 5: 5.51% / 9.96% / 7.45%. |
-| Telephony check | ASVspoof 2021 LA eval (real VoIP/PSTN channels), 30k clips: run 4 8.81%, run 5 9.96% (phase 15). Simulated live calls (VoIP codecs + noise + packet loss from clean ASV5 eval clips), 9,600 calls: run 4 4.96%, run 5 7.45% (phase 16). |
+| Run 6 vs served | Better on ASV5 eval (4.46 vs 5.43%) and on every noisy / echoey / lossy call set (babble 7.75 vs 15.54%, held-out v2 11.41 vs 16.95%, loss-driven false alarms +3.8 vs +35.7 points), **worse by ~1 point on the 2019-derived real-phone sets** (ASVspoof2019 eval 5.82 vs 4.85%, ASVspoof 2021 9.86 vs 8.81%). The pre-set rule says do not adopt; your decision (phase 17). Denoising was tested and rejected. |
 | Deployment | FastAPI tested for real (53 ms to first verdict on GPU, WavLM alone; live path matches batched scoring); **Kafka, Docker runtime, Kubernetes, Grafana untested**. No real phone-call audio (you cannot provide any; simulated calls used instead). |
-| Disk | Data: `dataset/LA` 7.1 GB, `dataset5/` ~75 GB (train, dev, 2 of 10 eval tars); codec renders in the cache (catalogue 1 ~35 GB, catalogue 2 adds ~7 GB, the rest hard links). |
-| Next | Retrain WavLM with packet loss, more noise types and G.711 in the codec augmentation (run 6), then a second threshold pass on call-like data set and reported on different speakers (section 9). |
+| Disk | Data: `dataset19/LA` 7.1 GB (renamed from `dataset/` on 2026-10-06), `dataset21/` 7.6 GB, `dataset_noise/` ~8 GB, simulated call sets ~6 GB, `dataset5/` ~75 GB (train, dev, 2 of 10 eval tars); codec renders in the cache (catalogue 1 ~35 GB, catalogue 2 adds ~7 GB, the rest hard links). |
+| Next | Your decision on run 6; the proposed next experiment removes EnCodec from the recipe (run 7) to see whether the ~1 point regression disappears (section 9). |
 
 ## 2. Timeline
 
@@ -393,6 +393,148 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
   `evaluation/live_check.py`, `channel_report --kind calls`; CLI `render-calls`, `calibrate`, `live-check`. 126 tests
   (18 new), also green with GSM hidden.
 
+### Phase 17: denoising test, then a noise- and loss-robust retrain (plan written 2026-10-06 before any result)
+- **Your plan, in order:** (1) test denoising on the call sets without retraining; (2) train on noise instead of filtering it:
+  real noise recordings, babble from other speakers' clips, room echo, SNR 5-35 dB; (3) run 6 = noise + bursty packet loss +
+  G.711 + a smaller EnCodec share, judged first on ASV5 eval and ASVspoof 2021 (real phone channels) and on a call set with
+  differently built noise and loss. Then compare with the current state and decide.
+- **Step 1 design (fixed now):** the served model (run 4's WavLM) is scored, unchanged, on (a) the 9,600 existing calls and (b) a
+  new babble call set (4,800 calls = 2,400 genuine + 150 per attack, seed 1; same builder and codec / loss plan; background
+  talkers = 4-6 other speakers' genuine ASV5 eval clips that are not call sources, replacing the synthetic colours; babble at
+  SNR 5-25 dB because babble at 15-35 dB would be too mild to test a denoiser), each with and without denoising. Primary denoiser: ffmpeg `afftdn` (FFT denoiser, no new
+  dependency) at `nr=12:nf=-45:tn=1` (12 dB reduction, noise tracking on), applied to every call, as it would have to be in
+  a live system that cannot know which calls are noisy. A stronger setting (`nr=24`) is a sensitivity check only.
+- **Rule for adopting a denoiser (fixed now), all three required:** (i) EER improves on **both** call sets with a paired
+  bootstrap interval excluding zero; (ii) the calls without added noise (control) get no worse than +0.5 points; (iii) latency is
+  acceptable (measured per 10 s of audio and judged against the model's 53 ms per window).
+- Caveats written down in advance: offline whole-file denoising is optimistic compared with streaming chunks (noise tracking
+  needs warm-up); the synthetic noise in set (a) is stationary, the easy case, which is why set (b) exists.
+- **Step 1 result: denoising is rejected; the rule fails on all counts.** Served model (run 4's WavLM), EER at 10 s,
+  original -> denoised (difference denoised minus original, 95% interval of the paired bootstrap, 1,000 resamples):
+
+| Call set | no denoising | afftdn nr=12 (primary) | afftdn nr=24 (strong) |
+|---|---|---|---|
+| 9,600 calls, synthetic noise | **4.96%** | 5.91% (+0.95 [+0.55, +1.34]) | 6.56% (+1.60 [+1.18, +2.09]) |
+| 4,800 calls, babble (5-25 dB) | **15.54%** | 17.62% (+2.08 [+1.35, +2.73]) | 18.71% (+3.17 [+2.35, +3.94]) |
+| Control: calls with no added noise (synthetic set) | **2.89%** | 3.96% (+1.07) | 4.21% (+1.32) |
+| Control: calls with no added noise (babble set) | **3.58%** | 4.91% (+1.33) | 5.25% (+1.67) |
+| AUC (synthetic set / babble set) | 0.991 / 0.924 | 0.988 / 0.913 | 0.984 / 0.905 |
+
+  - (i) EER improves on both sets: **no, it gets worse on both, and the interval excludes zero in the wrong direction** (the
+    original is better in 100% of resamples); (ii) the no-noise control may not get worse by more than 0.5: **it gets worse
+    by 1.1-1.7**; (iii) latency: ~187-200 ms per 10 s of audio for the offline filter including ffmpeg process start-up (not
+    the deciding factor). A stronger setting is worse than the mild one, so more denoising = more damage.
+  - Where it helps a little: moderate babble (SNR 15-25 dB: 13.99% -> 13.21%, 9.10% -> 7.91%) and white noise (7.46% ->
+    7.25%, within noise). Where it hurts: low-SNR babble (10-15 dB: 18.3% -> 21.5%), pink and brown noise, and clean audio.
+    It also shifts the score scale (the global EER threshold moves from 0.119 to 0.024 / 0.010), so thresholds calibrated
+    without it would be wrong with it.
+  - Reading: the filter removes some noise but also the fine detail and artifacts the detector reads, and adds its own; so
+    it hurts clean calls too, and a front end cannot know which calls are noisy. Not tested: neural denoisers (RNNoise,
+    DeepFilterNet) and streaming operation; classical offline FFT denoising is the only thing rejected here.
+  - **The finding that matters more:** the served model is fragile to **background speech**: on the babble set 19.1% EER on
+    babble calls against 3.6% on the clean calls of the same set; at 5-10 dB SNR, 61% of genuine calls are flagged at the
+    global threshold. White noise (7.5%) was the mild case. This is the main target of step 2.
+  - Files: `results/evaluate_calls_eval_{babble,calls_dn12,calls_dn24,babble_dn12,babble_dn24}.json` (+ per-clip
+    `_scores.csv`), `denoise_test_compare.json`, `denoise_*.json`, `denoise_test.log`. Code: `data/denoise.py`,
+    `BabblePool` and a per-folder index key in `data/voip_sim.py` / `data/prepare.py` (the call-set index used to be shared
+    between folders: a latent bug, fixed with a test), CLI `render-calls --noise babble`, `denoise-calls`.
+- **Noise data for steps 2-3** (downloaded to `dataset_noise/`, git-ignored): training noise = MUSAN noise + a DEMAND subset;
+  room echo = real and simulated impulse responses (RIRS_NOISES); held-out for testing only = ESC-50 environmental sounds and
+  babble from held-out speakers, so the run 6 call set uses noise the model never trained on.
+
+- **Run 6 recipe (fixed before training; WavLM alone, from the pretrained start, same pool / tuning set / epochs / seed / WavLM
+  settings as run 4: only the data recipe changes):**
+  - Codec copies (catalogue 3): the catalogue-2 ffmpeg codecs + **G.711** (a-law, mu-law); **EnCodec share 7%** (run 5: 18%);
+    60% of training clips get a copy (was 50%) because noise and echo live in the copies.
+  - Before the codec, per copy (label-blind, from clip ID): **room echo** on 30% (RIRS_NOISES *simulated* impulse
+    responses) then **noise** on 65% at **5-35 dB**: MUSAN 35% / point-source 15% / DEMAND subset 5% (28 clips) / **babble** 20%
+    (4-6 other ASV5 *train* speakers' genuine clips) / white-pink-brown 25%.
+  - After the codec, per training window, on 35% of windows: **bursty packet loss** (Gilbert-Elliott chain, average loss 1-8%,
+    mean burst 1-4 packets of 20 ms) with one of **four concealment styles** (repeat-fade, zero, crossfade, comfort noise),
+    drawn fresh each epoch.
+  - Held out of training, used only to test: ESC-50 noise, real measured room impulse responses, babble from ASV5 *eval*
+    speakers, and the concealment style `ola_repeat` with longer bursts (5-12 packets).
+  - Not isolated: which part of the recipe helps (noise, echo, loss, G.711, EnCodec share changed together).
+- **Run 6 test sets (EER at 10 s, same clips for every model; baseline = the served model, run 4's WavLM):**
+  ASV5 eval 30k (5.43%), ASVspoof2019 eval 30k (4.85%), **ASVspoof 2021 real phone channels 30k (8.81%)**, call set v1 9,600
+  (4.96%; synthetic noise and iid repeat-fade loss, which the recipe also trains on, so *in-distribution*), babble set 4,800
+  (15.54%), **call set v2 6,400 (held-out noise / echo / loss; baseline measured before training)**. Judged first on ASV5 eval
+  and ASVspoof 2021, as you said; the call sets are the stress tests.
+- **Recommended decision framework (you decide after seeing the comparison):** recommend adopting run 6 only if (a) **no real
+  regression**: ASV5 eval <= 5.43% + 0.5, ASVspoof2019 eval <= 4.85% + 0.5, ASVspoof 2021 <= 8.81% + 0.3 (same noise caveat
+  as before: seed noise is unmeasured); and (b) **real robustness gain**: v2 EER <= 0.8 x the baseline's, babble-set EER
+  <= 0.75 x 15.54% (= 11.7%), and call set v1 no worse than 4.96% + 0.3; and (c) **fewer loss-driven false alarms**: with
+  thresholds set the same way for both models (all 67 ASVspoof 2021 speakers), the rise in genuine calls flagged at the verify
+  level from 0% to 5% simulated loss on call set v1 shrinks from the baseline's. Every number, per-condition tables and paired
+  intervals are reported either way. If (a) fails, I recommend against adopting it whatever (b) shows.
+- **Baseline on call set v2 (served model, measured before training): 16.95% EER (AUC 0.911), 6,400 calls.** By condition: no
+  echo and no noise 3.98%; no noise but real room echo **18.34%**; ESC-50 noise 8.64% (with echo 26.24%); babble 17.05% (with
+  echo 33.34%); white 12.51% (with echo 31.34%); loss at 5-12 packet bursts barely matters (16.10% with no loss, 14.9-18.8%
+  with loss). So **real room echo is the largest weakness** (4.6x worse with echo alone), then babble. The framework's target for
+  run 6 on v2 is therefore <= 0.8 x 16.95% = 13.6%. Caveat: run 6 trains on *simulated* echo and is tested on *real* echo.
+- Run 6 outputs go to `artifacts_run6/` and `results/run6/` (config `src/configs/run6.yaml`); `artifacts/` (the served model) is
+  not touched. Log: `results/train_run6.log`.
+- Expected duration: rendering ~2.5-3 h, 8 training epochs ~50 min each, scoring ~1 h; about 11 h.
+
+- **Run 6 happened (2026-10-06, 13:08-22:00 incl. a restart).** The first attempt crashed after 34,412 copies because **you renamed
+  `dataset/` to `dataset19/` while it was reading ASVspoof2019** (log: `results/train_run6_crash_dataset_rename.log`); I changed the
+  default path to `dataset19/LA/LA` (config, default.yaml, README) and restarted; the render resumed from the copies already made.
+  Rendered 184,407 training clips (60%) and 8,967 of 11,998 tuning clips (same tuning clips as runs 3-5); 7% EnCodec. WavLM tuning EER
+  (a much harder set than run 4's, with noise, echo and codecs, so not comparable with it): 6.05, 5.66, 4.03, 4.54, 4.04, 3.73,
+  **3.37** (epoch 7 kept), 3.48%; epoch 8 took 65 min (low free RAM) instead of ~48. Bundle `artifacts_run6/`, thresholds verify >=
+  0.149 / block >= 0.512 (from that hard tuning set; recomputed on phone data below). Report `results/run6/training_report.json`.
+- **Run 6 against the served model (run 4's WavLM), WavLM alone, EER at 10 s, same clips; 95% interval of the paired bootstrap
+  (run 6 minus served) for the sets with per-clip scores:**
+
+| Test set | served | run 6 | run 6 minus served (95% interval) |
+|---|---|---|---|
+| **ASV5 eval (30k)** (AUC 0.985 / 0.992) | 5.43% | **4.46%** | -0.97 (no per-clip scores kept; sample noise is small at 30k) |
+| ASVspoof2019 eval (30k) | **4.85%** | 5.82% | +0.97 (same remark) |
+| **ASVspoof 2021 real phone channels (30k)** (AUC 0.969 / 0.962) | **8.81%** | 9.86% | **+1.05 [+0.77, +1.39]** |
+| Call set v1, synthetic noise and loss (9,600; *in-distribution* for run 6) | 4.96% | **3.18%** | **-1.78 [-2.23, -1.29]** |
+| Babble set (4,800) | 15.54% | **7.75%** | **-7.79 [-8.79, -6.71]** |
+| **Call set v2, held-out noise / echo / loss (6,400)** | 16.95% | **11.41%** | **-5.55 [-6.48, -4.53]** |
+| ASV5 eval after only 2 s of speech | 6.88% | **5.92%** | -0.96 |
+
+  (Correction: the intervals printed on screen for this comparison had the sign of the bracket flipped; the figures above are the
+  right ones, and the point estimates and the share of resamples were right.)
+  - ASV5 eval detail: the EnCodec conditions improved (C04 14.56 -> 9.08%, C07 18.51 -> 11.49%), C08 6.07 -> 4.59%, the others within
+    +-0.6 (clean 1.01 -> 1.29%); **14 of 16 attacks better** (A23 4.58 -> 1.27%, A30 8.96 -> 6.01%, A18 5.51 -> 2.87%; worse: A28
+    10.54 -> 13.43%, A32 3.52 -> 4.32%).
+  - ASVspoof 2021 detail: worse in **every** channel by 0.5-1.6 points, including the untouched reference (5.98 -> 7.60%), GSM
+    10.64 -> 12.29%, public phone network 11.49 -> 12.71%. These are the 2019 evaluation utterances (clean read speech).
+  - **Run 5 had the same ~1 point regression on exactly these 2019-derived sets** (ASVspoof2019 eval 5.82% for both, ASVspoof 2021
+    9.96% / 9.86%), and run 6 shares with run 5 the neural-codec (EnCodec) copies and an EnCodec-containing tuning set. Runs 5 and 6
+    differ in everything else (noise, echo, loss, G.711, EnCodec share 18% vs 7%), so EnCodec is a candidate cause, **not a proven
+    one**; training-seed noise is unmeasured and could account for part of it.
+  - Call sets: run 6 is better under every noise type and every packet-loss level of v1; babble at 10-25 dB halves the error
+    (e.g. 15-20 dB: 13.99 -> 5.87%); on v2, clean calls 3.98 -> 3.03%, babble 17.05 -> 7.51%, ESC-50 8.64 -> 5.61%, white 12.51 -> 7.99%.
+  - **Still weak:** real room echo (run 6 trained on *simulated* echo): no noise + real echo 18.34 -> 13.18% (3.03% without echo), echo
+    + ESC-50 20.78%, echo + white 22.68%, echo + babble 22.03%; babble at 5-10 dB 24.51 -> 16.52%; attack A28 13.4%.
+- **Loss-driven false alarms (framework item c), thresholds set the same way for both (all 67 ASVspoof 2021 speakers), call set v1:**
+  genuine calls flagged at the verify level at 0 / 1 / 3 / 5% simulated loss: served 6.4 / 12.5 / 26.3 / 42.1% (rise **+35.7**
+  points); run 6 9.8 / 10.2 / 12.3 / 13.6% (rise **+3.8**). Run 6's thresholds: verify >= 0.0148, block >= 0.9992; at the block level
+  neither model blocks any genuine call and run 6 catches 25.5% of fakes (served 39.2%): the 1% block budget is not usable with
+  either model on phone audio.
+- **Offline model average (served + run 6, equal weights, nothing fitted; not a candidate):** ASVspoof 2021 9.09% (served 8.81), v1
+  3.05%, babble 9.00% (run 6 alone 7.75), v2 10.95%: no clean win, and twice the compute.
+- **Verdict by the framework fixed before training:** (a) no real regression: ASV5 eval 4.46% <= 5.93% **met**; ASVspoof2019 eval
+  5.82% <= 5.35% **not met** (+0.97); ASVspoof 2021 9.86% <= 9.11% **not met** (+1.05). (b) robustness gain: v2 11.41% <= 13.56%
+  **met**; babble 7.75% <= 11.66% **met**; v1 3.18% <= 5.26% **met**. (c) fewer loss-driven false alarms: **met** (+3.8 vs +35.7
+  points). **Because (a) fails on two sets, the rule as written recommends against adopting run 6**, whatever (b) and (c) show. The
+  rule was written to protect real-channel accuracy, and the same two sets sank run 5. Not swapped: `artifacts/` is still run 4's WavLM.
+- **The trade-off in one line:** run 6 gives up about 1 point on clean-speech phone audio (the 2019-derived sets) to cut the error by
+  2-8 points on noisy, echoey, babbling and lossy calls and to nearly remove loss-driven false alarms. Which is better for a product
+  depends on how noisy real calls are, which we have not measured.
+- Files: `results/run6/training_report.json`, `evaluate_asv21_eval_run6.json`, `evaluate_calls_eval_run6_{calls,babble,v2}.json`
+  (+ per-clip `_scores.csv`), `evaluate_calls_eval_v2_run4.json`, `run6_vs_served_compare.json`, `run6_channel_{calls_v1,babble,v2}.json`,
+  `calibration_run6_asv21.json`, `eval_run6_battery.log`, `train_run6.log`.
+- Code added this stretch: `data/noise_bank.py`, `data/impairments.py` (reverb, noise mixing, Gilbert-Elliott loss, five concealment
+  styles, per-clip plans, `ImpairKit`), `data/calls_v2.py`, `data/denoise.py`, `ImpairKit` hook in `render_copies` (catalogue 3 with
+  G.711), packet-loss augmentation in the window datasets, `BabblePool`, a per-folder index key for call sets (a latent bug), CLI
+  `prepare-noise`, `render-calls-v2`, `denoise-calls`, `render-calls --noise babble`; `run.py --no-impairments --noise-root`;
+  `configs/run6.yaml`. 147 tests (all green, including a guard that no training draw can name a held-out corpus).
+
 ## 3. Decisions and the reasoning behind them
 
 - **Train on ASV5 only, drop ASV2019 (run 1).** Chosen because ASV5 dev gives attack-disjoint tuning and ASV2019 has a silence
@@ -464,6 +606,14 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
     OneDrive folder blocked for minutes; two of my own test assertions were loose (a stray `or True`, an `or` that made a
     check vacuous) and one expectation was numerically wrong (3% of simulated genuine scores fall below 0.1). Fixed
     before running or on the first run. Rule: write each assertion so it can fail; do not size jobs from early partial counts.
+22. Phase 17 slips, all caught: (a) I claimed the v2 loss bursts were longer than anything in training while the shortest (3 packets)
+    overlapped training's longest (4); my own test caught it and I lengthened them to 5-12; (b) twice the on-screen paired-bootstrap interval
+    had the sign of its bracket flipped (the tables in this log are the corrected ones; the denoising table was written with the
+    right signs); (c) the vacuous `or True` assertion appeared a third time, in the impairment tests, and was replaced before running;
+    (d) the run 6 log message first listed the held-out noise corpora among the sources although training does not use them (they sit
+    in the same noise bank), fixed to name only what training uses, with a test that no training draw can name a held-out corpus;
+    (e) I could not guard against the dataset folder being renamed during the run (your rename crashed run 6 at 34k copies); the render
+    resumed without loss.
 21. While adding phase 15 I replaced the heading "## 3. Decisions and the reasoning behind them" with "## 3. Decisions"
     (pushed in `4a69e80`); noticed when a later edit would not match, restored in phase 16. In the call test the vacuous
     `or` assertion from mistake 20 reappeared once in the packet-loss test; replaced with a check that fails (the test
@@ -538,7 +688,9 @@ python -m pytest                           # 126 tests
 | Serve WavLM alone | done: your call, default from run 5 |
 | Telephony check on real phone channels (ASVspoof 2021 LA eval), run 4 and run 5 WavLM | done: run 4 8.81% vs run 5 9.96% (phase 15) |
 | Pick the call model, thresholds on phone-channel data, simulated live-call test, swap | done: run 4's WavLM-only now in `artifacts/` (4.96% vs 7.45% on 9,600 calls, +2.49 [2.01, 2.83]; phase 16) |
-| Telephony-robust retrain (packet loss, more noise, G.711), run 6 | **proposed next** (section 9 step 1) |
+| Telephony-robust retrain (noise, echo, bursty loss, G.711), run 6 | done: robustness gains, ~1 point regression on 2019-derived sets; adoption is your call (phase 17) |
+| Run 7: run 6 recipe without EnCodec, to test the regression | **proposed next** (section 9 step 1) |
+| Denoising front end | tested and rejected (phase 17) |
 | Second threshold pass on call-like data with loss, other speakers | open (section 9 step 2) |
 | Live call audio from real recordings | not possible now (no recordings); simulated calls used |
 | Remaining ML list (`new_plan.md` 7.3k): out-of-domain test, second seed, probability calibration, serving cost, ... | open |
@@ -547,28 +699,34 @@ python -m pytest                           # 126 tests
 | Delete the obsolete ASV2019 cache | done (8.60 GB freed) |
 | Kafka / Docker runtime / Kubernetes / Grafana verification | not started (Docker image builds in CI) |
 | `configs/default.yaml` paths are relative to the working directory (`artifacts` from `src/` misses the repo's folder) | open, minor |
-| Commits | `573fe30`, `bef9ad7`, `756e79e`, `34467a8`, `38fe200`, `4a69e80` (telephony test) pushed; all CI green; the live-call test code and results are uncommitted |
+| Commits | `573fe30`, `bef9ad7`, `756e79e`, `34467a8`, `38fe200`, `4a69e80`, `2cfc76a` (live-call test) pushed; all CI green; phase 17 code, tests, docs and results are uncommitted |
 | GitHub cleanup | at the very end, after everything is final (your decision); push as we go until then |
 
-## 9. Next steps (updated 2026-10-06, after the live-call check and the swap to run 4's WavLM)
+## 9. Next steps (updated 2026-10-06, after run 6)
 
-**Done:** telephony check on real phone channels (phase 15); simulated live-call test, thresholds on phone-channel data and
-the swap to run 4's WavLM-only bundle (phase 16). Live calls cannot be recorded (you have no recordings to provide), so
-the call test is simulated; a small set of real recordings would still be the best final check if one ever becomes available.
+**Done:** telephony check on real phone channels (phase 15); simulated live calls, phone-channel thresholds and the swap to run 4's
+WavLM-only bundle (phase 16); denoising test (rejected) and run 6, the noise / echo / loss-robust retrain (phase 17). Live calls cannot be
+recorded (no recordings to provide), so call tests are simulated; a small set of real recordings would still be the best final check.
 
-**Step 1: telephony-robust retrain (run 6, WavLM only; proposed next).** The call test showed what the model lacks:
-packet loss (false alarms 6% -> 42% of genuine calls at 5% loss), white noise (2.9% -> 7.5% EER), and the hardest attacks.
-- Add to the label-blind codec renders (a new catalogue, reusing existing copies where nothing changes): packet loss with
-  several concealment styles including smoother, codec-like ones; white / pink / brown noise at 10-35 dB; G.711 (a-law,
-  mu-law); optional room reverberation. Re-think the EnCodec share (run 5's 18% cost about a point elsewhere).
-- Keep test and train apart: the simulated call set uses my chain, so a model trained on the same chain would look better
-  than it is. Judge run 6 on **ASV5 eval and ASVspoof 2021 (real channels)** first, and use the call set only as a secondary
-  stress test with a differently-seeded, differently-parameterised variant (e.g. another concealment style).
-- Decision rule to fix before training: adopt run 6 only if it is no worse than run 4 on ASV5 eval and ASVspoof 2021
-  (within the noise margin) and clearly better under packet loss and noise.
-- Cost: ~8 h of training (like runs 4-5) plus rendering.
+**Decision for you: what to do with run 6** (it beats the served model on noisy / echoey / lossy calls by 2-8 points and nearly removes
+loss-driven false alarms, but is ~1 point worse on the 2019-derived real-phone sets; the rule fixed before training says do not adopt):
+- A. **Keep serving run 4's WavLM**; keep run 6 (`artifacts_run6/`) as the noise-robust alternative. (What the pre-set rule says.)
+- B. **Adopt run 6**: accept ~1 point on clean-speech phone audio for large gains where calls are noisy. Right if real calls are noisy
+  (usually true); this has not been measured on real calls.
+- C. **Run 7 (recommended next):** the run 6 recipe **without EnCodec** (share 0 in training and in the tuning set), everything else
+  identical. Runs 5 and 6 share EnCodec copies and an EnCodec-containing tuning set and both show the regression, so this tests the
+  most likely cause. Rule to fix before the run: it is worth adopting if ASVspoof2019 eval and ASVspoof 2021 are within +0.3 of the
+  served model (4.85% / 8.81%) while babble, v2 and the loss-driven false alarms keep most of run 6's gains. Cost: the copies must be
+  rendered again (the configuration hash changes), ~3 h, then ~8 h of training, ~1 h of scoring. It gives up EnCodec robustness
+  (C04 / C07 back to ~15-19%) unless EnCodec is judged needed.
+- D. **Second seed of run 4's recipe** (renders exist; ~8 h): measures run-to-run noise, which every decision so far lacks. Could run
+  after C, or first if you want to know whether ~1 point differences mean anything.
 
-**Step 2: second threshold pass (no retraining; can run before step 1 on run 4).** Calibrate verify / block on call-like
+**Step 1 (after the decision): stronger echo robustness.** Real room echo is run 6's biggest remaining weakness (no noise + real echo
+13.2% against 3.0% without echo; with noise 20-26%), because it trained on simulated echoes. More varied and more realistic echo (other
+measured impulse-response sets, not the held-out one) and low-SNR babble (5-10 dB: 16.5%) are the next targets.
+
+**Step 2: second threshold pass (no retraining; do it for whichever model is chosen).** Calibrate verify / block on call-like
 data **with loss**, on one set of speakers, and report on other speakers (a fresh call render from different source clips
 and speakers, not the call set already used for the swap). The block level at a 1% false-alarm budget currently catches
 only 39% of fakes; the product decision is how many false blocks are acceptable, so I would report the catch-vs-false-alarm

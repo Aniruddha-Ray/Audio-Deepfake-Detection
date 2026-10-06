@@ -86,9 +86,11 @@ configs/default.yaml   tests/   deploy/ (Dockerfile, compose, Prometheus, Grafan
 cd src
 pip install -r requirements-dev.txt          # install the torch build you want first
 export AUDIODF_ASV5=../dataset5              # ASVspoof5: ASVspoof5.*.tsv, flac_T/, flac_D/ (flac_E_eval/ for the test)
-export AUDIODF_DATA=../dataset/LA/LA         # optional: ASVspoof2019 LA, used as a cross-dataset test
+export AUDIODF_DATA=../dataset19/LA/LA         # optional: ASVspoof2019 LA, used as a cross-dataset test
 
 python run.py                                # ONE command: audit -> index -> SVM -> RCNN -> tune -> test -> artifacts/
+python run.py --config configs/run6.yaml --eval-utts 30000   # run 6 recipe: needs dataset_noise/ (MUSAN noise, RIRS_NOISES, DEMAND subset)
+python run.py --no-impairments               # the runs 3-5 recipe: no noise, echo or packet loss
 python run.py --epochs 12 --eval-utts 0      # flags (--eval-utts 0 = whole eval split, hours; --limit 800 = smoke test)
 python run.py --train-splits asv5:train --holdout-attacks   # run-1 setup: ASV5 train only, tune on ASV5 dev
 
@@ -109,7 +111,7 @@ python -m audiodf benchmark                  # per-stage latency
 python -m audiodf serve --port 8000          # API: /predict, /stream/{id}, /health, /metrics
 python -m audiodf consume                    # Kafka worker (needs a broker + confluent-kafka)
 python -m audiodf produce call.wav --realtime
-python -m pytest                             # 126 tests, no dataset or GPU needed
+python -m pytest                             # 147 tests, no dataset or GPU needed
 ```
 
 Stream over a WebSocket: send binary frames of 16 kHz mono PCM16, receive a JSON verdict each time a
@@ -154,6 +156,20 @@ phone-channel data instead.
 model now in `artifacts/`. **Known weak spots:** packet loss (genuine calls flagged at the verify level: 6% with no loss,
 42% at 5% loss in the simulation), white noise (EER 2.9% -> 7.5%), the hardest attacks (A28 15.6%), and the block level
 (catches 39% of fakes at a 1% false-alarm budget). Details: `audit.md` phases 15-16, `new_plan.md` 7.3m-7.3n.
+
+**Run 6 (noise, room echo, bursty packet loss, G.711 in the training audio; `configs/run6.yaml`, bundle `artifacts_run6/`, not the
+served model):**
+
+| EER at 10 s, WavLM alone | served (run 4) | run 6 |
+|---|---|---|
+| ASV5 eval (30k) | 5.4% | **4.5%** |
+| ASVspoof 2019 eval (30k) / ASVspoof 2021 real phone channels (30k) | **4.9% / 8.8%** | 5.8% / 9.9% |
+| Simulated calls: as trained (9,600) / babble (4,800) | 5.0% / 15.5% | **3.2% / 7.8%** |
+| Simulated calls with held-out noise, real room echo and unseen loss (6,400) | 16.9% | **11.4%** |
+| Genuine calls flagged at the verify level, 0% -> 5% packet loss | 6% -> 42% | 10% -> 14% |
+
+Run 6 is much more robust to noise, babble and packet loss but about a point worse on clean-speech phone audio, so it is not served
+(`audit.md` phase 17). A classical denoising front end was tested and rejected: it made every call set worse.
 The earlier ASVspoof2019 prototype (5.7% eval EER) used feature version 1 and an easier benchmark; it is not
 reproducible with this code and not comparable to these numbers.
 

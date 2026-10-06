@@ -1,0 +1,46 @@
+{
+  "ASVspoof 2021 real phone channels (30k)": {
+    "n": 29994,
+    "eer_first": 8.814,
+    "eer_second": 9.864,
+    "diff_second_minus_first": 1.05,
+    "ci95": [
+      0.772,
+      1.39
+    ],
+    "share_first_better": 1.0
+  },
+  "call set v1 (9,600)": {
+    "n": 9600,
+    "eer_first": 4.958,
+    "eer_second": 3.177,
+    "diff_second_minus_first": -1.781,
+    "ci95": [
+      -2.229,
+      -1.292
+    ],
+    "share_first_better": 0.0
+  },
+  "babble set (4,800)": {
+    "n": 4800,
+    "eer_first": 15.542,
+    "eer_second": 7.75,
+    "diff_second_minus_first": -7.792,
+    "ci95": [
+      -8.792,
+      -6.707
+    ],
+    "share_first_better": 0.0
+  },
+  "call set v2, held-out (6,400)": {
+    "n": 6400,
+    "eer_first": 16.953,
+    "eer_second": 11.406,
+    "diff_second_minus_first": -5.547,
+    "ci95": [
+      -6.484,
+      -4.531
+    ],
+    "share_first_better": 0.0
+  }
+}

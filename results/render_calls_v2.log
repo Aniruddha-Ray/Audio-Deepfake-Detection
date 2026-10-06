@@ -1,0 +1,5 @@
+6400 clean ASV5 eval clips -> v2 calls (held-out noise, real room echo, bursty loss) in C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls_v2
+    rendered 2000/6400 v2 calls (21/s)
+    rendered 4000/6400 v2 calls (22/s)
+    rendered 6000/6400 v2 calls (23/s)
+rendered 6400 v2 calls in 278s -> C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls_v2\ASV5.eval.calls.tsv

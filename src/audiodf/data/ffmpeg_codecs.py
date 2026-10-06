@@ -92,8 +92,14 @@ NEURAL = (
     # eval C07: MP3, then EnCodec; every pairing of our 5 MP3 bitrates with the 5 EnCodec rates
     NeuralCodec("mp3_encodec", tuple((m, k) for m in range(5) for k in ENCODEC_KBPS)),
 )
+# G.711 (landline / SIP). Raw PCM demuxers default to 44.1 kHz, so the sample rate is given for decoding. Not part of CODECS
+# (catalogue 2 stays exactly as run 5 used it); catalogue 3, used with impairments (run 6), adds it to the classical codecs.
+G711A = FfCodec("alaw", 8000, ("-c:a", "pcm_alaw"), ((),), "alaw", "alaw", decoder=("-ar", "8000", "-ac", "1"))
+G711U = FfCodec("ulaw", 8000, ("-c:a", "pcm_mulaw"), ((),), "mulaw", "mulaw", decoder=("-ar", "8000", "-ac", "1"))
+CLASSICAL3 = CLASSICAL + (G711A, G711U)
+IMPAIR_VERSION = 3
 CODECS = CLASSICAL + NEURAL
-BY_NAME = {c.name: c for c in CODECS}
+BY_NAME = {c.name: c for c in CODECS + (G711A, G711U)}
 
 
 def ffmpeg_exe() -> str:
@@ -129,7 +135,7 @@ def missing_codecs(names=None) -> list[str]:
                 out.append(codec.name)
             continue
         enc = codec.encoder[codec.encoder.index("-c:a") + 1]
-        dec = codec.decoder[codec.decoder.index("-c:a") + 1] if codec.decoder else None
+        dec = codec.decoder[codec.decoder.index("-c:a") + 1] if "-c:a" in codec.decoder else None
         if enc not in encoders or (dec and dec not in decoders):
             out.append(codec.name)
     return out
@@ -224,21 +230,24 @@ def roundtrip(wave: np.ndarray, codec: FfCodec | NeuralCodec | str, variant: int
     return encodec_roundtrip([pre], kbps)[0]
 
 
-def choice(utt_id: str, seed: int) -> tuple[float, FfCodec | NeuralCodec, int]:
+def choice(utt_id: str, seed: int, neural_share: float = NEURAL_SHARE,
+           classical: tuple = CLASSICAL) -> tuple[float, FfCodec | NeuralCodec, int]:
     """(u, codec, variant) for one clip, from its ID and the seed only (label-blind, reproducible).
     u decides membership: a clip gets a copy when u < frac. A NEURAL_SHARE of clips gets a neural codec (decided
     by hash bytes catalogue 1 never used); every other clip gets exactly its catalogue-1 codec and variant."""
     h = hashlib.md5(f"{seed}:{utt_id}".encode()).digest()
     u = int.from_bytes(h[:4], "little") / 2 ** 32
-    if int.from_bytes(h[8:10], "little") / 2 ** 16 < NEURAL_SHARE:
+    if int.from_bytes(h[8:10], "little") / 2 ** 16 < neural_share:
         codec = NEURAL[h[10] % len(NEURAL)]
         return u, codec, int.from_bytes(h[11:13], "little") % len(codec.variants)
-    codec = CLASSICAL[int.from_bytes(h[4:6], "little") % len(CLASSICAL)]
+    codec = classical[int.from_bytes(h[4:6], "little") % len(classical)]
     return u, codec, int.from_bytes(h[6:8], "little") % len(codec.variants)
 
 
-def render_dir(cache_dir: str | Path, seed: int, version: int = CATALOGUE_VERSION) -> Path:
-    return Path(cache_dir) / f"render_ff{version}" / f"s{seed}"
+def render_dir(cache_dir: str | Path, seed: int, version: int = CATALOGUE_VERSION, tag: str = "") -> Path:
+    """Where copies are kept. With impairments the folder carries a hash of their configuration, so copies made with
+    other noise settings are never reused."""
+    return Path(cache_dir) / f"render_ff{version}{'_' + tag if tag else ''}" / f"s{seed}"
 
 
 def _adopt_catalogue1(todo: list, picks: dict, idx, out_dir: Path, cache_dir, seed: int) -> list:
@@ -261,19 +270,26 @@ def _adopt_catalogue1(todo: list, picks: dict, idx, out_dir: Path, cache_dir, se
     return left
 
 
-def render_copies(idx, utts: np.ndarray, settings, frac: float, seed: int, workers: int = 12, log=print):
+def render_copies(idx, utts: np.ndarray, settings, frac: float, seed: int, workers: int = 12, log=print,
+                  impair=None):
     """Give a label-blind `frac` of `utts` a realistic-codec copy on disk; returns idx with those clips
-    pointing at their copies. Resumable: existing copies are reused."""
-    out_dir = render_dir(settings.paths.cache_dir, seed)
+    pointing at their copies. Resumable: existing copies are reused.
+
+    impair: an `impairments.ImpairKit` adds room echo and noise **before** the codec (as a microphone and room come before
+    the codec in a call) and switches to catalogue 3 (G.711 added, the kit's neural share). Without it: catalogue 2."""
+    version = IMPAIR_VERSION if impair else CATALOGUE_VERSION
+    out_dir = render_dir(settings.paths.cache_dir, seed, version, impair.tag if impair else "")
     out_dir.mkdir(parents=True, exist_ok=True)
-    picks = {int(i): choice(str(idx.utt_id[i]), seed) for i in utts}
+    pick = (lambda u: choice(u, seed, impair.neural_share, CLASSICAL3)) if impair else (lambda u: choice(u, seed))
+    picks = {int(i): pick(str(idx.utt_id[i])) for i in utts}
     chosen = [i for i, (u, _, _) in picks.items() if u < frac]
     todo = [i for i in chosen if not (out_dir / f"{idx.utt_id[i]}.flac").exists()]
-    adopted = len(todo)
-    todo = _adopt_catalogue1(todo, picks, idx, out_dir, settings.paths.cache_dir, seed)
-    adopted -= len(todo)
-    if adopted:
-        log(f"  linked {adopted} unchanged copies from codec catalogue 1")
+    if not impair:  # catalogue-2 picks equal catalogue-1 picks for classical codecs: reuse those copies
+        adopted = len(todo)
+        todo = _adopt_catalogue1(todo, picks, idx, out_dir, settings.paths.cache_dir, seed)
+        adopted -= len(todo)
+        if adopted:
+            log(f"  linked {adopted} unchanged copies from codec catalogue 1")
     horizon = settings.window_samples + int(RENDER_MARGIN_S * settings.audio.sample_rate)
 
     need_gb = len(todo) * 0.22e-3  # ~0.22 MB per copy (~10 s of 16-bit FLAC)
@@ -290,7 +306,10 @@ def render_copies(idx, utts: np.ndarray, settings, frac: float, seed: int, worke
 
     def read(i: int) -> np.ndarray:
         with sf.SoundFile(idx.path(i)) as f:
-            return f.read(min(f.frames, int(idx.speech_start[i]) + horizon), dtype="float32", always_2d=False)
+            wave = f.read(min(f.frames, int(idx.speech_start[i]) + horizon), dtype="float32", always_2d=False)
+        if impair:  # room echo, then noise: both before the codec
+            wave = impair.apply(wave, str(idx.utt_id[i]), seed, str(idx.speaker[i]))
+        return wave
 
     def write(i: int, wave: np.ndarray) -> None:
         sf.write(out_dir / f"{idx.utt_id[i]}.flac", wave, _SR, subtype="PCM_16")
@@ -330,10 +349,11 @@ def render_copies(idx, utts: np.ndarray, settings, frac: float, seed: int, worke
         release_encodec()  # training needs the GPU memory (WavLM uses ~3.4 of 4.3 GB)
     if todo:
         log(f"  rendered {len(classical)} ffmpeg + {len(neural)} EnCodec copies in {time.time() - t0:.0f}s "
-            f"({len(chosen) - len(todo)} reused)")
+            f"({len(chosen) - len(todo)} reused)" + (f"; impairments {impair.tag}" if impair else ""))
     mask = np.zeros(len(idx), dtype=bool)
     mask[chosen] = True
     labels = np.full(len(idx), "-", dtype=object)
     for i in chosen:
         labels[i] = picks[i][1].name
-    return idx.with_renders(str(out_dir), mask, labels.astype(str), f"ff{CATALOGUE_VERSION}s{seed}f{frac:g}")
+    return idx.with_renders(str(out_dir), mask, labels.astype(str),
+                            f"ff{version}{'_' + impair.tag if impair else ''}s{seed}f{frac:g}")

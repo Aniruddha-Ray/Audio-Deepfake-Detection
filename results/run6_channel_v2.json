@@ -1,0 +1,166 @@
+{
+  "served": {
+    "overall": {
+      "n": 6400,
+      "eer": 16.953,
+      "auc": 0.91059,
+      "global_threshold": 0.09192
+    },
+    "noise": {
+      "babble": {
+        "n": 985,
+        "eer": 17.05,
+        "flagged": 0.2526,
+        "caught": 0.9104
+      },
+      "babble+rir": {
+        "n": 690,
+        "eer": 33.341,
+        "flagged": 0.4958,
+        "caught": 0.8218
+      },
+      "brown": {
+        "n": 227,
+        "eer": 1.763,
+        "flagged": 0.0259,
+        "caught": 0.991
+      },
+      "brown+rir": {
+        "n": 136,
+        "eer": 15.439,
+        "flagged": 0.0,
+        "caught": 0.6338
+      },
+      "esc50": {
+        "n": 1158,
+        "eer": 8.636,
+        "flagged": 0.0846,
+        "caught": 0.9101
+      },
+      "esc50+rir": {
+        "n": 789,
+        "eer": 26.24,
+        "flagged": 0.2143,
+        "caught": 0.6632
+      },
+      "none": {
+        "n": 956,
+        "eer": 3.976,
+        "flagged": 0.039,
+        "caught": 0.9595
+      },
+      "none+rir": {
+        "n": 660,
+        "eer": 18.336,
+        "flagged": 0.0484,
+        "caught": 0.5714
+      },
+      "pink": {
+        "n": 230,
+        "eer": 6.961,
+        "flagged": 0.0268,
+        "caught": 0.8983
+      },
+      "pink+rir": {
+        "n": 155,
+        "eer": 25.845,
+        "flagged": 0.2778,
+        "caught": 0.7831
+      },
+      "white": {
+        "n": 264,
+        "eer": 12.509,
+        "flagged": 0.1111,
+        "caught": 0.8623
+      },
+      "white+rir": {
+        "n": 150,
+        "eer": 31.338,
+        "flagged": 0.4384,
+        "caught": 0.8312
+      }
+    }
+  },
+  "run6": {
+    "overall": {
+      "n": 6400,
+      "eer": 11.406,
+      "auc": 0.96046,
+      "global_threshold": 0.29161
+    },
+    "noise": {
+      "babble": {
+        "n": 985,
+        "eer": 7.515,
+        "flagged": 0.0497,
+        "caught": 0.8904
+      },
+      "babble+rir": {
+        "n": 690,
+        "eer": 22.03,
+        "flagged": 0.2841,
+        "caught": 0.858
+      },
+      "brown": {
+        "n": 227,
+        "eer": 2.213,
+        "flagged": 0.0,
+        "caught": 0.9459
+      },
+      "brown+rir": {
+        "n": 136,
+        "eer": 12.492,
+        "flagged": 0.1538,
+        "caught": 0.9014
+      },
+      "esc50": {
+        "n": 1158,
+        "eer": 5.614,
+        "flagged": 0.022,
+        "caught": 0.9101
+      },
+      "esc50+rir": {
+        "n": 789,
+        "eer": 20.781,
+        "flagged": 0.2414,
+        "caught": 0.8251
+      },
+      "none": {
+        "n": 956,
+        "eer": 3.033,
+        "flagged": 0.0062,
+        "caught": 0.9211
+      },
+      "none+rir": {
+        "n": 660,
+        "eer": 13.184,
+        "flagged": 0.1935,
+        "caught": 0.9029
+      },
+      "pink": {
+        "n": 230,
+        "eer": 4.775,
+        "flagged": 0.0089,
+        "caught": 0.8983
+      },
+      "pink+rir": {
+        "n": 155,
+        "eer": 26.447,
+        "flagged": 0.3056,
+        "caught": 0.8072
+      },
+      "white": {
+        "n": 264,
+        "eer": 7.988,
+        "flagged": 0.0635,
+        "caught": 0.8623
+      },
+      "white+rir": {
+        "n": 150,
+        "eer": 22.683,
+        "flagged": 0.3288,
+        "caught": 0.8182
+      }
+    }
+  }
+}

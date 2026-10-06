@@ -1,0 +1,6 @@
+# Run 6: WavLM alone trained with room echo, noise (incl. babble), bursty packet loss and G.711. Everything else is the default
+# recipe in audiodf/config.py (data.impairments is on by default). Writes next to, not over, the served model in artifacts/.
+#   cd src && python run.py --config configs/run6.yaml --eval-utts 30000
+paths:
+  artifacts_dir: ../artifacts_run6
+  results_dir: ../results/run6

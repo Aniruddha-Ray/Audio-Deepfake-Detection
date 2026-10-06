@@ -118,6 +118,7 @@ def _settings() -> Settings:
     """Real-codec rendering (on by default) only where this ffmpeg build has the whole codec catalogue: CI's
     Linux imageio-ffmpeg lacks GSM, and rendering refuses to run without it. test_ffmpeg_codecs covers rendering."""
     s = Settings()
+    s.data.impairments = False  # run 6's noise corpora are not part of the test data; tested separately
     try:
         from audiodf.data.ffmpeg_codecs import missing_codecs
 

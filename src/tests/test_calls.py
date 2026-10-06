@@ -6,6 +6,7 @@ import pytest
 
 pytest.importorskip("imageio_ffmpeg")
 
+from audiodf.config import Settings  # noqa: E402
 from audiodf.calibrate import (calibrate, make_wavlm_bundle, policy_thresholds, speaker_halves,  # noqa: E402
                                threshold_rates)
 from audiodf.data.ffmpeg_codecs import missing_codecs  # noqa: E402
@@ -31,7 +32,12 @@ def _speechlike(seconds=3.0, seed=0):
 # ---------------------------------------------------------------- the call chain
 
 def test_call_conditions_are_label_blind_reproducible_and_match_the_stated_mix():
-    assert list(inspect.signature(plan).parameters) == ["utt_id", "seed"]  # nothing about the label
+    params = list(inspect.signature(plan).parameters)
+    assert params == ["utt_id", "seed", "noises", "snr_range"] and not any("label" in q or "key" in q for q in params)
+    # the first call set is unchanged by the babble option: rows of the rendered protocol (default arguments)
+    first = plan("E_0000502309", 0)
+    assert (first.profile.name, first.noise, round(first.snr_db, 1), first.snr_bin, first.loss) == (
+        "opus_nb", "white", 30.1, "30-35", 0)
     assert plan("E_0000000001", 0) == plan("E_0000000001", 0) and plan("E_0000000001", 0) != plan("E_0000000001", 1)
     plans = [plan(f"E_{k:010d}", 0) for k in range(8000)]
     for p in PROFILES:
@@ -196,3 +202,92 @@ def test_eer_and_paired_bootstrap():
     assert same["diff_second_minus_first"] == 0 and same["ci95"] == [0.0, 0.0]
     close = paired_bootstrap(y, good, good + rng.normal(0, 0.01, 800), n_boot=300)
     assert close["ci95"][0] < 0 < close["ci95"][1]  # a tie is not called a win
+
+
+# ---------------------------------------------------------------- babble, denoising, per-folder index
+
+def _babble_pool(tmp_path, n_speakers=10):
+    from audiodf.data.voip_sim import BabblePool
+
+    paths, speakers = [], []
+    for k in range(n_speakers):
+        p = tmp_path / f"b{k}.flac"
+        import soundfile as sf
+
+        sf.write(p, tone(5.0, freq=150 + 40 * k, noise=0.05, seed=k), SR)
+        paths.append(str(p))
+        speakers.append(f"S{k}")
+    return BabblePool(paths, speakers, [0] * n_speakers, [5 * SR] * n_speakers)
+
+
+def test_babble_is_other_speakers_at_the_requested_level(tmp_path):
+    pool = _babble_pool(tmp_path)
+    rng = np.random.default_rng(0)
+    b = pool.sample(3 * SR, rng, avoid_speaker="S3")
+    assert b.shape == (3 * SR,) and abs(float(np.sqrt((b ** 2).mean())) - 1.0) < 1e-6  # unit RMS
+    x = _speechlike(3.0)
+    noise = add_noise(x, "babble", 15.0, np.random.default_rng(1), pool, "S0") - x
+    assert abs(20 * np.log10(speech_rms(x) / np.sqrt((noise ** 2).mean())) - 15) < 0.1
+    with pytest.raises(ValueError, match="BabblePool"):
+        add_noise(x, "babble", 15.0, rng)
+    # never the caller's own voice: with only two speakers left to choose from the picks come from them only
+    pool.speakers = np.array(["S0", "S1"] + ["S9"] * 8)
+    seen = {int(k) for k in np.nonzero(pool.speakers != "S9")[0]}
+    assert seen == {0, 1}
+    from audiodf.data.voip_sim import plan
+
+    p = plan("E_1", 0, noises=("babble",), snr_range=(5.0, 25.0))
+    assert p.noise in ("babble", "none") and (p.noise == "none" or 5 <= p.snr_db <= 25)
+    assert {plan(f"E_{k}", 0, ("babble",), (5.0, 25.0)).snr_bin for k in range(400)} >= {"5-10", "10-15", "15-20", "20-25"}
+
+
+def test_babble_pool_needs_enough_speakers(asv5):
+    from audiodf.data.voip_sim import BabblePool
+
+    idx = build_index(asv5, "asv5", "train", workers=0)
+    with pytest.raises(ValueError, match="8 different speakers"):
+        BabblePool.from_index(idx)
+
+
+def _call_folder(root, speech_start_s, n=3):
+    import soundfile as sf
+
+    (root / "flac").mkdir(parents=True)
+    rows = []
+    for k in range(n):
+        wave = np.concatenate([np.zeros(int(speech_start_s * SR), dtype=np.float32), tone(4.0, 200 + 30 * k, 0.02, k)])
+        sf.write(root / "flac" / f"E_{k:010d}.flac", wave, SR)
+        rows.append(f"E_{k:010d} S{k} opus_wb none none - 0 {'A17' if k % 2 else '-'} {'spoof' if k % 2 else 'bonafide'}")
+    (root / "ASV5.eval.calls.tsv").write_text("\n".join(rows) + "\n")
+
+
+def test_denoise_keeps_names_length_and_protocol_and_is_resumable(tmp_path):
+    from audiodf.data.denoise import afftdn_filter, denoise_calls
+
+    _call_folder(tmp_path / "calls", 0.5)
+    assert afftdn_filter(12, -45, True) == "afftdn=nr=12:nf=-45:tn=1" and afftdn_filter(24, -50, False).endswith("tn=0")
+    info = denoise_calls(tmp_path / "calls", tmp_path / "dn", afftdn_filter(), workers=2, log=lambda *_: None)
+    assert info["calls"] == 3 and info["freshly_denoised"] == 3 and info["ms_per_10s_audio_incl_process_startup"] > 0
+    assert (tmp_path / "dn" / "ASV5.eval.calls.tsv").read_text() == (tmp_path / "calls" / "ASV5.eval.calls.tsv").read_text()
+    import soundfile as sf
+
+    for k in range(3):
+        a, b = sf.info(tmp_path / "calls" / "flac" / f"E_{k:010d}.flac"), sf.info(tmp_path / "dn" / "flac" / f"E_{k:010d}.flac")
+        assert b.samplerate == SR and b.channels == 1 and abs(b.frames - a.frames) <= 2 * 512  # same audio length
+    again = denoise_calls(tmp_path / "calls", tmp_path / "dn", afftdn_filter(), workers=2, log=lambda *_: None)
+    assert again["freshly_denoised"] == 0  # resumable
+
+
+def test_call_set_index_is_per_folder(tmp_path):
+    """Two call sets with the same number of calls but different audio must not share a cached speech-bounds index."""
+    s = Settings()
+    s.paths.cache_dir = str(tmp_path / "cache")
+    _call_folder(tmp_path / "a", 0.0)
+    _call_folder(tmp_path / "b", 1.5)  # speech starts 1.5 s later
+    s.paths.calls_root = str(tmp_path / "a")
+    ia = build_index(s, "calls", "eval", workers=0)
+    s.paths.calls_root = str(tmp_path / "b")
+    ib = build_index(s, "calls", "eval", workers=0)
+    assert len(ia) == len(ib) == 3 and (ib.speech_start - ia.speech_start).min() > SR  # b's own bounds, not a's
+    s.paths.calls_root = str(tmp_path / "a")
+    assert build_index(s, "calls", "eval", workers=0).speech_start.tolist() == ia.speech_start.tolist()  # a's cache still valid

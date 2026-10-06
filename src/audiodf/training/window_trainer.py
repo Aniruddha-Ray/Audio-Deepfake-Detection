@@ -13,6 +13,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from audiodf.config import Settings
+from audiodf.data.impairments import LossAugmenter, LossConfig
 from audiodf.data.prepare import RandomWindowSampler, SplitIndex, _worker_init
 from audiodf.evaluation.metrics import compute_metrics
 from audiodf.evaluation.stream_eval import score_window_branch
@@ -24,7 +25,8 @@ def train_window_model(model: nn.Module, param_groups: list[dict], dataset_cls, 
                        seed: int, save, load, score_batch: int, max_grad_norm: float | None = None):
     sampler = RandomWindowSampler(train, settings.segment_samples, settings.data.rcnn_windows_per_utt,
                                   settings.window_samples, seed)
-    loader = DataLoader(dataset_cls(train, settings, settings.data.codec_aug_p, seed),
+    loss_aug = LossAugmenter(LossConfig(p=settings.data.loss_p)) if settings.data.loss_p > 0 else None
+    loader = DataLoader(dataset_cls(train, settings, settings.data.codec_aug_p, seed, loss=loss_aug),
                         batch_size=batch_size, sampler=sampler, num_workers=workers, drop_last=True,
                         worker_init_fn=_worker_init, prefetch_factor=4 if workers else None,
                         # Not persistent: kept alive, they doubled the worker count during each epoch's dev

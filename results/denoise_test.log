@@ -1,0 +1,58 @@
+[1/4] render babble call set 
+4800 clean ASV5 eval clips -> simulated VoIP calls (babble noise, SNR 5-25 dB) in C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls_babble
+    rendered 2000/4800 calls (16/s)
+    rendered 4000/4800 calls (19/s)
+rendered 4800 calls in 242s -> C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls_babble\ASV5.eval.calls.tsv
+[2/4] denoise (primary nr=12, strong nr=24) 
+    denoised 2000/9600 calls (52/s)
+    denoised 4000/9600 calls (52/s)
+    denoised 6000/9600 calls (52/s)
+    denoised 8000/9600 calls (52/s)
+denoised 9600 calls with afftdn=nr=12:nf=-45:tn=1 in 185.7s -> C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls_dn12
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\denoise_calls_dn12.json
+    denoised 2000/9600 calls (56/s)
+    denoised 4000/9600 calls (56/s)
+    denoised 6000/9600 calls (56/s)
+    denoised 8000/9600 calls (56/s)
+denoised 9600 calls with afftdn=nr=24:nf=-45:tn=1 in 171.6s -> C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls_dn24
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\denoise_calls_dn24.json
+    denoised 2000/4800 calls (49/s)
+    denoised 4000/4800 calls (50/s)
+denoised 4800 calls with afftdn=nr=12:nf=-45:tn=1 in 96.7s -> C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls_babble_dn12
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\denoise_babble_dn12.json
+    denoised 2000/4800 calls (56/s)
+    denoised 4000/4800 calls (55/s)
+denoised 4800 calls with afftdn=nr=24:nf=-45:tn=1 in 86.3s -> C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls_babble_dn24
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\denoise_babble_dn24.json
+[3/4] score the served model (artifacts/) 
+  indexed calls/eval: 4800 utts in 44s, 0 without speech
+  scoring calls/eval: 4800 of 4800 clips
+  scoring wavlm on 4800 clips
+  calls/eval   n=  4800 | EER at 10 s: wavlm  15.54%  fused  15.54%
+               fused EER by seconds of speech: 2s 15.33%  4s 16.46%  6s 15.83%  8s 15.46%  10s 15.54%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_babble.json
+  indexed calls/eval: 9600 utts in 65s, 0 without speech
+  scoring calls/eval: 9600 of 9600 clips
+  scoring wavlm on 9600 clips
+  calls/eval   n=  9600 | EER at 10 s: wavlm   5.91%  fused   5.91%
+               fused EER by seconds of speech: 2s 7.20%  4s 6.24%  6s 5.96%  8s 5.85%  10s 5.91%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_calls_dn12.json
+  indexed calls/eval: 4800 utts in 44s, 0 without speech
+  scoring calls/eval: 4800 of 4800 clips
+  scoring wavlm on 4800 clips
+  calls/eval   n=  4800 | EER at 10 s: wavlm  17.62%  fused  17.62%
+               fused EER by seconds of speech: 2s 15.06%  4s 17.15%  6s 18.25%  8s 17.67%  10s 17.62%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_babble_dn12.json
+  indexed calls/eval: 9600 utts in 59s, 0 without speech
+  scoring calls/eval: 9600 of 9600 clips
+  scoring wavlm on 9600 clips
+  calls/eval   n=  9600 | EER at 10 s: wavlm   6.56%  fused   6.56%
+               fused EER by seconds of speech: 2s 7.70%  4s 6.79%  6s 6.67%  8s 6.55%  10s 6.56%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_calls_dn24.json
+  indexed calls/eval: 4800 utts in 44s, 0 without speech
+  scoring calls/eval: 4800 of 4800 clips
+  scoring wavlm on 4800 clips
+  calls/eval   n=  4800 | EER at 10 s: wavlm  18.71%  fused  18.71%
+               fused EER by seconds of speech: 2s 15.81%  4s 17.38%  6s 18.79%  8s 18.75%  10s 18.71%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_babble_dn24.json
+[4/4] ALL DONE 

@@ -1,0 +1,72 @@
+recipe: run 6 (room echo 30%, noise 65% at 5-35 dB, packet loss on 35% of windows, G.711 added, EnCodec share 7%)
+asv5=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset5
+artifacts=../artifacts_run6
+pool=asv5:train asv5:dev asv19:train asv19:dev  holdout=asv5:A10 asv5:A12 asv5:A15
+branches=wavlm  reused=none
+rcnn=BiLSTM, epochs=10; wavlm epochs=8, top 4 layers fine-tuned; windows/clip/epoch=1, svm clips=20000, codec aug p=0.4
+device=cuda artifacts=..\artifacts_run6 branches=wavlm
+[1/6] integrity audit (training pool: asv5:train, asv5:dev, asv19:train, asv19:dev)
+  finding (asv5): attacks shared by train and dev: none
+  finding (asv5): attacks shared by train and eval: none
+  finding (asv5): attacks shared by dev and eval: none
+  finding (asv5): train: duration differs between bonafide (14.52) and spoof (10.736)
+  finding (asv5): train: leading silence differs between bonafide (0.412) and spoof (0.05)
+  finding (asv5): train: trailing silence differs between bonafide (0.213) and spoof (0.025)
+  finding (asv5): dev: digital-silence frame fraction (mean) differs between bonafide (0.003) and spoof (0.014)
+  finding (asv19): attacks shared by train and dev: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06']
+  finding (asv19): attacks shared by train and eval: none
+  finding (asv19): attacks shared by dev and eval: none
+  finding (asv19): train: leading silence differs between bonafide (1.025) and spoof (0.35)
+  finding (asv19): dev: leading silence differs between bonafide (0.838) and spoof (0.35)
+  finding (asv19): eval: leading silence differs between bonafide (0.775) and spoof (0.05)
+  finding (asv19): eval: trailing silence differs between bonafide (0.825) and spoof (0.175)
+[2/6] index clips (decode once, record VAD speech bounds) and split off the tuning set
+  training clips: 307454 (260166 spoof, 47288 bonafide), 19 attack systems
+  tuning set: held-out attacks asv5:A10, asv5:A12, asv5:A15 + bonafide of 196 held-out asv5:dev speakers: 49077 clips (41106 spoof, 7971 bonafide)
+  rendering real-codec copies (ffmpeg; label-blind; cached on disk); room echo 30%, noise 65% at 5-35 dB from ['musan', 'pointsource', 'demand'] + babble + colours, echo from ['sim_rir'] (held-out test corpora not used), EnCodec share 7%; packet loss on 35% of training windows
+    rendered 10000/137967 ffmpeg copies (27/s)
+    rendered 20000/137967 ffmpeg copies (27/s)
+    rendered 30000/137967 ffmpeg copies (27/s)
+    rendered 40000/137967 ffmpeg copies (27/s)
+    rendered 50000/137967 ffmpeg copies (26/s)
+    rendered 60000/137967 ffmpeg copies (26/s)
+    rendered 70000/137967 ffmpeg copies (27/s)
+    rendered 80000/137967 ffmpeg copies (27/s)
+    rendered 90000/137967 ffmpeg copies (27/s)
+    rendered 100000/137967 ffmpeg copies (28/s)
+    rendered 110000/137967 ffmpeg copies (28/s)
+    rendered 120000/137967 ffmpeg copies (28/s)
+    rendered 130000/137967 ffmpeg copies (29/s)
+C:\Users\Asus\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\torch\nn\utils\weight_norm.py:145: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+    rendered 5120/12925 EnCodec copies (8/s)
+    rendered 10240/12925 EnCodec copies (8/s)
+  rendered 137967 ffmpeg + 12925 EnCodec copies in 6171s (33515 reused); impairments cafd37e9
+  rendered 8312 ffmpeg + 655 EnCodec copies in 345s (0 reused); impairments cafd37e9
+  real-codec copies: 184407 training clips, 8967 of 11998 tuning clips
+[3/6] branches
+  WavLM: random 2 s raw windows, top 4 layers fine-tuned; best tuning epoch kept
+  epoch 1/8: {'epoch': 1, 'loss': 0.09003, 'dev_eer_pct': 6.051, 'minutes': 48.3}
+  epoch 2/8: {'epoch': 2, 'loss': 0.03851, 'dev_eer_pct': 5.657, 'minutes': 48.9}
+  epoch 3/8: {'epoch': 3, 'loss': 0.02913, 'dev_eer_pct': 4.026, 'minutes': 48.6}
+  epoch 4/8: {'epoch': 4, 'loss': 0.02307, 'dev_eer_pct': 4.544, 'minutes': 49.2}
+  epoch 5/8: {'epoch': 5, 'loss': 0.01869, 'dev_eer_pct': 4.044, 'minutes': 49.4}
+  epoch 6/8: {'epoch': 6, 'loss': 0.01577, 'dev_eer_pct': 3.732, 'minutes': 47.6}
+  epoch 7/8: {'epoch': 7, 'loss': 0.01319, 'dev_eer_pct': 3.369, 'minutes': 48.0}
+  epoch 8/8: {'epoch': 8, 'loss': 0.01192, 'dev_eer_pct': 3.482, 'minutes': 64.9}
+[4/6] tune on the held-out set (codec-processed): SVM calibration, fusion weights, risk thresholds
+  scoring wavlm on 11998 clips
+  fusion weights wavlm=1.00; risk thresholds: verify >= 0.1494, block >= 0.5115
+  tuning set   n= 11998 | EER at 10 s: wavlm   3.37%  fused   3.37%
+               fused EER by seconds of speech: 2s 6.41%  4s 4.10%  6s 3.73%  8s 3.43%  10s 3.37%
+[5/6] test sets (scored once, never tuned on)
+  scoring asv5/eval: 30000 of 136376 clips
+  scoring wavlm on 30000 clips
+  asv5/eval    n= 30000 | EER at 10 s: wavlm   4.46%  fused   4.46%
+               fused EER by seconds of speech: 2s 5.92%  4s 5.08%  6s 4.70%  8s 4.52%  10s 4.46%
+  scoring asv19/eval: 29988 of 71237 clips
+  scoring wavlm on 29988 clips
+  asv19/eval   n= 29988 | EER at 10 s: wavlm   5.82%  fused   5.82%
+               fused EER by seconds of speech: 2s 6.33%  4s 5.88%  6s 5.82%  8s 5.82%  10s 5.82%
+[6/6] save the bundle
+report: ..\results\run6\training_report.json

@@ -1,0 +1,8 @@
+{
+  "filter": "afftdn=nr=24:nf=-45:tn=1",
+  "calls": 4800,
+  "freshly_denoised": 4800,
+  "audio_seconds": 34097.8,
+  "wall_seconds": 86.3,
+  "ms_per_10s_audio_incl_process_startup": 200.8
+}

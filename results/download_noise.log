@@ -1,0 +1,7 @@
+[1/4] RIRS_NOISES (real + simulated room impulse responses, OpenSLR 28)
+  done rirs
+[2/4] ESC-50 (held-out test noise), DEMAND subset (training noise)
+  done esc50 + demand
+[3/4] MUSAN (10 GB tar, OpenSLR 17): keep only the noise/ folder
+  done musan noise
+[4/4] ALL DONE

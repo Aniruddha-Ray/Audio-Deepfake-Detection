@@ -1,0 +1,6 @@
+  indexed calls/eval: 6400 utts in 60s, 0 without speech
+  scoring calls/eval: 6400 of 6400 clips
+  scoring wavlm on 6400 clips
+  calls/eval   n=  6400 | EER at 10 s: wavlm  16.95%  fused  16.95%
+               fused EER by seconds of speech: 2s 16.73%  4s 17.22%  6s 16.95%  8s 17.11%  10s 16.95%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_v2_run4.json

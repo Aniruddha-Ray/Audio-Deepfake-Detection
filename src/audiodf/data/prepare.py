@@ -142,7 +142,11 @@ class SplitIndex:
 def build_index(settings: Settings, dataset: str, split: str, limit: int | None = None,
                 workers: int = 8, log=print, available_only: bool = False) -> SplitIndex:
     samples = read_protocol(settings.dataset_root(dataset), split, limit, dataset, available_only)
-    path = _prep_dir(settings) / f"index_{dataset}_{split}{f'_limit{limit}' if limit else ''}.npz"
+    # Simulated call sets differ per folder (noise, denoised copies...) under one dataset id, so their index carries a
+    # hash of the folder; a speech-bounds index of other audio must never be reused for them.
+    where = "_" + hashlib.md5(str(Path(settings.dataset_root(dataset)).resolve()).encode()).hexdigest()[:6] \
+        if dataset == "calls" else ""
+    path = _prep_dir(settings) / f"index_{dataset}_{split}{where}{f'_limit{limit}' if limit else ''}.npz"
     if path.exists():
         arrays = dict(np.load(path))
         if len(arrays["label"]) == len(samples):
@@ -279,8 +283,10 @@ def build_svm_snapshots(idx: SplitIndex, utts: np.ndarray, settings: Settings, a
 class RcnnWindowDataset(Dataset):
     """Item (utt, start) -> (Log-Mel window, label). Starts are absolute sample offsets in the file."""
 
-    def __init__(self, idx: SplitIndex, settings: Settings, augment_p: float = 0.0, seed: int = 0):
-        self.idx, self.settings, self.seed = idx, settings, seed
+    def __init__(self, idx: SplitIndex, settings: Settings, augment_p: float = 0.0, seed: int = 0, loss=None):
+        """loss: an `impairments.LossAugmenter` (training only): packet loss with concealment on a share of the windows,
+        different every epoch because the windows start at random offsets."""
+        self.idx, self.settings, self.seed, self.loss = idx, settings, seed, loss
         self.augment = CodecAugmenter(augment_p)
         self.margin = int(CODEC_MARGIN_S * settings.audio.sample_rate) if augment_p > 0 else 0
         self._fx = None
@@ -299,7 +305,10 @@ class RcnnWindowDataset(Dataset):
             chunk = np.concatenate([chunk[:off], pad_to_length(chunk[off:], seg)])
         if self.margin and not self.idx.is_rendered(i):  # real-codec copies get no simulated codec on top
             chunk, _ = self.augment(chunk, np.random.default_rng((self.seed, i, start)))
-        return chunk[off:off + seg]
+        window = chunk[off:off + seg]
+        if self.loss is not None:  # received audio: gaps and their concealment come after the codec
+            window = self.loss(window, np.random.default_rng((self.seed, 91, i, start)))
+        return window
 
     def __getitem__(self, key):
         i, start = key

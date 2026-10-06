@@ -10,7 +10,7 @@
   5. test       ASV5 eval (and ASV2019 eval as a cross-dataset check), scored once
   6. save       artifacts/ (models + tuned operating point) and results/training_report.json
 
-Flags: --branches svm rcnn wavlm   --epochs N (RCNN)  --wavlm-epochs N  --svm-utts N
+Flags: --no-impairments (as runs 3-5)   --noise-root DIR   --branches svm rcnn wavlm   --epochs N (RCNN)  --wavlm-epochs N  --svm-utts N
        --eval-utts N (0 = whole eval split)  --limit N (smoke test)
        --train-splits asv5:train asv5:dev asv19:train asv19:dev   --holdout-attacks asv5:A10 asv5:A12 asv5:A15
        --svm-checkpoint F  --rcnn-checkpoint F  --wavlm-checkpoint F  (reuse a trained branch)
@@ -47,6 +47,9 @@ def main() -> None:
                         help=f"reuse this trained {name.upper() if name != 'wavlm' else 'WavLM'} instead of training "
                              f"one (e.g. after an interrupted run, or from an earlier run on the same pool)")
     ap.add_argument("--rnn", choices=["bilstm", "lstm"], help="recurrent layer (default: bilstm)")
+    ap.add_argument("--no-impairments", action="store_true",
+                    help="train as runs 3-5 did: no noise, room echo or packet loss, codec catalogue 2")
+    ap.add_argument("--noise-root", help="folder with the noise corpora (default dataset_noise; AUDIODF_NOISE)")
     ap.add_argument("--limit", type=int, help="utterances per split, for a quick smoke test")
     ap.add_argument("--workers", type=int, default=8, help="data-loading processes")
     args = ap.parse_args()
@@ -68,6 +71,18 @@ def main() -> None:
         settings.data.holdout_attacks = tuple(args.holdout_attacks)
     if args.rnn:
         settings.rcnn_model.bidirectional = args.rnn == "bilstm"
+    if args.no_impairments:
+        settings.data.impairments, settings.data.loss_p = False, 0.0
+    if args.noise_root:
+        settings.paths.noise_root = args.noise_root
+    if settings.data.impairments:
+        from audiodf.data.noise_bank import NoiseBank
+
+        try:
+            NoiseBank.scan(settings.paths.noise_root).require("musan", "pointsource", "demand", "sim_rir")
+        except FileNotFoundError as exc:
+            sys.exit(f"{exc}\nNoise corpora are expected in {settings.paths.noise_root} (MUSAN noise, RIRS_NOISES, a DEMAND "
+                     f"subset; see audit.md phase 17), or train without them: python run.py --no-impairments")
 
     root = Path(settings.dataset_root("asv5"))
     if not (root / "ASVspoof5.train.tsv").exists() or not (root / "flac_T").is_dir():
@@ -75,6 +90,10 @@ def main() -> None:
                  f"Set AUDIODF_ASV5 to the folder containing ASVspoof5.train.tsv and flac_T/, flac_D/.")
 
     checkpoints = {"svm": args.svm_checkpoint, "rcnn": args.rcnn_checkpoint, "wavlm": args.wavlm_checkpoint}
+    d = settings.data
+    print("recipe: " + (f"run 6 (room echo {d.reverb_p:.0%}, noise {d.noise_p:.0%} at {d.snr_db[0]:g}-{d.snr_db[1]:g} dB, "
+                        f"packet loss on {d.loss_p:.0%} of windows, G.711 added, EnCodec share {d.neural_share:.0%})"
+                        if d.impairments else "runs 3-5 (no noise, echo or packet loss; codec catalogue 2)"))
     print(f"asv5={root}\nartifacts={settings.paths.artifacts_dir}\n"
           f"pool={' '.join(settings.data.train_splits)}  holdout={' '.join(settings.data.holdout_attacks) or 'none'}\n"
           f"branches={' '.join(settings.ensemble.branches)}  "

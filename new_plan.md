@@ -586,6 +586,35 @@ noise types, G.711, a smaller EnCodec share), judged first on ASV5 eval and ASVs
 simulated call set shares my chain with the training augmentation; and a second threshold pass on call-like data with loss,
 on different speakers.
 
+### 7.3o Denoising rejected; run 6 (noise, echo, bursty loss) is better in noise and worse by ~1 point on clean phone audio (2026-10-06)
+
+**Denoising** (ffmpeg `afftdn`, applied to every call) made the served model worse on the synthetic-noise calls (4.96 -> 5.91%), on
+babble calls (15.54 -> 17.62%) and on calls with no added noise (+1.1 to +1.3 points), and a stronger setting was worse still.
+Classical denoisers remove detail the detector reads and shift the score scale. Rejected (neural denoisers untested).
+
+**The finding behind run 6:** the served model is fragile to background speech (babble calls 19% EER against 3.6% on the clean calls of
+the same set), to real room echo (18% against 4%) and, in the simulation, to packet loss (genuine calls flagged 6% -> 42%).
+
+**Run 6** = the run 4 recipe with room echo (30% of copies), noise at 5-35 dB (35% MUSAN, 15% point-source, 5% DEMAND, 20% babble,
+25% white / pink / brown; 65% of copies), bursty packet loss with four concealment styles (35% of windows), G.711 added, EnCodec 7%
+instead of 18%. Tested on noise, echo and loss it never trained on (v2: ESC-50, real impulse responses, an unseen concealment style).
+
+| EER at 10 s, WavLM alone | served (run 4) | run 6 |
+|---|---|---|
+| ASV5 eval (30k) | 5.43% | **4.46%** |
+| ASVspoof2019 eval (30k) | **4.85%** | 5.82% |
+| ASVspoof 2021 real phone channels (30k) | **8.81%** | 9.86% |
+| Call set v1 (9,600; noise and loss as trained) | 4.96% | **3.18%** |
+| Babble set (4,800) | 15.54% | **7.75%** |
+| Call set v2, held-out noise / echo / loss (6,400) | 16.95% | **11.41%** |
+| Genuine calls flagged at 0% -> 5% packet loss (rise) | 6.4% -> 42.1% (+35.7) | 9.8% -> 13.6% (+3.8) |
+
+By the framework fixed before the run (no more than +0.5 / +0.3 points of regression on the real-channel sets), run 6 is **not
+adopted** (it is +0.97 and +1.05); it passes every robustness check. Run 5 showed the same ~1 point regression on those two sets and
+shares EnCodec copies with run 6, so EnCodec is the main suspect; seed noise is unmeasured. The decision is yours (`audit.md` section
+9): keep run 4, adopt run 6, or first run 7 (run 6 without EnCodec) to see whether the robustness can be kept without the
+regression. Remaining weakness of run 6: real room echo (13% with no noise, 20-26% with noise) and 5-10 dB babble (16.5%).
+
 ### 7.4 Fusion: don't jump to an ANN yet
 
 Considered a small ANN/learned voting classifier instead of the fixed 0.7/0.3 weight. Verdict:

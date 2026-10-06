@@ -1,0 +1,230 @@
+{
+  "n": 4800,
+  "spoof_fraction": 0.5,
+  "fusion_weights": {
+    "wavlm": 1.0
+  },
+  "at_horizon": {
+    "wavlm": {
+      "eer_pct": 15.542,
+      "auc": 0.92438,
+      "acc_at_eer_thr": 0.84458,
+      "recall_spoof": 0.84458,
+      "fpr_bonafide_flagged": 0.15542,
+      "acc_at_0.5": 0.82146,
+      "eer_threshold": 0.29929
+    },
+    "fused": {
+      "eer_pct": 15.542,
+      "auc": 0.92438,
+      "acc_at_eer_thr": 0.84458,
+      "recall_spoof": 0.84458,
+      "fpr_bonafide_flagged": 0.15542,
+      "acc_at_0.5": 0.82146,
+      "eer_threshold": 0.29929
+    }
+  },
+  "per_attack_eer_pct": {
+    "wavlm": {
+      "A17": 16.562,
+      "A18": 16.667,
+      "A19": 5.438,
+      "A20": 5.417,
+      "A21": 14.708,
+      "A22": 17.729,
+      "A23": 15.979,
+      "A24": 22.667,
+      "A25": 8.5,
+      "A26": 6.667,
+      "A27": 5.271,
+      "A28": 33.479,
+      "A29": 17.854,
+      "A30": 18.083,
+      "A31": 15.958,
+      "A32": 6.667
+    },
+    "fused": {
+      "A17": 16.562,
+      "A18": 16.667,
+      "A19": 5.438,
+      "A20": 5.417,
+      "A21": 14.708,
+      "A22": 17.729,
+      "A23": 15.979,
+      "A24": 22.667,
+      "A25": 8.5,
+      "A26": 6.667,
+      "A27": 5.271,
+      "A28": 33.479,
+      "A29": 17.854,
+      "A30": 18.083,
+      "A31": 15.958,
+      "A32": 6.667
+    }
+  },
+  "time_to_decision_eer_pct": {
+    "wavlm": {
+      "2s": 15.333,
+      "4s": 16.458,
+      "6s": 15.833,
+      "8s": 15.458,
+      "10s": 15.542
+    },
+    "fused": {
+      "2s": 15.333,
+      "4s": 16.458,
+      "6s": 15.833,
+      "8s": 15.458,
+      "10s": 15.542
+    }
+  },
+  "per_codec_eer_pct": {
+    "wavlm": {
+      "alaw": 12.707,
+      "amr_nb": 15.736,
+      "amr_wb": 15.898,
+      "g722": 15.23,
+      "gsm": 17.853,
+      "none": 14.656,
+      "opus_nb": 17.656,
+      "opus_wb": 14.14,
+      "ulaw": 13.373
+    },
+    "fused": {
+      "alaw": 12.707,
+      "amr_nb": 15.736,
+      "amr_wb": 15.898,
+      "g722": 15.23,
+      "gsm": 17.853,
+      "none": 14.656,
+      "opus_nb": 17.656,
+      "opus_wb": 14.14,
+      "ulaw": 13.373
+    }
+  },
+  "operating_point": {
+    "overall": {
+      "verify": {
+        "threshold": 0.00767,
+        "bonafide_flagged": 0.4029,
+        "spoof_caught": 0.9762
+      },
+      "block": {
+        "threshold": 0.98767,
+        "bonafide_flagged": 0.0067,
+        "spoof_caught": 0.2929
+      }
+    },
+    "per_codec": {
+      "alaw": {
+        "verify": {
+          "threshold": 0.00767,
+          "bonafide_flagged": 0.2827,
+          "spoof_caught": 0.9609
+        },
+        "block": {
+          "threshold": 0.98767,
+          "bonafide_flagged": 0.0,
+          "spoof_caught": 0.2291
+        }
+      },
+      "amr_nb": {
+        "verify": {
+          "threshold": 0.00767,
+          "bonafide_flagged": 0.5077,
+          "spoof_caught": 0.9876
+        },
+        "block": {
+          "threshold": 0.98767,
+          "bonafide_flagged": 0.0115,
+          "spoof_caught": 0.2603
+        }
+      },
+      "amr_wb": {
+        "verify": {
+          "threshold": 0.00767,
+          "bonafide_flagged": 0.4207,
+          "spoof_caught": 0.9766
+        },
+        "block": {
+          "threshold": 0.98767,
+          "bonafide_flagged": 0.0048,
+          "spoof_caught": 0.3138
+        }
+      },
+      "g722": {
+        "verify": {
+          "threshold": 0.00767,
+          "bonafide_flagged": 0.417,
+          "spoof_caught": 0.9811
+        },
+        "block": {
+          "threshold": 0.98767,
+          "bonafide_flagged": 0.0043,
+          "spoof_caught": 0.3538
+        }
+      },
+      "gsm": {
+        "verify": {
+          "threshold": 0.00767,
+          "bonafide_flagged": 0.4926,
+          "spoof_caught": 0.9764
+        },
+        "block": {
+          "threshold": 0.98767,
+          "bonafide_flagged": 0.0221,
+          "spoof_caught": 0.2677
+        }
+      },
+      "none": {
+        "verify": {
+          "threshold": 0.00767,
+          "bonafide_flagged": 0.3478,
+          "spoof_caught": 0.9658
+        },
+        "block": {
+          "threshold": 0.98767,
+          "bonafide_flagged": 0.0,
+          "spoof_caught": 0.3333
+        }
+      },
+      "opus_nb": {
+        "verify": {
+          "threshold": 0.00767,
+          "bonafide_flagged": 0.3234,
+          "spoof_caught": 0.9439
+        },
+        "block": {
+          "threshold": 0.98767,
+          "bonafide_flagged": 0.006,
+          "spoof_caught": 0.1378
+        }
+      },
+      "opus_wb": {
+        "verify": {
+          "threshold": 0.00767,
+          "bonafide_flagged": 0.4344,
+          "spoof_caught": 0.9862
+        },
+        "block": {
+          "threshold": 0.98767,
+          "bonafide_flagged": 0.0085,
+          "spoof_caught": 0.3535
+        }
+      },
+      "ulaw": {
+        "verify": {
+          "threshold": 0.00767,
+          "bonafide_flagged": 0.2281,
+          "spoof_caught": 0.9711
+        },
+        "block": {
+          "threshold": 0.98767,
+          "bonafide_flagged": 0.0,
+          "spoof_caught": 0.1908
+        }
+      }
+    }
+  },
+  "scores_csv": "C:\\Users\\Asus\\OneDrive\\Desktop\\Audio-Deepfake-Detection\\results\\evaluate_calls_eval_babble_scores.csv"
+}

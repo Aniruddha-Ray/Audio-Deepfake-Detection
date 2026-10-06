@@ -20,6 +20,7 @@ from audiodf.artifacts import BRANCH_FILES, bundle_dir, load_bundle, write_manif
 from audiodf.config import Settings
 from audiodf.data.integrity import audit_dataset
 from audiodf.data.ffmpeg_codecs import render_copies
+from audiodf.data.impairments import build_kit
 from audiodf.data.prepare import SplitIndex, build_index, build_svm_snapshots, holdout_split, stratified_subset
 from audiodf.data.protocol import ASV5_SPLITS, ASV19_SPLITS
 from audiodf.evaluation.metrics import compute_metrics
@@ -187,10 +188,15 @@ def run_training(settings: Settings, limit: int | None = None, workers: int = 8,
     tune = _subset(dev, min(settings.data.tune_utts, len(dev)))
     tune_aug = settings.data.tune_aug_p  # simulated codecs for tuning clips, unless real-codec copies replace them
     if settings.data.ffmpeg_codecs:
-        log("  rendering real-codec copies (ffmpeg; label-blind; cached on disk)")
+        kit = build_kit(settings, train) if settings.data.impairments else None
+        log("  rendering real-codec copies (ffmpeg; label-blind; cached on disk)" + (
+            f"; room echo {kit.cfg.reverb_p:.0%}, noise {kit.cfg.noise_p:.0%} at {kit.cfg.snr_range[0]:g}-"
+            f"{kit.cfg.snr_range[1]:g} dB from {list(kit.cfg.noise_corpora)} + babble + colours, echo from "
+            f"{list(kit.cfg.rir_corpora)} (held-out test corpora not used), EnCodec share "
+            f"{kit.neural_share:.0%}; packet loss on {settings.data.loss_p:.0%} of training windows" if kit else ""))
         train = render_copies(train, np.nonzero(train.has_speech)[0], settings, settings.data.render_frac,
-                              seed=1, log=log)
-        dev = render_copies(dev, tune, settings, settings.data.tune_render_frac, seed=2, log=log)
+                              seed=1, log=log, impair=kit)
+        dev = render_copies(dev, tune, settings, settings.data.tune_render_frac, seed=2, log=log, impair=kit)
         tune_aug = 0.0
         log(f"  real-codec copies: {int(train.rendered.sum())} training clips, {int(dev.rendered[tune].sum())} of "
             f"{len(tune)} tuning clips")

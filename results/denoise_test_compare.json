@@ -1,0 +1,46 @@
+{
+  "calls (synthetic noise) nr=12": {
+    "n": 9600,
+    "eer_first": 4.958,
+    "eer_second": 5.906,
+    "diff_second_minus_first": 0.948,
+    "ci95": [
+      0.552,
+      1.344
+    ],
+    "share_first_better": 1.0
+  },
+  "calls (synthetic noise) nr=24": {
+    "n": 9600,
+    "eer_first": 4.958,
+    "eer_second": 6.563,
+    "diff_second_minus_first": 1.604,
+    "ci95": [
+      1.177,
+      2.094
+    ],
+    "share_first_better": 1.0
+  },
+  "babble nr=12": {
+    "n": 4800,
+    "eer_first": 15.542,
+    "eer_second": 17.625,
+    "diff_second_minus_first": 2.083,
+    "ci95": [
+      1.354,
+      2.729
+    ],
+    "share_first_better": 1.0
+  },
+  "babble nr=24": {
+    "n": 4800,
+    "eer_first": 15.542,
+    "eer_second": 18.708,
+    "diff_second_minus_first": 3.167,
+    "ci95": [
+      2.354,
+      3.938
+    ],
+    "share_first_better": 1.0
+  }
+}

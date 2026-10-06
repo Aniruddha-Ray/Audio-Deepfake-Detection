@@ -3,7 +3,7 @@
 
 paths:
   asv5_root: dataset5             # ASVspoof5 (also $AUDIODF_ASV5): the training data
-  data_root: dataset/LA/LA        # ASVspoof2019 LA root (also $AUDIODF_DATA): cross-dataset test only
+  data_root: dataset19/LA/LA        # ASVspoof2019 LA root (also $AUDIODF_DATA): cross-dataset test only
   artifacts_dir: artifacts        # svm.joblib, rcnn.pt, bundle.json (also $AUDIODF_ARTIFACTS)
   cache_dir: ~/.cache/audiodf     # feature cache
 

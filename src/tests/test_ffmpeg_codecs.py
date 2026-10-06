@@ -64,7 +64,8 @@ def test_align_undoes_a_known_delay():
 
 
 def test_codec_choice_is_label_blind_and_reproducible():
-    assert list(inspect.signature(choice).parameters) == ["utt_id", "seed"]  # nothing about the label
+    params = list(inspect.signature(choice).parameters)
+    assert params == ["utt_id", "seed", "neural_share", "classical"] and not any("label" in q for q in params)  # nothing about the label
     assert choice("T_0000000001", 1) == choice("T_0000000001", 1)
     assert choice("T_0000000001", 1) != choice("T_0000000001", 2)
     us = [choice(f"T_{k:010d}", 1)[0] for k in range(2000)]
