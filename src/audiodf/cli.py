@@ -77,16 +77,33 @@ def _cmd_prepare21(args, settings):
     extract(args.parquet_dir or Path(settings.paths.asv21_root) / "data", settings.paths.asv21_root)
 
 
+def _call_sources(idx, args) -> tuple[np.ndarray, np.ndarray]:
+    """(source clips, clips babble must not use). With --speaker-half the sources and the background talkers both come
+    from that half of the ASV5 eval speakers only (voip_sim.speaker_half); there a source clip may be background speech in
+    another speaker's call (never its own speaker's: BabblePool.sample avoids the call's speaker), since with
+    --n-genuine 0 every clean genuine clip of the half is a source."""
+    import numpy as np
+
+    from audiodf.data.voip_sim import select_sources, speaker_half
+
+    allowed = None
+    if args.speaker_half:
+        allowed = speaker_half(idx.speaker) == (args.speaker_half == "A")
+    sources = select_sources(idx, args.n_genuine, args.n_per_attack, args.seed, allowed)
+    exclude = sources if allowed is None else np.nonzero(~allowed)[0]
+    return sources, exclude
+
+
 def _cmd_render_calls(args, settings):
     from audiodf.data.prepare import build_index
-    from audiodf.data.voip_sim import NOISES, SNR_RANGE, BabblePool, render_calls, select_sources
+    from audiodf.data.voip_sim import NOISES, SNR_RANGE, BabblePool, render_calls
 
     idx = build_index(settings, "asv5", "eval", None, args.workers, available_only=True)
-    sources = select_sources(idx, args.n_genuine, args.n_per_attack, args.seed)
+    sources, exclude = _call_sources(idx, args)
     out = args.out or settings.paths.calls_root
     noises, babble = NOISES, None
     if args.noise == "babble":  # background talkers: genuine clips of other speakers that are not call sources
-        noises, babble = ("babble",), BabblePool.from_index(idx, exclude=sources)
+        noises, babble = ("babble",), BabblePool.from_index(idx, exclude=exclude)
     snr = (args.snr_min, args.snr_max) if args.snr_min is not None else SNR_RANGE
     print(f"{len(sources)} clean ASV5 eval clips -> simulated VoIP calls ({'/'.join(noises)} noise, SNR {snr[0]:g}-{snr[1]:g} "
           f"dB) in {out}")
@@ -97,12 +114,12 @@ def _cmd_render_calls_v2(args, settings):
     from audiodf.data.calls_v2 import render_calls_v2
     from audiodf.data.noise_bank import NoiseBank
     from audiodf.data.prepare import build_index
-    from audiodf.data.voip_sim import BabblePool, select_sources
+    from audiodf.data.voip_sim import BabblePool
 
     idx = build_index(settings, "asv5", "eval", None, args.workers, available_only=True)
-    sources = select_sources(idx, args.n_genuine, args.n_per_attack, args.seed)
+    sources, exclude = _call_sources(idx, args)
     bank = NoiseBank.scan(settings.paths.noise_root)
-    babble = BabblePool.from_index(idx, exclude=sources)  # background talkers: ASV5 eval speakers, never training ones
+    babble = BabblePool.from_index(idx, exclude=exclude)  # background talkers: ASV5 eval speakers, never training ones
     out = args.out or str(Path(settings.paths.calls_root).parent / "dataset_calls_v2")
     print(f"{len(sources)} clean ASV5 eval clips -> v2 calls (held-out noise, real room echo, bursty loss) in {out}")
     render_calls_v2(idx, sources, settings, out, bank, babble, args.seed, args.workers)
@@ -174,6 +191,23 @@ def _cmd_calibrate(args, settings):
                   f"(range {f['min']:.1%}-{f['max']:.1%}), fakes caught {c['mean']:.1%} +- {c['std']:.1%}")
     print(f"thresholds (set on half A): verify >= {rep['risk']['medium']:.5f}, block >= {rep['risk']['high']:.5f}\n"
           f"report: {out}")
+
+
+def _cmd_call_thresholds(args, settings):
+    from audiodf.evaluation.call_thresholds import call_thresholds, load_set, summary_lines
+
+    def parse(spec: str, name: str):
+        protocol, scores = spec.split(",")
+        return load_set(name, protocol, scores, args.column)
+
+    cal = [parse(spec, Path(spec.split(",")[0]).parent.name) for spec in args.cal]
+    tests = [parse(spec.split("=", 1)[1], spec.split("=", 1)[0]) for spec in args.test]
+    stored = json.loads((Path(args.stored) / "bundle.json").read_text())["risk"] if args.stored else None
+    rep = call_thresholds(cal, tests, stored, block_fpr=settings.risk.block_fpr, verify_fpr=settings.risk.verify_fpr)
+    print("\n".join(summary_lines(rep)))
+    out = Path(settings.paths.results_dir) / f"call_thresholds_{args.tag}.json"
+    out.write_text(json.dumps(rep, indent=1))
+    print(f"report: {out}")
 
 
 def _cmd_live_check(args, settings):
@@ -259,7 +293,7 @@ def main(argv=None) -> None:
     sp.add_argument("--parquet-dir", help="folder with test-*.parquet (default: <asv21_root>/data)")
     sp = add("render-calls", _cmd_render_calls, "build simulated VoIP calls (noise, codec, packet loss) from clean "
              "ASV5 eval clips")
-    sp.add_argument("--n-genuine", type=int, default=4800)
+    sp.add_argument("--n-genuine", type=int, default=4800, help="0 = every clean genuine clip")
     sp.add_argument("--n-per-attack", type=int, default=300)
     sp.add_argument("--seed", type=int, default=0)
     sp.add_argument("--workers", type=int, default=8)
@@ -268,13 +302,15 @@ def main(argv=None) -> None:
                     help="mixed = white / pink / brown (first call set); babble = other speakers talking in the background")
     sp.add_argument("--snr-min", type=float, help="lowest SNR in dB of the noisy calls (default 15)")
     sp.add_argument("--snr-max", type=float, help="highest SNR in dB (default 35)")
+    sp.add_argument("--speaker-half", choices=["A", "B"], help="only this half of the ASV5 eval speakers (sources and babble)")
     sp = add("render-calls-v2", _cmd_render_calls_v2, "build the second call set: held-out noise (ESC-50, eval-speaker "
              "babble), real room echo, long bursty packet loss with an unseen concealment style")
-    sp.add_argument("--n-genuine", type=int, default=3200)
+    sp.add_argument("--n-genuine", type=int, default=3200, help="0 = every clean genuine clip")
     sp.add_argument("--n-per-attack", type=int, default=200)
     sp.add_argument("--seed", type=int, default=2)
     sp.add_argument("--workers", type=int, default=8)
     sp.add_argument("--out", help="folder for the call set (default: dataset_calls_v2 next to dataset_calls)")
+    sp.add_argument("--speaker-half", choices=["A", "B"], help="only this half of the ASV5 eval speakers (sources and babble)")
     add("prepare-noise", _cmd_prepare_noise, "unpack the ESC-50 and DEMAND parquet downloads in paths.noise_root to 16 kHz FLAC")
     sp = add("denoise-calls", _cmd_denoise_calls, "denoise a simulated call set with ffmpeg afftdn (test of a front end)")
     sp.add_argument("--src", help="call set folder to denoise (default: paths.calls_root)")
@@ -283,6 +319,13 @@ def main(argv=None) -> None:
     sp.add_argument("--nf", type=float, default=-45.0, help="noise floor in dB (afftdn nf)")
     sp.add_argument("--workers", type=int, default=8)
     sp.add_argument("--tag", required=True)
+    sp = add("call-thresholds", _cmd_call_thresholds, "verify/block thresholds for call audio: set on speaker half A of "
+             "calibration call sets, reported on half B of call test sets (and on ASVspoof 2021)")
+    sp.add_argument("--cal", nargs="+", required=True, help="PROTOCOL,SCORES_CSV of each calibration call set")
+    sp.add_argument("--test", nargs="+", required=True, help="NAME=PROTOCOL,SCORES_CSV of each test set")
+    sp.add_argument("--column", default="wavlm_10s")
+    sp.add_argument("--stored", help="bundle folder whose current thresholds are reported alongside")
+    sp.add_argument("--tag", required=True, help="report name (results/call_thresholds_<tag>.json)")
     sp = add("calibrate", _cmd_calibrate, "set verify/block thresholds on one half of the speakers of scored phone-"
              "channel clips, check them on the other half, optionally write a WavLM-only bundle")
     sp.add_argument("--scores", required=True, help="per-clip scores CSV from `evaluate --save-scores`")

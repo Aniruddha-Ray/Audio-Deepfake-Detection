@@ -185,19 +185,27 @@ def make_call(wave: np.ndarray, call: CallPlan, babble: BabblePool | None = None
     return np.clip(x, -1.0, 1.0 - 2 ** -15)
 
 
-def select_sources(idx, n_genuine: int, n_per_attack: int, seed: int = 0) -> np.ndarray:
-    """Clean source clips (no codec of their own, with speech): n_genuine bonafide and n_per_attack per attack.
-    Drawn at random within those groups; scores play no part."""
+def speaker_half(speakers, salt: str = "cal") -> np.ndarray:
+    """True for speakers in half A of a fixed split by a hash of the speaker name: the same in every call set and run, so
+    thresholds set on half A can be reported on half B of any call set."""
+    return np.array([hashlib.md5(f"{salt}:{s}".encode()).digest()[0] % 2 == 0 for s in speakers], dtype=bool)
+
+
+def select_sources(idx, n_genuine: int, n_per_attack: int, seed: int = 0, allowed: np.ndarray | None = None) -> np.ndarray:
+    """Clean source clips (no codec of their own, with speech): n_genuine bonafide (0 = all) and n_per_attack per attack,
+    only among `allowed` clips if given. Drawn at random within those groups; scores play no part."""
     rng = np.random.default_rng(seed)
     clean = (idx.codec == "-") & idx.has_speech
+    if allowed is not None:
+        clean = clean & allowed
     groups = {"bonafide": np.nonzero(clean & (idx.label == 0))[0]}
     for a in sorted(set(idx.attack[clean & (idx.label == 1)])):
         groups[a] = np.nonzero(clean & (idx.attack == a))[0]
-    short = {g: len(v) for g, v in groups.items() if len(v) < (n_genuine if g == "bonafide" else n_per_attack)}
+    want = {g: (n_genuine or len(v)) if g == "bonafide" else n_per_attack for g, v in groups.items()}
+    short = {g: len(v) for g, v in groups.items() if len(v) < want[g]}
     if short:
         raise ValueError(f"not enough clean source clips for {short}; lower n_genuine / n_per_attack")
-    return np.sort(np.concatenate([rng.choice(v, n_genuine if g == "bonafide" else n_per_attack, replace=False)
-                                   for g, v in groups.items()]))
+    return np.sort(np.concatenate([rng.choice(v, want[g], replace=False) for g, v in groups.items()]))
 
 
 def render_calls(idx, sources: np.ndarray, settings, out_root: str | Path, seed: int = 0, workers: int = 8,

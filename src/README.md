@@ -171,7 +171,8 @@ model now in `artifacts/`. **Known weak spots:** packet loss (genuine calls flag
 
 Run 7 gives up 0.3-0.5 points on clean-speech phone audio against run 4 for 2-8.5 points on noisy, babbling, echoey and lossy calls
 (your decision; it missed the rule fixed before training by 0.18 / 0.03 points, `audit.md` phase 18). Thresholds were set on all 67
-ASVspoof 2021 speakers: verify >= 0.0060, block >= 0.9958. The live serving path matches the batched scores (400 calls, p95
+ASVspoof 2021 speakers (verify >= 0.0060); block was lowered to >= 0.90 on 2026-10-07 from a call-audio threshold study (banking
+policy: verify kept strict because a missed fake costs far more than a verification; `audit.md` phase 19). The live serving path matches the batched scores (400 calls, p95
 difference 0.0013) with a 47 ms median verdict time. A classical denoising front end was tested and rejected: it made every call set worse.
 The earlier ASVspoof2019 prototype (5.7% eval EER) used feature version 1 and an easier benchmark; it is not
 reproducible with this code and not comparable to these numbers.

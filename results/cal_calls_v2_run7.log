@@ -1,0 +1,13 @@
+[1/2] render cal_v2 (speaker half A, v2 chain, seed 5) 
+5119 clean ASV5 eval clips -> v2 calls (held-out noise, real room echo, bursty loss) in C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls_cal_v2
+    rendered 2000/5119 v2 calls (25/s)
+    rendered 4000/5119 v2 calls (26/s)
+rendered 5119 v2 calls in 195s -> C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset_calls_cal_v2\ASV5.eval.calls.tsv
+[2/2] score cal_v2 with the served bundle 
+  indexed calls/eval: 5119 utts in 61s, 0 without speech
+  scoring calls/eval: 5119 of 5119 clips
+  scoring wavlm on 5119 clips
+  calls/eval   n=  5119 | EER at 10 s: wavlm  10.69%  fused  10.69%
+               fused EER by seconds of speech: 2s 13.05%  4s 11.73%  6s 11.01%  8s 10.75%  10s 10.69%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_cal_v2_run7.json
+ALL DONE 

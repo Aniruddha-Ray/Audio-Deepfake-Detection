@@ -291,3 +291,88 @@ def test_call_set_index_is_per_folder(tmp_path):
     assert len(ia) == len(ib) == 3 and (ib.speech_start - ia.speech_start).min() > SR  # b's own bounds, not a's
     s.paths.calls_root = str(tmp_path / "a")
     assert build_index(s, "calls", "eval", workers=0).speech_start.tolist() == ia.speech_start.tolist()  # a's cache still valid
+
+
+def test_speaker_half_is_a_fixed_split_and_restricts_the_sources(asv5):
+    from audiodf.data.voip_sim import speaker_half
+
+    names = np.array([f"E_{k:04d}" for k in range(400)])
+    a = speaker_half(names)
+    assert np.array_equal(a, speaker_half(names[::-1])[::-1])  # depends on the name only, not on order or set
+    assert 0.4 < a.mean() < 0.6 and not np.array_equal(a, speaker_half(names, salt="other"))
+    idx = build_index(asv5, "asv5", "train", workers=0)
+    allowed = speaker_half(idx.speaker)
+    if allowed.all() or not allowed.any():
+        allowed = np.arange(len(idx)) % 2 == 0  # the fixture's few speakers may all fall in one half
+    every = select_sources(idx, n_genuine=0, n_per_attack=0, seed=1, allowed=allowed)
+    clean = (idx.codec == "-") & idx.has_speech
+    assert set(every) == set(np.nonzero(clean & allowed & (idx.label == 0))[0])  # 0 = every genuine clip, only allowed ones
+
+
+def _scored_set(tmp_path, name, speakers, labels, scores, kind="calls"):
+    from audiodf.data import asv21
+
+    cols = CALL_COLUMNS if kind == "calls" else asv21.COLUMNS
+    rows = []
+    for k, (spk, y) in enumerate(zip(speakers, labels)):
+        row = {c: "-" for c in cols}
+        row.update(utt_id=f"U{k}", speaker=spk, key="spoof" if y else "bonafide", loss=str(k % 3), noise="none",
+                   codec="opus_wb", transmission="pstn")
+        rows.append(" ".join(row[c] for c in cols))
+    (tmp_path / f"{name}.tsv").write_text("\n".join(rows) + "\n")
+    with open(tmp_path / f"{name}.csv", "w") as f:
+        f.write("clip_index,label,attack,codec,wavlm_10s\n")
+        f.writelines(f"{k},{y},-,-,{s}\n" for k, (y, s) in enumerate(zip(labels, scores)))
+    return str(tmp_path / f"{name}.tsv"), str(tmp_path / f"{name}.csv")
+
+
+def test_call_thresholds_use_half_a_only_and_report_on_half_b_only(tmp_path):
+    from audiodf.data.voip_sim import speaker_half
+    from audiodf.evaluation.call_thresholds import call_thresholds, load_set, summary_lines
+
+    rng = np.random.default_rng(0)
+    names = np.array([f"S{k}" for k in range(200)])
+    half_a = speaker_half(names)
+    spk = np.repeat(names, 20)
+    y = np.tile(np.r_[np.zeros(15, int), np.ones(5, int)], 200)
+    s = np.where(y == 1, rng.uniform(0.5, 1, len(y)), rng.uniform(0, 0.6, len(y)))
+    in_a = np.repeat(half_a, 20)
+    poisoned = np.where(~in_a & (y == 0), 0.99, s)  # half B of the calibration set must not move the thresholds
+    cal = load_set("cal", *_scored_set(tmp_path, "cal", spk, y, poisoned))
+    clean_cal = load_set("cal", *_scored_set(tmp_path, "cal2", spk, y, s))
+    test = load_set("t", *_scored_set(tmp_path, "t", spk, y, s))
+    phone = load_set("p", *_scored_set(tmp_path, "p", spk[:400], y[:400], s[:400], kind="asv21"))
+    rep = call_thresholds([cal], [test, phone], stored={"high": 0.95, "medium": 0.5})
+    assert rep == call_thresholds([clean_cal], [test, phone], stored={"high": 0.95, "medium": 0.5}) | {
+        "calibration": rep["calibration"]}  # only half A counted
+    assert rep["calibration"]["genuine"] == int((in_a & (y == 0)).sum())
+    assert rep["calibration"]["ignored_half_b_clips"] == int((~in_a).sum())
+    assert rep["proposed"]["medium"] == pytest.approx(np.quantile(s[in_a & (y == 0)], 0.9))
+    t = rep["tests"]["t"]
+    assert t["genuine"] == int((~in_a & (y == 0)).sum()) and t["fakes"] == int((~in_a & (y == 1)).sum())
+    assert rep["tests"]["p"]["genuine"] == int((y[:400] == 0).sum())  # ASVspoof 2021: all clips (no speaker overlap)
+    flagged = [p["genuine_flagged"] for p in t["curve"]]
+    assert flagged == sorted(flagged)  # a larger budget never flags fewer
+    assert abs(t["curve"][4]["genuine_flagged"] - 0.10) < 0.04  # 10% budget from half A holds on half B (same distribution)
+    assert set(t["proposed"]["loss"]) == {"0", "1", "2"} and "stored" in t
+    assert len(summary_lines(rep)) == 2 + len(rep["calibration"]["curve"]) + 2
+
+
+def test_half_mode_keeps_sources_and_babble_inside_the_half(asv5):
+    from types import SimpleNamespace
+
+    from audiodf.cli import _call_sources
+    from audiodf.data.voip_sim import speaker_half
+
+    idx = build_index(asv5, "asv5", "train", workers=0)
+    for half in ("A", "B"):
+        inside = speaker_half(idx.speaker) == (half == "A")
+        if not inside.any():
+            continue
+        args = SimpleNamespace(speaker_half=half, n_genuine=0, n_per_attack=0, seed=1)
+        sources, exclude = _call_sources(idx, args)
+        assert inside[sources].all()  # sources only from the half
+        assert set(exclude) == set(np.nonzero(~inside)[0])  # babble may use the half's clips (incl. sources), nothing else
+    args = SimpleNamespace(speaker_half=None, n_genuine=2, n_per_attack=1, seed=3)
+    sources, exclude = _call_sources(idx, args)
+    assert np.array_equal(sources, exclude)  # without a half: as before, babble never uses a source clip

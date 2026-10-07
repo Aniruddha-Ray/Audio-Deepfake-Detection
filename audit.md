@@ -14,7 +14,7 @@ Last updated: 2026-10-06 (after the live-call check and the swap to run 4's WavL
 | Run 6 vs served | Better on ASV5 eval (4.46 vs 5.43%) and on every noisy / echoey / lossy call set (babble 7.75 vs 15.54%, held-out v2 11.41 vs 16.95%, loss-driven false alarms +3.8 vs +35.7 points), **worse by ~1 point on the 2019-derived real-phone sets** (ASVspoof2019 eval 5.82 vs 4.85%, ASVspoof 2021 9.86 vs 8.81%). The pre-set rule says do not adopt; your decision (phase 17). Denoising was tested and rejected. |
 | Deployment | FastAPI tested for real (53 ms to first verdict on GPU, WavLM alone; live path matches batched scoring); **Kafka, Docker runtime, Kubernetes, Grafana untested**. No real phone-call audio (you cannot provide any; simulated calls used instead). |
 | Disk | Data: `dataset19/LA` 7.1 GB (renamed from `dataset/` on 2026-10-06), `dataset21/` 7.6 GB, `dataset_noise/` ~8 GB, simulated call sets ~6 GB, `dataset5/` ~75 GB (train, dev, 2 of 10 eval tars); codec renders in the cache (catalogue 1 ~35 GB, catalogue 2 adds ~7 GB, the rest hard links). |
-| Next | **Run 7 is the served model** (your decision 2026-10-07, phase 18). Next: second threshold pass on lossy call data, then echo robustness (section 9). |
+| Next | **Run 7 is the served model** (phase 18), thresholds verify 0.0060 / block 0.90 (phase 19, banking policy). Next: echo robustness (run 8, section 9). |
 
 ## 2. Timeline
 
@@ -589,6 +589,59 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
 - Files: `results/run7/training_report.json`, `evaluate_asv21_eval_run7.json`, `evaluate_calls_eval_run7_{calls,babble,v2}.json` (+
   per-clip `_scores.csv`), `calibration_run7_asv21.json`, `run7_vs_run4_run6_compare.json`, `eval_run7_battery.log`, `train_run7.log`.
 
+### Phase 19: second threshold pass for run 7 on call audio (plan written 2026-10-07 before any result)
+
+- **Why:** the served verify / block levels were set on clean-speech phone audio (ASVspoof 2021). On simulated calls they ask 12.4% of
+  genuine callers to verify with no loss (17.8% at 5% loss), and the block level catches 35% of fakes.
+- **Design (no retraining, nothing tuned on a test set):** a fixed split of the 737 ASV5 eval speakers by a hash of the speaker name:
+  half A (361 speakers) sets thresholds, half B (376) only reports. Every earlier call set used both halves (all 616 speakers with unused
+  clips already appear in one), and only 777 clean genuine clips were unused, so a set from wholly new speakers is impossible.
+  - Calibration audio: two new call sets from half-A speakers only, new seed 5 (fresh noise, echo, loss and codec draws): `cal_v1` (v1
+    chain: synthetic noise, independent loss) and `cal_v2` (v2 chain: ESC-50 / babble / colours, real room echo, bursty loss). Each:
+    all 3,519 clean genuine clips of half A + 100 per attack. Babble talkers come from half A only.
+  - Thresholds: from the pooled half-A genuine calls at genuine-flag budgets 0.5, 1, 2, 5, 10, 15, 20%.
+  - Report on half B of call sets v1, babble and v2 (clips never used to set anything), per loss level, noise and codec, and on
+    ASVspoof 2021 (other speakers entirely), side by side with today's thresholds (verify >= 0.0060, block >= 0.9958).
+  - The served bundle's thresholds change only after you pick the operating points.
+- **Run (2026-10-07):** `cal_v1` and `cal_v2` rendered (5,119 calls each: 3,519 genuine of half A + 100 per attack; 272 s / 195 s) and
+  scored with the served run 7: EER 3.06% / 10.69% (originals v1 3.06%, v2 10.78%: the half-A sets behave like them). First `cal_v2` render
+  failed (with every genuine clip of half A a source, babble had no talkers left); fixed: in half mode babble uses the half's clips,
+  never the call's own speaker (test added). Analysis: `audiodf call-thresholds` (`evaluation/call_thresholds.py`), report
+  `results/call_thresholds_run7.json`.
+- **Results (genuine flagged / fakes caught; call sets = half B only, ASVspoof 2021 = all 67 speakers):**
+
+| threshold | v1 | babble | v2 (held-out noise / echo / loss) | ASVspoof 2021 |
+|---|---|---|---|---|
+| today's verify 0.0060 | 14.8% / 98.9% | 37.1% / 99.1% | 44.6% / 99.4% | 10.0% / 91.7% |
+| verify 0.161 (10% of half-A genuine calls) | 1.8% / 95.6% | 10.7% / 94.3% | 19.2% / 95.9% | 4.6% / 84.6% |
+| 0.30 | 0.5% / 92.0% | 5.4% / 88.8% | 9.4% / 88.8% | 3.7% / 82.5% |
+| block 0.600 (1% of half-A genuine calls) | 0.1% / 80.2% | 0.8% / 71.0% | 1.6% / 69.5% | 2.7% / 78.1% |
+| 0.90 | 0.0% / 56.9% | 0.0% / 42.2% | 0.1% / 39.2% | 1.9% / 71.9% |
+| today's block 0.9958 | 0.0% / 35.1% | 0.0% / 21.6% | 0.0% / 19.5% | 1.0% / 60.0% |
+
+  - Today's levels (set on clean phone speech) ask 15-45% of genuine callers to verify on noisy calls and block only 20-35% of fakes.
+  - At call-based levels packet loss no longer drives false alarms (v1, 0-5% loss: 1.2-2.7% flagged at verify 0.161, vs 12.6-20.9% today).
+  - **Room echo now drives them:** on v2 at verify 0.161, calls without echo flag 0-9% of genuine callers, calls with echo 29-58%
+    (false blocks at 0.600: 2-7% with echo, ~0 without). Babble: 13.6% flagged (1.4% without babble).
+  - ASVspoof 2021 genuine audio has a high-score tail: no block level above 0.6 gets it below ~1.6% except today's 0.9958 (1.0%).
+  - Only the 0.161 / 0.600 rows come purely from half A; the other rows are points on the curve shown for choosing (reading an
+    operating point off a reported curve is a product choice, not a fit, but those rows' rates are not independent estimates).
+- **Your decision (2026-10-07): verify 0.0060 (unchanged), block 0.90 (was 0.9958)**, applied to `artifacts/bundle.json` (recorded under
+  `metrics.threshold_policy`; the previous file is kept in the session scratchpad). Engine check: it loads 0.90 / 0.006032 and maps
+  0.006 -> allow, 0.0061 -> verify, 0.899 -> verify, 0.90 -> block.
+  - **Why verify stays strict (banking):** a missed fake can empty an account; a verification costs a genuine customer a step-up check.
+    Moving verify 0.161 -> 0.0060 cuts fakes passing verify per 1,000 fakes from 44 -> 11 (v1), 57 -> 9 (babble), 41 -> 6 (v2) and
+    154 -> 83 (ASVspoof 2021), at 130-260 extra verifications per 1,000 genuine calls. With 1 fake call in 1,000 (assumed), the strict
+    level costs ~3,900-7,300 verifications per fraud stopped (~$2,000-3,600 at $0.50 a check), well under the cost of one drained account.
+  - **Why block 0.90:** about twice today's catch rate on calls (39-57% vs 20-35%; 72% vs 60% on ASVspoof 2021) at ~0% false blocks on
+    simulated calls and 1.9% (vs 1.0%) on real phone lines.
+  - **Stated limits:** on real phone lines 8% of fakes still score below the verify level (the model is confident they are genuine:
+    no threshold fixes that, only a better model); the numbers come from benchmark and simulated audio, and real voice-cloning tools are
+    newer. Recommended deployment: money movement (transfers, payee changes, resets) always gets a step-up check whatever the score;
+    the detector decides how strong it is. The verification load on noisy calls (37-45% of genuine callers) is to fall through better
+    models (run 8: echo, babble), not looser thresholds. An option for later: per-action levels (strict for money movement, 0.161 for
+    enquiries), which needs a small serving change.
+
 ## 3. Decisions and the reasoning behind them
 
 - **Train on ASV5 only, drop ASV2019 (run 1).** Chosen because ASV5 dev gives attack-disjoint tuning and ASV2019 has a silence
@@ -766,11 +819,8 @@ python -m pytest                           # 126 tests
 (phase 17); run 7, run 6 without EnCodec, **adopted and served** (phase 18). Live calls cannot be recorded, so call tests are
 simulated; a small set of real recordings would still be the best final check.
 
-**Step 1: second threshold pass for run 7 (no retraining, ~2-3 h).** Today's verify / block levels come from clean-speech phone audio
-(ASVspoof 2021): on call set v1 they flag 12.4% of genuine calls at the verify level with no loss, and the block level catches 35% of
-fakes. Render a fresh call set from different ASV5 eval speakers and source clips (with noise, echo and loss), set the levels on one
-speaker half and report on the other; show the catch-vs-false-alarm curve per channel, noise and loss level, so you choose the operating
-points (how many genuine callers may be asked to verify, how many false blocks are acceptable).
+**Step 1: second threshold pass for run 7: done (phase 19).** Served: verify 0.0060, block 0.90. Calibration call sets and the
+`call-thresholds` tool stay for every later model.
 
 **Step 2: echo and low-SNR robustness (run 8, ~7 h + scoring).** Run 7's biggest weakness is real room echo (2.7% -> 12.6%; with noise
 19.9%), then babble (13.2%) and 5-10 dB noise (16.6%), because it trained on simulated echoes only. Add measured impulse responses that
