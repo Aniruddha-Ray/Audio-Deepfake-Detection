@@ -25,7 +25,7 @@ import threading
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import numpy as np
@@ -250,16 +250,15 @@ def render_dir(cache_dir: str | Path, seed: int, version: int = CATALOGUE_VERSIO
     return Path(cache_dir) / f"render_ff{version}{'_' + tag if tag else ''}" / f"s{seed}"
 
 
-def _adopt_catalogue1(todo: list, picks: dict, idx, out_dir: Path, cache_dir, seed: int) -> list:
-    """Hard-link catalogue-1 copies of clips whose codec and variant are unchanged (every classical pick);
-    returns the clips still to render."""
-    old_dir = render_dir(cache_dir, seed, 1)
+def _adopt(todo: list, same, idx, out_dir: Path, old_dir: Path) -> list:
+    """Hard-link the copies in old_dir of clips for which same(i) says the copy would be identical; returns the clips
+    still to render."""
     if not old_dir.is_dir():
         return todo
     left = []
     for i in todo:
         src = old_dir / f"{idx.utt_id[i]}.flac"
-        if isinstance(picks[i][1], FfCodec) and src.exists():
+        if same(i) and src.exists():
             dst = out_dir / src.name
             try:
                 os.link(src, dst)
@@ -286,10 +285,23 @@ def render_copies(idx, utts: np.ndarray, settings, frac: float, seed: int, worke
     todo = [i for i in chosen if not (out_dir / f"{idx.utt_id[i]}.flac").exists()]
     if not impair:  # catalogue-2 picks equal catalogue-1 picks for classical codecs: reuse those copies
         adopted = len(todo)
-        todo = _adopt_catalogue1(todo, picks, idx, out_dir, settings.paths.cache_dir, seed)
+        todo = _adopt(todo, lambda i: isinstance(picks[i][1], FfCodec), idx, out_dir,
+                      render_dir(settings.paths.cache_dir, seed, 1))
         adopted -= len(todo)
         if adopted:
             log(f"  linked {adopted} unchanged copies from codec catalogue 1")
+    reuse_share = getattr(settings.data, "reuse_neural_share", None)
+    if impair and reuse_share is not None and reuse_share != impair.neural_share:
+        # Classical picks do not depend on the neural share, and the echo / noise come from the clip ID: a clip that is
+        # classical under both shares has the same codec, variant and impairment, so its copy is identical.
+        old = replace(impair, neural_share=reuse_share)
+        old_pick = lambda i: choice(str(idx.utt_id[i]), seed, reuse_share, CLASSICAL3)  # noqa: E731
+        same = lambda i: isinstance(picks[i][1], FfCodec) and isinstance(old_pick(i)[1], FfCodec)  # noqa: E731
+        adopted = len(todo)
+        todo = _adopt(todo, same, idx, out_dir, render_dir(settings.paths.cache_dir, seed, version, old.tag))
+        adopted -= len(todo)
+        if adopted:
+            log(f"  linked {adopted} unchanged copies from impairments {old.tag} (EnCodec share {reuse_share:g})")
     horizon = settings.window_samples + int(RENDER_MARGIN_S * settings.audio.sample_rate)
 
     need_gb = len(todo) * 0.22e-3  # ~0.22 MB per copy (~10 s of 16-bit FLAC)

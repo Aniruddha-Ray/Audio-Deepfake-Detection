@@ -1,0 +1,58 @@
+recipe: run 6 (room echo 30%, noise 65% at 5-35 dB, packet loss on 35% of windows, G.711 added, EnCodec share 0%)
+asv5=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset5
+artifacts=../artifacts_run7
+pool=asv5:train asv5:dev asv19:train asv19:dev  holdout=asv5:A10 asv5:A12 asv5:A15
+branches=wavlm  reused=none
+rcnn=BiLSTM, epochs=10; wavlm epochs=8, top 4 layers fine-tuned; windows/clip/epoch=1, svm clips=20000, codec aug p=0.4
+device=cuda artifacts=..\artifacts_run7 branches=wavlm
+[1/6] integrity audit (training pool: asv5:train, asv5:dev, asv19:train, asv19:dev)
+  finding (asv5): attacks shared by train and dev: none
+  finding (asv5): attacks shared by train and eval: none
+  finding (asv5): attacks shared by dev and eval: none
+  finding (asv5): train: duration differs between bonafide (14.52) and spoof (10.736)
+  finding (asv5): train: leading silence differs between bonafide (0.412) and spoof (0.05)
+  finding (asv5): train: trailing silence differs between bonafide (0.213) and spoof (0.025)
+  finding (asv5): dev: digital-silence frame fraction (mean) differs between bonafide (0.003) and spoof (0.014)
+  finding (asv19): attacks shared by train and dev: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06']
+  finding (asv19): attacks shared by train and eval: none
+  finding (asv19): attacks shared by dev and eval: none
+  finding (asv19): train: leading silence differs between bonafide (1.025) and spoof (0.35)
+  finding (asv19): dev: leading silence differs between bonafide (0.838) and spoof (0.35)
+  finding (asv19): eval: leading silence differs between bonafide (0.775) and spoof (0.05)
+  finding (asv19): eval: trailing silence differs between bonafide (0.825) and spoof (0.175)
+[2/6] index clips (decode once, record VAD speech bounds) and split off the tuning set
+  training clips: 307454 (260166 spoof, 47288 bonafide), 19 attack systems
+  tuning set: held-out attacks asv5:A10, asv5:A12, asv5:A15 + bonafide of 196 held-out asv5:dev speakers: 49077 clips (41106 spoof, 7971 bonafide)
+  rendering real-codec copies (ffmpeg; label-blind; cached on disk); room echo 30%, noise 65% at 5-35 dB from ['musan', 'pointsource', 'demand'] + babble + colours, echo from ['sim_rir'] (held-out test corpora not used), EnCodec share 0%; packet loss on 35% of training windows
+  linked 171482 unchanged copies from impairments cafd37e9 (EnCodec share 0.07)
+    rendered 10000/12925 ffmpeg copies (26/s)
+  rendered 12925 ffmpeg + 0 EnCodec copies in 471s (171482 reused); impairments a7fd0e14
+  linked 8312 unchanged copies from impairments cafd37e9 (EnCodec share 0.07)
+  rendered 655 ffmpeg + 0 EnCodec copies in 22s (8312 reused); impairments a7fd0e14
+  real-codec copies: 184407 training clips, 8967 of 11998 tuning clips
+[3/6] branches
+  WavLM: random 2 s raw windows, top 4 layers fine-tuned; best tuning epoch kept
+  epoch 1/8: {'epoch': 1, 'loss': 0.08818, 'dev_eer_pct': 5.563, 'minutes': 48.1}
+  epoch 2/8: {'epoch': 2, 'loss': 0.03595, 'dev_eer_pct': 5.151, 'minutes': 48.9}
+  epoch 3/8: {'epoch': 3, 'loss': 0.02719, 'dev_eer_pct': 3.644, 'minutes': 48.2}
+  epoch 4/8: {'epoch': 4, 'loss': 0.02138, 'dev_eer_pct': 4.782, 'minutes': 49.1}
+  epoch 5/8: {'epoch': 5, 'loss': 0.01738, 'dev_eer_pct': 3.388, 'minutes': 48.5}
+  epoch 6/8: {'epoch': 6, 'loss': 0.01477, 'dev_eer_pct': 3.275, 'minutes': 47.5}
+  epoch 7/8: {'epoch': 7, 'loss': 0.01223, 'dev_eer_pct': 2.95, 'minutes': 47.0}
+  epoch 8/8: {'epoch': 8, 'loss': 0.01105, 'dev_eer_pct': 2.944, 'minutes': 46.3}
+[4/6] tune on the held-out set (codec-processed): SVM calibration, fusion weights, risk thresholds
+  scoring wavlm on 11998 clips
+  fusion weights wavlm=1.00; risk thresholds: verify >= 0.1218, block >= 0.4797
+  tuning set   n= 11998 | EER at 10 s: wavlm   2.94%  fused   2.94%
+               fused EER by seconds of speech: 2s 6.12%  4s 3.71%  6s 3.19%  8s 2.97%  10s 2.94%
+[5/6] test sets (scored once, never tuned on)
+  scoring asv5/eval: 30000 of 136376 clips
+  scoring wavlm on 30000 clips
+  asv5/eval    n= 30000 | EER at 10 s: wavlm   5.74%  fused   5.74%
+               fused EER by seconds of speech: 2s 6.93%  4s 6.22%  6s 5.85%  8s 5.75%  10s 5.74%
+  scoring asv19/eval: 29988 of 71237 clips
+  scoring wavlm on 29988 clips
+  asv19/eval   n= 29988 | EER at 10 s: wavlm   5.33%  fused   5.33%
+               fused EER by seconds of speech: 2s 5.62%  4s 5.35%  6s 5.33%  8s 5.33%  10s 5.33%
+[6/6] save the bundle
+report: ..\results\run7\training_report.json

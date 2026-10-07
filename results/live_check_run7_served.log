@@ -1,0 +1,2 @@
+  live path vs batched on 400 clips: EER 3.75% vs 3.5%, |diff| median 1e-05, p95 0.00132; verdict latency p50 47.3 ms
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\live_check_run7_served.json

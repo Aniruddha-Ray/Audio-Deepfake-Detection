@@ -3,8 +3,9 @@
 Production-shaped version of the notebook prototype. Independent branches (SVM, RCNN, WavLM), each with its own
 audio processing, fused into one P(fake) and mapped to Allow / Verify / Block. Trained on ASVspoof5 + ASVspoof2019.
 
-**Current default: WavLM alone** (`ensemble.branches = [wavlm]`). The served model in `artifacts/` is **run 4's WavLM**
-(it beat run 5 on real phone channels and on simulated live calls). The SVM and RCNN branches described below
+**Current default: WavLM alone** (`ensemble.branches = [wavlm]`). The served model in `artifacts/` is **run 7's WavLM**
+(trained with noise, room echo, bursty packet loss and G.711; swapped in 2026-10-07; run 4's WavLM, served before, is kept in
+`artifacts_run4_wavlm_only/`). The SVM and RCNN branches described below
 are still in the code (`run.py --branches svm rcnn wavlm`) but add nothing on eval once WavLM is present; the diagram
 and branch table show all three. Results and the telephony check are at the end of this file.
 
@@ -111,7 +112,7 @@ python -m audiodf benchmark                  # per-stage latency
 python -m audiodf serve --port 8000          # API: /predict, /stream/{id}, /health, /metrics
 python -m audiodf consume                    # Kafka worker (needs a broker + confluent-kafka)
 python -m audiodf produce call.wav --realtime
-python -m pytest                             # 147 tests, no dataset or GPU needed
+python -m pytest                             # 149 tests, no dataset or GPU needed
 ```
 
 Stream over a WebSocket: send binary frames of 16 kHz mono PCM16, receive a JSON verdict each time a
@@ -157,19 +158,21 @@ model now in `artifacts/`. **Known weak spots:** packet loss (genuine calls flag
 42% at 5% loss in the simulation), white noise (EER 2.9% -> 7.5%), the hardest attacks (A28 15.6%), and the block level
 (catches 39% of fakes at a 1% false-alarm budget). Details: `audit.md` phases 15-16, `new_plan.md` 7.3m-7.3n.
 
-**Run 6 (noise, room echo, bursty packet loss, G.711 in the training audio; `configs/run6.yaml`, bundle `artifacts_run6/`, not the
-served model):**
+**Runs 6 and 7 (noise, room echo, bursty packet loss, G.711 in the training audio; run 6 with 7% EnCodec copies, run 7 without;
+`configs/run6.yaml`, `configs/run7.yaml`). Run 7 is the served model since 2026-10-07:**
 
-| EER at 10 s, WavLM alone | served (run 4) | run 6 |
-|---|---|---|
-| ASV5 eval (30k) | 5.4% | **4.5%** |
-| ASVspoof 2019 eval (30k) / ASVspoof 2021 real phone channels (30k) | **4.9% / 8.8%** | 5.8% / 9.9% |
-| Simulated calls: as trained (9,600) / babble (4,800) | 5.0% / 15.5% | **3.2% / 7.8%** |
-| Simulated calls with held-out noise, real room echo and unseen loss (6,400) | 16.9% | **11.4%** |
-| Genuine calls flagged at the verify level, 0% -> 5% packet loss | 6% -> 42% | 10% -> 14% |
+| EER at 10 s, WavLM alone | run 4 (served until 2026-10-07) | run 6 | **run 7 (served)** |
+|---|---|---|---|
+| ASV5 eval (30k) | 5.4% | **4.5%** | 5.7% |
+| ASVspoof 2019 eval (30k) / ASVspoof 2021 real phone channels (30k) | **4.9% / 8.8%** | 5.8% / 9.9% | 5.3% / 9.1% |
+| Simulated calls: as trained (9,600) / babble (4,800) | 5.0% / 15.5% | 3.2% / 7.8% | **3.1% / 7.0%** |
+| Simulated calls with held-out noise, real room echo and unseen loss (6,400) | 16.9% | 11.4% | **10.8%** |
+| Genuine calls flagged at the verify level, 0% -> 5% packet loss | 6% -> 42% | 10% -> 14% | 12% -> 18% |
 
-Run 6 is much more robust to noise, babble and packet loss but about a point worse on clean-speech phone audio, so it is not served
-(`audit.md` phase 17). A classical denoising front end was tested and rejected: it made every call set worse.
+Run 7 gives up 0.3-0.5 points on clean-speech phone audio against run 4 for 2-8.5 points on noisy, babbling, echoey and lossy calls
+(your decision; it missed the rule fixed before training by 0.18 / 0.03 points, `audit.md` phase 18). Thresholds were set on all 67
+ASVspoof 2021 speakers: verify >= 0.0060, block >= 0.9958. The live serving path matches the batched scores (400 calls, p95
+difference 0.0013) with a 47 ms median verdict time. A classical denoising front end was tested and rejected: it made every call set worse.
 The earlier ASVspoof2019 prototype (5.7% eval EER) used feature version 1 and an easier benchmark; it is not
 reproducible with this code and not comparable to these numbers.
 

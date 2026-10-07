@@ -79,6 +79,7 @@ class WavlmConfig:
     backbone_lr: float = 2e-5
     weight_decay: float = 1e-4
     seed: int = 0
+    keep_epochs: bool = False  # also save every pass's weights to <artifacts>/epochs/ (run 7: ~110 MB each)
 
 
 @dataclass
@@ -161,6 +162,9 @@ class DataConfig:
     snr_db: tuple = (5.0, 35.0)  # noise level against the speech, drawn per copy
     loss_p: float = 0.35  # share of training windows with bursty packet loss and concealment
     neural_share: float = 0.07  # EnCodec share of the codec copies (run 5: 0.18, which cost accuracy elsewhere)
+    # Copies rendered with this EnCodec share and otherwise the same impairments are hard-linked when a clip's codec is
+    # unchanged (run 7 = run 6 with share 0 reuses run 6's 0.07 copies). None: no reuse.
+    reuse_neural_share: float | None = None
 
 
 @dataclass

@@ -1,0 +1,110 @@
+{
+ "ASVspoof 2021": {
+  "run4": 8.813821146343907,
+  "run6": 9.863980194058218,
+  "run7": 9.136369910973293,
+  "run7_minus_run4": {
+   "eer_first": 8.814,
+   "eer_second": 9.136,
+   "diff_second_minus_first": 0.323,
+   "ci95": [
+    0.032,
+    0.63
+   ],
+   "share_first_better": 0.984,
+   "n_boot": 1000
+  },
+  "run7_minus_run6": {
+   "eer_first": 9.864,
+   "eer_second": 9.136,
+   "diff_second_minus_first": -0.728,
+   "ci95": [
+    -0.938,
+    -0.53
+   ],
+   "share_first_better": 0.0,
+   "n_boot": 1000
+  }
+ },
+ "call set v1": {
+  "run4": 4.958333333333333,
+  "run6": 3.1770833333333313,
+  "run7": 3.0624999999999973,
+  "run7_minus_run4": {
+   "eer_first": 4.958,
+   "eer_second": 3.062,
+   "diff_second_minus_first": -1.896,
+   "ci95": [
+    -2.396,
+    -1.448
+   ],
+   "share_first_better": 0.0,
+   "n_boot": 1000
+  },
+  "run7_minus_run6": {
+   "eer_first": 3.177,
+   "eer_second": 3.062,
+   "diff_second_minus_first": -0.115,
+   "ci95": [
+    -0.375,
+    0.062
+   ],
+   "share_first_better": 0.085,
+   "n_boot": 1000
+  }
+ },
+ "babble": {
+  "run4": 15.541666666666664,
+  "run6": 7.750000000000002,
+  "run7": 7.000000000000001,
+  "run7_minus_run4": {
+   "eer_first": 15.542,
+   "eer_second": 7.0,
+   "diff_second_minus_first": -8.542,
+   "ci95": [
+    -9.563,
+    -7.52
+   ],
+   "share_first_better": 0.0,
+   "n_boot": 1000
+  },
+  "run7_minus_run6": {
+   "eer_first": 7.75,
+   "eer_second": 7.0,
+   "diff_second_minus_first": -0.75,
+   "ci95": [
+    -1.208,
+    -0.354
+   ],
+   "share_first_better": 0.0,
+   "n_boot": 1000
+  }
+ },
+ "call set v2": {
+  "run4": 16.953125000000004,
+  "run6": 11.406249999999998,
+  "run7": 10.78125,
+  "run7_minus_run4": {
+   "eer_first": 16.953,
+   "eer_second": 10.781,
+   "diff_second_minus_first": -6.172,
+   "ci95": [
+    -7.079,
+    -5.25
+   ],
+   "share_first_better": 0.0,
+   "n_boot": 1000
+  },
+  "run7_minus_run6": {
+   "eer_first": 11.406,
+   "eer_second": 10.781,
+   "diff_second_minus_first": -0.625,
+   "ci95": [
+    -1.157,
+    -0.141
+   ],
+   "share_first_better": 0.006,
+   "n_boot": 1000
+  }
+ }
+}

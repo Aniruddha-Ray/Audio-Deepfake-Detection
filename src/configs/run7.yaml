@@ -1,0 +1,12 @@
+# Run 7: the run 6 recipe without EnCodec (share 0 in the training copies and in the tuning set), to test whether EnCodec causes
+# run 6's ~1 point regression on ASVspoof2019 / 2021. Everything else is run 6. Run 6's copies whose codec is unchanged are reused
+# (hard links), and every pass's weights are kept in artifacts_run7/epochs/. Decision rule: new_plan.md 7.3p.
+#   cd src && python run.py --config configs/run7.yaml --eval-utts 30000
+data:
+  neural_share: 0.0
+  reuse_neural_share: 0.07
+wavlm:
+  keep_epochs: true
+paths:
+  artifacts_dir: ../artifacts_run7
+  results_dir: ../results/run7

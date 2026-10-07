@@ -249,12 +249,17 @@ def test_add_wavlm_branch_reusing_trained_svm_and_rcnn(tmp_path):
         (prev / f).write_bytes((tmp_path / "artifacts" / f).read_bytes())
 
     s.ensemble.branches = ("svm", "rcnn", "wavlm")
-    s.wavlm.pretrained, s.wavlm.finetune_top, s.wavlm.epochs, s.wavlm.batch_size = False, 1, 1, 4
+    s.wavlm.pretrained, s.wavlm.finetune_top, s.wavlm.epochs, s.wavlm.batch_size = False, 1, 2, 4
+    s.wavlm.keep_epochs = True
     lines = []
     report = run_training(s, workers=0, log=lambda m: lines.append(str(m)),
                           checkpoints={"svm": prev / "svm.joblib", "rcnn": prev / "rcnn.pt"})
     assert sum("training skipped" in line for line in lines) == 2
-    assert len(report["histories"]["wavlm"]) == 1 and "dev_eer_pct" in report["histories"]["wavlm"][0]
+    assert len(report["histories"]["wavlm"]) == 2 and "dev_eer_pct" in report["histories"]["wavlm"][0]
+    from audiodf.models.wavlm import load_wavlm
+
+    for e in (1, 2):  # every pass kept, loadable, outside the bundle's own files
+        assert load_wavlm(tmp_path / "artifacts" / "epochs" / f"wavlm_e{e}.pt", "cpu", False) is not None
     assert set(report["fusion_weights"]) == {"svm", "rcnn", "wavlm"}
     assert set(report["tuning_subset"]["at_horizon"]) == {"svm", "rcnn", "wavlm", "fused"}
     manifest = json.loads((tmp_path / "artifacts" / "bundle.json").read_text())

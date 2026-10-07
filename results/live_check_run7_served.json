@@ -1,0 +1,19 @@
+{
+  "clips": 400,
+  "seconds": 113.3,
+  "eer_live_pct": 3.75,
+  "eer_batched_pct": 3.5,
+  "abs_diff": {
+    "median": 1e-05,
+    "p95": 0.00132,
+    "max": 0.02453
+  },
+  "share_within_0.01": 0.995,
+  "same_side_of_0.5": 1.0,
+  "verdict_latency_ms": {
+    "p50": 47.3,
+    "p95": 55.6,
+    "max": 93.5
+  },
+  "verdicts_per_call_median": 6.0
+}

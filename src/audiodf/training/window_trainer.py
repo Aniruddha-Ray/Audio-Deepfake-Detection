@@ -1,6 +1,7 @@
 """Shared loop for the window branches (RCNN, WavLM): random 2 s windows read from the FLAC files (or their codec
 copies), codec-augmented, one-cycle LR per parameter group, class-weighted BCE; after every epoch the branch is
-scored on the tuning set at the 10 s decision and the best epoch is kept."""
+scored on the tuning set at the 10 s decision and the best epoch is kept (with keep_epochs, every epoch is also saved
+to epochs/ next to the checkpoint, so the choice of epoch can be revisited without retraining)."""
 
 from __future__ import annotations
 
@@ -22,7 +23,8 @@ from audiodf.evaluation.stream_eval import score_window_branch
 def train_window_model(model: nn.Module, param_groups: list[dict], dataset_cls, train: SplitIndex, dev: SplitIndex,
                        tune_utts: np.ndarray, settings: Settings, device: torch.device, ckpt_path: Path,
                        workers: int, log, dev_aug_p: float, *, epochs: int, batch_size: int, weight_decay: float,
-                       seed: int, save, load, score_batch: int, max_grad_norm: float | None = None):
+                       seed: int, save, load, score_batch: int, max_grad_norm: float | None = None,
+                       keep_epochs: bool = False):
     sampler = RandomWindowSampler(train, settings.segment_samples, settings.data.rcnn_windows_per_utt,
                                   settings.window_samples, seed)
     loss_aug = LossAugmenter(LossConfig(p=settings.data.loss_p)) if settings.data.loss_p > 0 else None
@@ -67,6 +69,9 @@ def train_window_model(model: nn.Module, param_groups: list[dict], dataset_cls, 
         history.append({"epoch": epoch, "loss": round(total / seen, 5), "dev_eer_pct": eer,
                         "minutes": round((time.time() - t0) / 60, 1)})
         log(f"  epoch {epoch}/{epochs}: {history[-1]}")
+        if keep_epochs:
+            (ckpt_path.parent / "epochs").mkdir(parents=True, exist_ok=True)
+            save(model, ckpt_path.parent / "epochs" / f"{ckpt_path.stem}_e{epoch}{ckpt_path.suffix}")
         if eer < best:
             best = eer
             save(model, ckpt_path)

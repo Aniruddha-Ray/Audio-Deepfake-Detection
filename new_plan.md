@@ -615,6 +615,81 @@ shares EnCodec copies with run 6, so EnCodec is the main suspect; seed noise is 
 9): keep run 4, adopt run 6, or first run 7 (run 6 without EnCodec) to see whether the robustness can be kept without the
 regression. Remaining weakness of run 6: real room echo (13% with no noise, 20-26% with noise) and 5-10 dB babble (16.5%).
 
+### 7.3p Decided 2026-10-06: run 7 (run 6 without EnCodec) first; a noise-gated ensemble of run 4 and run 6 is plan B
+
+**Your idea (the noise-gated ensemble):** score every call with a `noise_score`; run run 4 and run 6 in parallel; weight their
+predictions by the score: low score (clean call) gives run 4 most of the weight, high score (noisy call) gives run 6 most of it.
+
+**Upper bound, measured offline on the saved per-clip scores (no training).** A perfect noise detector sends clean clips to
+run 4 and noisy ones (on v2: noise or echo) to run 6:
+
+| EER at 10 s | run 4 | run 6 | plain average | perfect routing | share routed to run 6 |
+|---|---|---|---|---|---|
+| ASVspoof 2021 (real phone channels, no added noise) | **8.81%** | 9.86% | 9.09% | **8.81%** | 0% |
+| Call set v1 | 4.96% | 3.18% | **3.05%** | 3.43% | 76% |
+| Babble set | 15.54% | **7.75%** | 9.00% | **7.75%** | 75% |
+| Call set v2 (held-out noise / echo / loss) | 16.95% | 11.41% | **10.95%** | 11.34% | 85% |
+
+Even a perfect gate only gives "run 4 on clean calls, run 6 on noisy ones": it recovers the ~1 point on clean phone audio and
+does not beat run 6 or a plain average on noisy calls. The reason: run 4 is not better on clean audio in general, only on the
+ASVspoof 2019 speech family (on the clean calls built from ASV5 speech run 6 is equal or better: 2.2% vs 2.9% on v1, 3.0% vs
+4.0% on v2). A noise score separates clean from noisy; it does not separate "where run 4 wins" from "where run 6 wins".
+
+**If it is built (plan B), five conditions:**
+1. **Channel quality, not just noise:** the score must combine an SNR estimate, an echo estimate and the network's packet-loss
+   figures. Echo is run 4's worst case (18% vs 13%), and a noise-only meter would send quiet, echoey calls to run 4.
+2. **One common score scale first:** the two models' scores are scaled differently (their thresholds differ several-fold on some
+   sets), so each is calibrated (e.g. Platt / isotonic on held-out data) before weighting; otherwise one model dominates.
+3. **Tuned on held-out data only:** the quality threshold and the weight curve are fitted on one speaker half of a fresh call render
+   and reported on the other half and on every test set, never tuned on a test set. Verify / block thresholds are set after the gate.
+4. **No full hand-off:** weights bounded to about 20-80%, so an attacker who adds noise to reach the weaker model for their attack
+   (A28 is worse on run 6) cannot switch one model off.
+5. **Cost:** two models per call: ~2x GPU time (~106 ms per verdict on this GPU) and memory; heavy on CPU.
+
+Build cost: ~half a day, no training. Worth it only if run 7 and a second seed show the trade-off is real.
+
+**Run 7 (started 2026-10-06):** the run 6 recipe with the EnCodec share set to 0, in the training copies and in the tuning set
+(`src/configs/run7.yaml`). Everything else is identical: model, training settings, data, echo, noise, packet loss, G.711, 60% copies,
+and each clip's echo, noise and codec draws (they come from the clip ID; the ~7% of clips that had EnCodec get a regular codec,
+Opus / AMR / G.711 / ...). Two additions:
+- **Reuse:** run 6's copies whose codec is unchanged (~93%) are hard-linked instead of rendered again (rendering ~3 h -> minutes).
+- **Every pass saved** (~1 GB), not only the best, so the choice of pass can be checked on clean speech afterwards without retraining.
+
+**Rule, fixed before training (EER at 10 s, WavLM alone, same test clips as runs 4 and 6):**
+- Regression: ASVspoof2019 eval <= 5.15% and ASVspoof 2021 <= 9.11% (run 4 + 0.3); ASV5 eval <= 5.93% (run 4 + 0.5).
+- Robustness kept: babble <= 11.7%, call set v2 <= 13.6%, and a much smaller rise in genuine calls flagged under packet loss than
+  run 4's +35.7 points (target: <= +10).
+- All met: run 7 is proposed to replace run 4 as the served model (your yes needed; thresholds then set on phone-channel data).
+- Regression still there: EnCodec is ruled out; next is a second seed of run 4's recipe (is ~1 point just run-to-run spread?), then
+  scoring run 7's saved passes on clean speech (was the best pass chosen on too-noisy tuning audio?), then a short fine-tune of run 4
+  on the noisy recipe, and the gated ensemble above as the fallback.
+- Expected cost of run 7: run 6's gain on neural-codec audio (ASV5 C04 / C07, 9.1% / 11.5% in run 6) is likely lost (run 4: 14.6% / 18.5%).
+
+### 7.3q Run 7 results (2026-10-07): EnCodec explains half the regression; run 7 is the most robust model, 0.3-0.5 points behind run 4 on clean phone audio
+
+| EER at 10 s, WavLM alone (same clips) | run 4 (served) | run 6 | run 7 | rule for run 7 |
+|---|---|---|---|---|
+| ASV5 eval (30k) | 5.43% | **4.46%** | 5.74% | <= 5.93: met |
+| ASVspoof2019 eval (30k) | **4.85%** | 5.82% | 5.33% | <= 5.15: **not met** (0.18) |
+| ASVspoof 2021 real phone channels (30k) | **8.81%** | 9.86% | 9.14% | <= 9.11: **not met** (0.03) |
+| Call set v1 (9,600) | 4.96% | 3.18% | **3.06%** | |
+| Babble set (4,800) | 15.54% | 7.75% | **7.00%** | <= 11.7: met |
+| Call set v2, held-out noise / echo / loss (6,400) | 16.95% | 11.41% | **10.78%** | <= 13.6: met |
+| Genuine calls flagged at verify, rise from 0% to 5% loss | +35.7 pts | **+3.8** | +5.4 | <= +10: met |
+
+- Removing EnCodec halved the clean-phone regression (ASVspoof2019 +0.97 -> +0.48, ASVspoof 2021 +1.05 -> +0.32 [+0.03, +0.63]) and
+  made the model better than run 6 on every call set and on both real-phone sets; it lost run 6's ASV5 gains, which were broader than the
+  neural-codec conditions (most ASV5 attacks went back to run 4's level).
+- The rule as written does not recommend adoption. My slip: run 6's limit on ASVspoof2019 was +0.5 (5.35%), run 7's was written as +0.3,
+  and run 7's 5.33% falls between them (`audit.md` mistake 23).
+- Ensemble of run 4 + run 7, offline: perfect noise routing only recovers ASVspoof 2021 (8.81) and gains nothing on the call sets;
+  a plain average is no better than run 7 on calls. Not worth twice the compute now.
+- **Decided 2026-10-07: run 7 adopted and served** (`artifacts/`; thresholds on all 67 ASVspoof 2021 speakers, verify >= 0.0060,
+  block >= 0.9958; live streaming check matches the batched scores, 47 ms median verdict). Run 4 kept in `artifacts_run4_wavlm_only/`.
+- Run 7's weak spots on held-out v2: real room echo (2.7% -> 12.6%; with noise 19.9%), babble 13.2%, 5-10 dB SNR 16.6%; neural codecs.
+- Next (`audit.md` section 9): second threshold pass on lossy call data from fresh speakers; then run 8 for echo / low-SNR
+  robustness; then the remaining ML list (out-of-domain test, second seed, calibration, early decisions, serving cost); then deployment.
+
 ### 7.4 Fusion: don't jump to an ANN yet
 
 Considered a small ANN/learned voting classifier instead of the fixed 0.7/0.3 weight. Verdict:

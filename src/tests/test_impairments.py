@@ -231,6 +231,64 @@ def test_render_copies_with_impairments_goes_to_a_configuration_tagged_catalogue
     assert other.tag != kit.tag  # other settings never reuse these copies
 
 
+def _two_kind_seed(idx, share):
+    """A seed for which the fixture clips get both kinds of codec under this EnCodec share."""
+    from audiodf.data.ffmpeg_codecs import CLASSICAL3, NeuralCodec, choice
+
+    kinds = lambda s: {isinstance(choice(str(u), s, share, CLASSICAL3)[1], NeuralCodec) for u in idx.utt_id}  # noqa: E731
+    return next(s for s in range(100, 400) if kinds(s) == {True, False})
+
+
+def test_another_encodec_share_reuses_exactly_the_copies_whose_codec_is_unchanged(asv5, tmp_path, monkeypatch):
+    """Run 7 = run 6 with EnCodec share 0: run 6's copies of clips that stay classical are linked, the rest rendered."""
+    from dataclasses import replace
+
+    import audiodf.data.ffmpeg_codecs as fc
+    from audiodf.data.prepare import build_index
+
+    idx = build_index(asv5, "asv5", "train", workers=0)
+    kit = _kit(tmp_path, reverb_p=1.0, noise_p=1.0)  # EnCodec share 0
+    seed = _two_kind_seed(idx, 0.5)
+    _skip_if_catalogue3_unrenderable(idx, seed, kit)
+    old = replace(kit, neural_share=0.5)
+    assert old.tag != kit.tag
+    old_dir = fc.render_dir(asv5.paths.cache_dir, seed, fc.IMPAIR_VERSION, old.tag)
+    old_dir.mkdir(parents=True)
+    marker = np.full(SR, 0.25, dtype=np.float32)  # stands in for a run-6 copy
+    for u in idx.utt_id:
+        sf.write(old_dir / f"{u}.flac", marker, SR, subtype="PCM_16")
+    monkeypatch.setattr(asv5.data, "reuse_neural_share", 0.5)
+    lines = []
+    rendered = fc.render_copies(idx, np.arange(len(idx)), asv5, frac=1.0, seed=seed, workers=2, log=lines.append,
+                                impair=kit)
+    was_classical = [isinstance(fc.choice(str(u), seed, 0.5, fc.CLASSICAL3)[1], fc.FfCodec) for u in idx.utt_id]
+    for i in range(len(idx)):
+        copy, _ = sf.read(rendered.path(i), dtype="float32")
+        assert (len(copy) == SR and np.allclose(copy, 0.25, atol=1e-4)) == was_classical[i]
+    assert any(f"from impairments {old.tag}" in line for line in lines)
+
+
+def test_a_copy_classical_under_both_shares_is_identical(asv5, tmp_path):
+    """What makes the reuse valid: echo, noise, codec and variant of a clip do not depend on the EnCodec share."""
+    from dataclasses import replace
+
+    import audiodf.data.ffmpeg_codecs as fc
+    from audiodf.data.prepare import build_index
+
+    idx = build_index(asv5, "asv5", "train", workers=0)
+    kit = _kit(tmp_path, reverb_p=1.0, noise_p=1.0)
+    seed = _two_kind_seed(idx, 0.5)
+    _skip_if_catalogue3_unrenderable(idx, seed, kit)
+    both = np.array([i for i, u in enumerate(idx.utt_id)
+                     if isinstance(fc.choice(str(u), seed, 0.5, fc.CLASSICAL3)[1], fc.FfCodec)])
+    a = fc.render_copies(idx, both, asv5, frac=1.0, seed=seed, workers=2, log=lambda *_: None,
+                         impair=replace(kit, neural_share=0.5))
+    b = fc.render_copies(idx, both, asv5, frac=1.0, seed=seed, workers=2, log=lambda *_: None, impair=kit)
+    assert a.path(int(both[0])) != b.path(int(both[0]))  # two different folders, both rendered from scratch
+    for i in both:
+        assert np.array_equal(sf.read(a.path(int(i)), dtype="int16")[0], sf.read(b.path(int(i)), dtype="int16")[0])
+
+
 def test_run_training_with_noise_echo_and_packet_loss(tmp_path):
     from audiodf.data.ffmpeg_codecs import missing_codecs
     from audiodf.training.pipeline import run_training

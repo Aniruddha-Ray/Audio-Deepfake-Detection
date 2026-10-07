@@ -24,4 +24,4 @@ def train_wavlm(train: SplitIndex, dev: SplitIndex, tune_utts: np.ndarray, setti
         settings, device, ckpt_path, workers, log, dev_aug_p,
         epochs=cfg.epochs, batch_size=cfg.batch_size, weight_decay=cfg.weight_decay, seed=cfg.seed,
         save=save_wavlm, load=lambda p: load_wavlm(p, device, cfg.pretrained), score_batch=cfg.batch_size,
-        max_grad_norm=5.0)
+        max_grad_norm=5.0, keep_epochs=cfg.keep_epochs)

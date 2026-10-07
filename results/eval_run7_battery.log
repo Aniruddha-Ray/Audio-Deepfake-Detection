@@ -1,0 +1,25 @@
+[1/4] ASVspoof 2021 real phone channels 
+  scoring asv21/eval: 29994 of 181566 clips
+  scoring wavlm on 29994 clips
+  asv21/eval   n= 29994 | EER at 10 s: wavlm   9.14%  fused   9.14%
+               fused EER by seconds of speech: 2s 9.15%  4s 9.14%  6s 9.14%  8s 9.14%  10s 9.14%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_asv21_eval_run7.json
+[2/4] call set v1 
+  scoring calls/eval: 9600 of 9600 clips
+  scoring wavlm on 9600 clips
+  calls/eval   n=  9600 | EER at 10 s: wavlm   3.06%  fused   3.06%
+               fused EER by seconds of speech: 2s 4.31%  4s 3.50%  6s 3.15%  8s 3.10%  10s 3.06%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run7_calls.json
+[3/4] babble set 
+  scoring calls/eval: 4800 of 4800 clips
+  scoring wavlm on 4800 clips
+  calls/eval   n=  4800 | EER at 10 s: wavlm   7.00%  fused   7.00%
+               fused EER by seconds of speech: 2s 9.71%  4s 8.33%  6s 7.44%  8s 7.08%  10s 7.00%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run7_babble.json
+[4/4] call set v2 (held-out noise, echo, loss) 
+  scoring calls/eval: 6400 of 6400 clips
+  scoring wavlm on 6400 clips
+  calls/eval   n=  6400 | EER at 10 s: wavlm  10.78%  fused  10.78%
+               fused EER by seconds of speech: 2s 14.00%  4s 11.84%  6s 11.00%  8s 10.77%  10s 10.78%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run7_v2.json
+ALL DONE 
