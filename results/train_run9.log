@@ -1,0 +1,59 @@
+recipe: run 6 (room echo 30%, noise 65% at 5-35 dB, packet loss on 35% of windows, G.711 added, EnCodec share 0%)
+asv5=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset5
+artifacts=../artifacts_run9
+pool=asv5:train asv5:dev asv19:train asv19:dev  holdout=asv5:A10 asv5:A12 asv5:A15
+branches=wavlm whisper  reused=wavlm:..\artifacts_run7\wavlm.pt
+rcnn=BiLSTM, epochs=10; wavlm epochs=8, top 4 layers fine-tuned; windows/clip/epoch=1, svm clips=20000, codec aug p=0.4
+device=cuda artifacts=..\artifacts_run9 branches=wavlm,whisper
+[1/6] integrity audit (training pool: asv5:train, asv5:dev, asv19:train, asv19:dev)
+  finding (asv5): attacks shared by train and dev: none
+  finding (asv5): attacks shared by train and eval: none
+  finding (asv5): attacks shared by dev and eval: none
+  finding (asv5): train: duration differs between bonafide (14.52) and spoof (10.736)
+  finding (asv5): train: leading silence differs between bonafide (0.412) and spoof (0.05)
+  finding (asv5): train: trailing silence differs between bonafide (0.213) and spoof (0.025)
+  finding (asv5): dev: digital-silence frame fraction (mean) differs between bonafide (0.003) and spoof (0.014)
+  finding (asv19): attacks shared by train and dev: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06']
+  finding (asv19): attacks shared by train and eval: none
+  finding (asv19): attacks shared by dev and eval: none
+  finding (asv19): train: leading silence differs between bonafide (1.025) and spoof (0.35)
+  finding (asv19): dev: leading silence differs between bonafide (0.838) and spoof (0.35)
+  finding (asv19): eval: leading silence differs between bonafide (0.775) and spoof (0.05)
+  finding (asv19): eval: trailing silence differs between bonafide (0.825) and spoof (0.175)
+[2/6] index clips (decode once, record VAD speech bounds) and split off the tuning set
+  training clips: 307454 (260166 spoof, 47288 bonafide), 19 attack systems
+  tuning set: held-out attacks asv5:A10, asv5:A12, asv5:A15 + bonafide of 196 held-out asv5:dev speakers: 49077 clips (41106 spoof, 7971 bonafide)
+  rendering real-codec copies (ffmpeg; label-blind; cached on disk); room echo 30%, noise 65% at 5-35 dB from ['musan', 'pointsource', 'demand'] + babble + colours, echo from ['sim_rir'] (held-out test corpora not used), EnCodec share 0%; packet loss on 35% of training windows
+  real-codec copies: 184407 training clips, 8967 of 11998 tuning clips
+[3/6] branches
+  reusing wavlm from ..\artifacts_run7\wavlm.pt (training skipped)
+  Whisper encoder (openai/whisper-small): random 2 s raw windows, top 4 layers fine-tuned; best tuning epoch kept
+Loading weights:   0%|          | 0/479 [00:00<?, ?it/s]Loading weights:   5%|▌         | 26/479 [00:00<00:01, 235.15it/s]Loading weights:  11%|█▏        | 54/479 [00:00<00:01, 257.25it/s]Loading weights:  17%|█▋        | 80/479 [00:00<00:01, 256.35it/s]Loading weights:  23%|██▎       | 112/479 [00:00<00:01, 278.47it/s]Loading weights:  31%|███       | 147/479 [00:00<00:01, 299.84it/s]Loading weights:  37%|███▋      | 178/479 [00:00<00:01, 245.88it/s]Loading weights:  43%|████▎     | 205/479 [00:00<00:01, 228.86it/s]Loading weights:  48%|████▊     | 229/479 [00:01<00:01, 188.47it/s]Loading weights:  52%|█████▏    | 250/479 [00:01<00:01, 135.70it/s]Loading weights: 100%|██████████| 479/479 [00:01<00:00, 363.26it/s]
+  epoch 1/8: {'epoch': 1, 'loss': 0.08786, 'dev_eer_pct': 6.451, 'minutes': 36.8}
+  epoch 2/8: {'epoch': 2, 'loss': 0.04558, 'dev_eer_pct': 5.926, 'minutes': 37.2}
+  epoch 3/8: {'epoch': 3, 'loss': 0.03523, 'dev_eer_pct': 5.326, 'minutes': 37.2}
+  epoch 4/8: {'epoch': 4, 'loss': 0.02809, 'dev_eer_pct': 4.826, 'minutes': 37.1}
+  epoch 5/8: {'epoch': 5, 'loss': 0.02277, 'dev_eer_pct': 4.963, 'minutes': 35.3}
+  epoch 6/8: {'epoch': 6, 'loss': 0.01811, 'dev_eer_pct': 4.719, 'minutes': 31.4}
+  epoch 7/8: {'epoch': 7, 'loss': 0.01498, 'dev_eer_pct': 4.869, 'minutes': 31.9}
+  epoch 8/8: {'epoch': 8, 'loss': 0.01339, 'dev_eer_pct': 4.894, 'minutes': 33.4}
+Loading weights:   0%|          | 0/479 [00:00<?, ?it/s]Loading weights:   5%|▍         | 23/479 [00:00<00:02, 180.29it/s]Loading weights:  10%|█         | 49/479 [00:00<00:01, 219.16it/s]Loading weights:  16%|█▌        | 76/479 [00:00<00:01, 235.23it/s]Loading weights:  21%|██        | 100/479 [00:00<00:01, 226.88it/s]Loading weights:  26%|██▌       | 123/479 [00:00<00:01, 186.40it/s]Loading weights:  30%|██▉       | 143/479 [00:00<00:01, 168.26it/s]Loading weights:  34%|███▍      | 163/479 [00:00<00:01, 170.53it/s]Loading weights:  38%|███▊      | 181/479 [00:01<00:01, 160.36it/s]Loading weights:  44%|████▍     | 211/479 [00:01<00:01, 196.77it/s]Loading weights: 100%|██████████| 479/479 [00:01<00:00, 423.31it/s]
+[4/6] tune on the held-out set (codec-processed): SVM calibration, fusion weights, risk thresholds
+  scoring wavlm on 11998 clips
+  scoring whisper on 11998 clips
+  fusion weights wavlm=0.65 whisper=0.35; risk thresholds: verify >= 0.1255, block >= 0.4330
+  tuning set   n= 11998 | EER at 10 s: wavlm   2.94%  whisper   4.72%  fused   2.57%
+               fused EER by seconds of speech: 2s 5.54%  4s 3.45%  6s 2.99%  8s 2.60%  10s 2.57%
+[5/6] test sets (scored once, never tuned on)
+  scoring asv5/eval: 30000 of 136376 clips
+  scoring wavlm on 30000 clips
+  scoring whisper on 30000 clips
+  asv5/eval    n= 30000 | EER at 10 s: wavlm   5.74%  whisper   7.75%  fused   5.72%
+               fused EER by seconds of speech: 2s 7.43%  4s 6.08%  6s 5.81%  8s 5.73%  10s 5.72%
+  scoring asv19/eval: 29988 of 71237 clips
+  scoring wavlm on 29988 clips
+  scoring whisper on 29988 clips
+  asv19/eval   n= 29988 | EER at 10 s: wavlm   5.33%  whisper   8.46%  fused   5.40%
+               fused EER by seconds of speech: 2s 5.65%  4s 5.41%  6s 5.40%  8s 5.40%  10s 5.40%
+[6/6] save the bundle
+report: ..\results\run9\training_report.json

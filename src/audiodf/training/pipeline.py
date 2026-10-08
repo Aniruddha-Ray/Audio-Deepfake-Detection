@@ -149,6 +149,10 @@ def _reuse(name: str, path: Path, out: Path, device, log, settings: Settings):
         return load_svm(path), history
     if name == "rcnn":
         return load_rcnn(target, device), history
+    if name == "whisper":
+        from audiodf.models.whisper import load_whisper
+
+        return load_whisper(target, device, settings.whisper.pretrained), history
     from audiodf.models.wavlm import load_wavlm
 
     return load_wavlm(target, device, settings.wavlm.pretrained), history
@@ -215,6 +219,13 @@ def run_training(settings: Settings, limit: int | None = None, workers: int = 8,
             log("  RCNN: random 2 s Log-Mel windows read from FLAC, codec-augmented; best tuning epoch kept")
             models[name], histories[name] = train_rcnn(train, dev, tune, settings, device, out / BRANCH_FILES[name],
                                                        workers, log, tune_aug)
+        elif name == "whisper":
+            from audiodf.training.train_whisper import train_whisper
+
+            log(f"  Whisper encoder ({settings.whisper.backbone}): random 2 s raw windows, top {settings.whisper.finetune_top} "
+                f"layers fine-tuned; best tuning epoch kept")
+            models[name], histories[name] = train_whisper(train, dev, tune, settings, device,
+                                                          out / BRANCH_FILES[name], workers, log, tune_aug)
         else:
             from audiodf.training.train_wavlm import train_wavlm
 

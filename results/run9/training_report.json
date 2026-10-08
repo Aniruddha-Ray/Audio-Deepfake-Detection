@@ -1,0 +1,460 @@
+{
+  "training_pool": [
+    "asv5:train",
+    "asv5:dev",
+    "asv19:train",
+    "asv19:dev"
+  ],
+  "training_clips": 307454,
+  "tuning_set": "held-out attacks asv5:A10, asv5:A12, asv5:A15 + bonafide of 196 held-out asv5:dev speakers: 49077 clips (41106 spoof, 7971 bonafide)",
+  "branches": [
+    "wavlm",
+    "whisper"
+  ],
+  "histories": {
+    "wavlm": [
+      {
+        "reused_checkpoint": "..\\artifacts_run7\\wavlm.pt"
+      }
+    ],
+    "whisper": [
+      {
+        "epoch": 1,
+        "loss": 0.08786,
+        "dev_eer_pct": 6.451,
+        "minutes": 36.8
+      },
+      {
+        "epoch": 2,
+        "loss": 0.04558,
+        "dev_eer_pct": 5.926,
+        "minutes": 37.2
+      },
+      {
+        "epoch": 3,
+        "loss": 0.03523,
+        "dev_eer_pct": 5.326,
+        "minutes": 37.2
+      },
+      {
+        "epoch": 4,
+        "loss": 0.02809,
+        "dev_eer_pct": 4.826,
+        "minutes": 37.1
+      },
+      {
+        "epoch": 5,
+        "loss": 0.02277,
+        "dev_eer_pct": 4.963,
+        "minutes": 35.3
+      },
+      {
+        "epoch": 6,
+        "loss": 0.01811,
+        "dev_eer_pct": 4.719,
+        "minutes": 31.4
+      },
+      {
+        "epoch": 7,
+        "loss": 0.01498,
+        "dev_eer_pct": 4.869,
+        "minutes": 31.9
+      },
+      {
+        "epoch": 8,
+        "loss": 0.01339,
+        "dev_eer_pct": 4.894,
+        "minutes": 33.4
+      }
+    ]
+  },
+  "fusion_weights": {
+    "wavlm": 0.65,
+    "whisper": 0.35
+  },
+  "fusion_mean_eer_curve": {
+    "wavlm=0.70 whisper=0.30": 3.384,
+    "wavlm=0.75 whisper=0.25": 3.429,
+    "wavlm=0.65 whisper=0.35": 3.431,
+    "wavlm=0.60 whisper=0.40": 3.444,
+    "wavlm=0.80 whisper=0.20": 3.454,
+    "wavlm=0.55 whisper=0.45": 3.477,
+    "wavlm=0.50 whisper=0.50": 3.508,
+    "wavlm=0.85 whisper=0.15": 3.543,
+    "wavlm=0.45 whisper=0.55": 3.597,
+    "wavlm=0.90 whisper=0.10": 3.599,
+    "wavlm=0.40 whisper=0.60": 3.675,
+    "wavlm=0.95 whisper=0.05": 3.677,
+    "wavlm=1.00 whisper=0.00": 3.787,
+    "wavlm=0.35 whisper=0.65": 3.867,
+    "wavlm=0.30 whisper=0.70": 3.943,
+    "wavlm=0.25 whisper=0.75": 4.124,
+    "wavlm=0.20 whisper=0.80": 4.482,
+    "wavlm=0.15 whisper=0.85": 4.857,
+    "wavlm=0.10 whisper=0.90": 5.28,
+    "wavlm=0.05 whisper=0.95": 5.652,
+    "wavlm=0.00 whisper=1.00": 6.097
+  },
+  "risk": {
+    "high": 0.4329652725573629,
+    "medium": 0.12546778487224705,
+    "operating_points_tuning": [
+      {
+        "bonafide_flagged": 0.01,
+        "threshold": 0.43297,
+        "spoof_caught": 0.9394
+      },
+      {
+        "bonafide_flagged": 0.1,
+        "threshold": 0.12547,
+        "spoof_caught": 0.9957
+      }
+    ]
+  },
+  "tuning_subset": {
+    "n": 11998,
+    "spoof_fraction": 0.6666,
+    "fusion_weights": {
+      "wavlm": 0.65,
+      "whisper": 0.35
+    },
+    "at_horizon": {
+      "wavlm": {
+        "eer_pct": 2.944,
+        "auc": 0.99619,
+        "acc_at_eer_thr": 0.97058,
+        "recall_spoof": 0.97062,
+        "fpr_bonafide_flagged": 0.0295,
+        "acc_at_0.5": 0.94941,
+        "eer_threshold": 0.33207
+      },
+      "whisper": {
+        "eer_pct": 4.719,
+        "auc": 0.9905,
+        "acc_at_eer_thr": 0.95283,
+        "recall_spoof": 0.95286,
+        "fpr_bonafide_flagged": 0.04725,
+        "acc_at_0.5": 0.88756,
+        "eer_threshold": 0.24423
+      },
+      "fused": {
+        "eer_pct": 2.569,
+        "auc": 0.99698,
+        "acc_at_eer_thr": 0.97433,
+        "recall_spoof": 0.97437,
+        "fpr_bonafide_flagged": 0.02575,
+        "acc_at_0.5": 0.94157,
+        "eer_threshold": 0.31172
+      }
+    },
+    "per_attack_eer_pct": {
+      "wavlm": {
+        "asv5:A10": 0.944,
+        "asv5:A12": 3.107,
+        "asv5:A15": 4.169
+      },
+      "whisper": {
+        "asv5:A10": 1.363,
+        "asv5:A12": 3.707,
+        "asv5:A15": 7.545
+      },
+      "fused": {
+        "asv5:A10": 0.806,
+        "asv5:A12": 2.388,
+        "asv5:A15": 3.944
+      }
+    },
+    "time_to_decision_eer_pct": {
+      "wavlm": {
+        "2s": 6.12,
+        "4s": 3.707,
+        "6s": 3.194,
+        "8s": 2.969,
+        "10s": 2.944
+      },
+      "whisper": {
+        "2s": 9.282,
+        "4s": 6.52,
+        "6s": 5.132,
+        "8s": 4.832,
+        "10s": 4.719
+      },
+      "fused": {
+        "2s": 5.544,
+        "4s": 3.45,
+        "6s": 2.994,
+        "8s": 2.6,
+        "10s": 2.569
+      }
+    }
+  },
+  "test": {
+    "asv5/eval": {
+      "n": 30000,
+      "spoof_fraction": 0.6667,
+      "fusion_weights": {
+        "wavlm": 0.65,
+        "whisper": 0.35
+      },
+      "at_horizon": {
+        "wavlm": {
+          "eer_pct": 5.74,
+          "auc": 0.98094,
+          "acc_at_eer_thr": 0.9426,
+          "recall_spoof": 0.9426,
+          "fpr_bonafide_flagged": 0.0574,
+          "acc_at_0.5": 0.9058,
+          "eer_threshold": 0.28566
+        },
+        "whisper": {
+          "eer_pct": 7.755,
+          "auc": 0.96574,
+          "acc_at_eer_thr": 0.9224,
+          "recall_spoof": 0.9223,
+          "fpr_bonafide_flagged": 0.0774,
+          "acc_at_0.5": 0.856,
+          "eer_threshold": 0.22966
+        },
+        "fused": {
+          "eer_pct": 5.723,
+          "auc": 0.97856,
+          "acc_at_eer_thr": 0.9428,
+          "recall_spoof": 0.94285,
+          "fpr_bonafide_flagged": 0.0573,
+          "acc_at_0.5": 0.89937,
+          "eer_threshold": 0.27805
+        }
+      },
+      "per_attack_eer_pct": {
+        "wavlm": {
+          "A17": 2.82,
+          "A18": 4.64,
+          "A19": 3.505,
+          "A20": 4.26,
+          "A21": 1.99,
+          "A22": 3.37,
+          "A23": 3.2,
+          "A24": 4.86,
+          "A25": 2.17,
+          "A26": 1.99,
+          "A27": 3.705,
+          "A28": 14.32,
+          "A29": 2.255,
+          "A30": 6.915,
+          "A31": 7.29,
+          "A32": 5.215
+        },
+        "whisper": {
+          "A17": 5.395,
+          "A18": 6.69,
+          "A19": 3.995,
+          "A20": 3.995,
+          "A21": 2.335,
+          "A22": 4.0,
+          "A23": 2.86,
+          "A24": 7.905,
+          "A25": 4.46,
+          "A26": 2.575,
+          "A27": 5.395,
+          "A28": 28.93,
+          "A29": 3.595,
+          "A30": 9.86,
+          "A31": 9.595,
+          "A32": 6.26
+        },
+        "fused": {
+          "A17": 3.14,
+          "A18": 4.55,
+          "A19": 3.42,
+          "A20": 3.7,
+          "A21": 1.9,
+          "A22": 3.18,
+          "A23": 2.875,
+          "A24": 4.95,
+          "A25": 2.68,
+          "A26": 1.915,
+          "A27": 3.605,
+          "A28": 17.2,
+          "A29": 2.47,
+          "A30": 6.64,
+          "A31": 6.78,
+          "A32": 5.035
+        }
+      },
+      "time_to_decision_eer_pct": {
+        "wavlm": {
+          "2s": 6.935,
+          "4s": 6.223,
+          "6s": 5.848,
+          "8s": 5.75,
+          "10s": 5.74
+        },
+        "whisper": {
+          "2s": 9.79,
+          "4s": 8.675,
+          "6s": 7.89,
+          "8s": 7.75,
+          "10s": 7.755
+        },
+        "fused": {
+          "2s": 7.428,
+          "4s": 6.08,
+          "6s": 5.813,
+          "8s": 5.73,
+          "10s": 5.723
+        }
+      },
+      "per_codec_eer_pct": {
+        "wavlm": {
+          "-": 1.398,
+          "C01": 2.42,
+          "C02": 2.201,
+          "C03": 3.903,
+          "C04": 15.336,
+          "C05": 1.236,
+          "C06": 1.897,
+          "C07": 19.606,
+          "C08": 5.112,
+          "C09": 3.434,
+          "C10": 5.746,
+          "C11": 2.666
+        },
+        "whisper": {
+          "-": 3.248,
+          "C01": 4.732,
+          "C02": 4.8,
+          "C03": 6.76,
+          "C04": 17.314,
+          "C05": 3.565,
+          "C06": 4.656,
+          "C07": 21.685,
+          "C08": 7.099,
+          "C09": 7.104,
+          "C10": 9.245,
+          "C11": 4.426
+        },
+        "fused": {
+          "-": 1.559,
+          "C01": 2.564,
+          "C02": 1.913,
+          "C03": 4.39,
+          "C04": 16.042,
+          "C05": 1.73,
+          "C06": 2.227,
+          "C07": 20.244,
+          "C08": 4.616,
+          "C09": 3.509,
+          "C10": 5.818,
+          "C11": 2.485
+        }
+      }
+    },
+    "asv19/eval": {
+      "n": 29988,
+      "spoof_fraction": 0.7547,
+      "fusion_weights": {
+        "wavlm": 0.65,
+        "whisper": 0.35
+      },
+      "at_horizon": {
+        "wavlm": {
+          "eer_pct": 5.327,
+          "auc": 0.98839,
+          "acc_at_eer_thr": 0.94675,
+          "recall_spoof": 0.94676,
+          "fpr_bonafide_flagged": 0.0533,
+          "acc_at_0.5": 0.88449,
+          "eer_threshold": 0.00438
+        },
+        "whisper": {
+          "eer_pct": 8.457,
+          "auc": 0.97087,
+          "acc_at_eer_thr": 0.91543,
+          "recall_spoof": 0.91543,
+          "fpr_bonafide_flagged": 0.08457,
+          "acc_at_0.5": 0.8432,
+          "eer_threshold": 0.00353
+        },
+        "fused": {
+          "eer_pct": 5.396,
+          "auc": 0.98744,
+          "acc_at_eer_thr": 0.94605,
+          "recall_spoof": 0.94605,
+          "fpr_bonafide_flagged": 0.05398,
+          "acc_at_0.5": 0.88239,
+          "eer_threshold": 0.02014
+        }
+      },
+      "per_attack_eer_pct": {
+        "wavlm": {
+          "A07": 1.781,
+          "A08": 1.6,
+          "A09": 1.083,
+          "A10": 16.719,
+          "A11": 6.6,
+          "A12": 2.311,
+          "A13": 1.389,
+          "A14": 3.219,
+          "A15": 1.09,
+          "A16": 0.783,
+          "A17": 0.81,
+          "A18": 8.164,
+          "A19": 1.732
+        },
+        "whisper": {
+          "A07": 2.926,
+          "A08": 2.025,
+          "A09": 0.81,
+          "A10": 26.601,
+          "A11": 15.455,
+          "A12": 5.224,
+          "A13": 2.054,
+          "A14": 10.916,
+          "A15": 3.667,
+          "A16": 1.774,
+          "A17": 0.859,
+          "A18": 10.77,
+          "A19": 2.991
+        },
+        "fused": {
+          "A07": 1.494,
+          "A08": 0.893,
+          "A09": 0.839,
+          "A10": 19.233,
+          "A11": 7.41,
+          "A12": 1.942,
+          "A13": 0.978,
+          "A14": 3.841,
+          "A15": 0.852,
+          "A16": 0.663,
+          "A17": 0.524,
+          "A18": 7.723,
+          "A19": 1.096
+        }
+      },
+      "time_to_decision_eer_pct": {
+        "wavlm": {
+          "2s": 5.62,
+          "4s": 5.351,
+          "6s": 5.327,
+          "8s": 5.327,
+          "10s": 5.327
+        },
+        "whisper": {
+          "2s": 8.77,
+          "4s": 8.497,
+          "6s": 8.459,
+          "8s": 8.457,
+          "10s": 8.457
+        },
+        "fused": {
+          "2s": 5.654,
+          "4s": 5.412,
+          "6s": 5.396,
+          "8s": 5.396,
+          "10s": 5.396
+        }
+      }
+    }
+  }
+}

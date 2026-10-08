@@ -112,7 +112,7 @@ python -m audiodf benchmark                  # per-stage latency
 python -m audiodf serve --port 8000          # API: /predict, /stream/{id}, /health, /metrics
 python -m audiodf consume                    # Kafka worker (needs a broker + confluent-kafka)
 python -m audiodf produce call.wav --realtime
-python -m pytest                             # 149 tests, no dataset or GPU needed
+python -m pytest                             # 155 tests, no dataset or GPU needed
 ```
 
 Stream over a WebSocket: send binary frames of 16 kHz mono PCM16, receive a JSON verdict each time a
@@ -174,6 +174,11 @@ Run 7 gives up 0.3-0.5 points on clean-speech phone audio against run 4 for 2-8.
 ASVspoof 2021 speakers (verify >= 0.0060); block was lowered to >= 0.90 on 2026-10-07 from a call-audio threshold study (banking
 policy: verify kept strict because a missed fake costs far more than a verification; `audit.md` phase 19). The live serving path matches the batched scores (400 calls, p95
 difference 0.0013) with a 47 ms median verdict time. A classical denoising front end was tested and rejected: it made every call set worse.
+
+**Run 8 (more echo, measured rooms, low-SNR babble; `configs/run8.yaml`; not served):** ASV5 5.73%, ASVspoof 2019 5.32%, ASVspoof 2021 9.42%,
+babble 6.29% (run 7: 7.00%), held-out calls v2 10.47% (10.78%). It missed all five targets fixed before training, so run 7 stays served
+(`audit.md` phase 20). Training used the MIT Impulse Response Survey (270 measured rooms, CC-BY 4.0): J. Traer and J. H. McDermott,
+"Statistics of natural reverberation enable perceptual separation of sound and space", PNAS 2016.
 The earlier ASVspoof2019 prototype (5.7% eval EER) used feature version 1 and an easier benchmark; it is not
 reproducible with this code and not comparable to these numbers.
 

@@ -1,4 +1,4 @@
-"""Weighted fusion of per-branch P(spoof). Branches: "svm", "rcnn", "wavlm" (any subset)."""
+"""Weighted fusion of per-branch P(spoof). Branches: "svm", "rcnn", "wavlm", "whisper" (any subset)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import itertools
 
 import numpy as np
 
-BRANCHES = ("svm", "rcnn", "wavlm")
+BRANCHES = ("svm", "rcnn", "wavlm", "whisper")
 
 
 def fuse(probs: dict, weights: dict):

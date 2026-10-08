@@ -285,7 +285,7 @@ def main(argv=None) -> None:
     sp.add_argument("--limit", type=int)
     sp.add_argument("--workers", type=int, default=8)
     sp.add_argument("--bundle", help="artifacts folder to score (default: paths.artifacts_dir)")
-    sp.add_argument("--branches", nargs="+", choices=["svm", "rcnn", "wavlm"],
+    sp.add_argument("--branches", nargs="+", choices=["svm", "rcnn", "wavlm", "whisper"],
                     help="score only these branches of the bundle (e.g. wavlm out of a fused bundle)")
     sp.add_argument("--tag", help="suffix for the report file name, e.g. run4_wavlm")
     sp.add_argument("--save-scores", action="store_true", help="also write every clip's scores to a CSV")

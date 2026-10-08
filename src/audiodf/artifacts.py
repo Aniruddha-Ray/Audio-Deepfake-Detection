@@ -18,7 +18,8 @@ from audiodf.models.rcnn import load_rcnn
 from audiodf.models.svm import load_svm, save_svm
 
 SVM_FILE, RCNN_FILE, WAVLM_FILE, MANIFEST_FILE = "svm.joblib", "rcnn.pt", "wavlm.pt", "bundle.json"
-BRANCH_FILES = {"svm": SVM_FILE, "rcnn": RCNN_FILE, "wavlm": WAVLM_FILE}
+WHISPER_FILE = "whisper.pt"
+BRANCH_FILES = {"svm": SVM_FILE, "rcnn": RCNN_FILE, "wavlm": WAVLM_FILE, "whisper": WHISPER_FILE}
 WAVLM_INPUT_VERSION = 1  # raw 16 kHz waveform windows, no normalisation
 
 
@@ -40,10 +41,18 @@ class ModelBundle:
     def wavlm(self):
         return self.models.get("wavlm")
 
+    @property
+    def whisper(self):
+        return self.models.get("whisper")
+
 
 def feature_versions(branches=("svm", "rcnn")) -> dict:
     known = {"svm": svm_features.FEATURE_VERSION, "rcnn": rcnn_features.FEATURE_VERSION,
              "wavlm": WAVLM_INPUT_VERSION}
+    if "whisper" in branches:  # imported only when used: transformers is an optional dependency
+        from audiodf.models.whisper import FEATURE_VERSION as whisper_version
+
+        known["whisper"] = whisper_version
     return {b: known[b] for b in branches}
 
 
@@ -78,6 +87,9 @@ def write_manifest(settings: Settings, models: dict, metrics: dict | None = None
 
         manifest["wavlm_backbone"] = BACKBONE
         manifest["wavlm_finetune_top"] = models["wavlm"].finetune_top
+    if "whisper" in models:
+        manifest["whisper_backbone"] = models["whisper"].backbone
+        manifest["whisper_finetune_top"] = models["whisper"].finetune_top
     (out / MANIFEST_FILE).write_text(json.dumps(manifest, indent=2))
 
 
@@ -114,4 +126,8 @@ def load_bundle(settings: Settings, device: str | torch.device = "cpu", only_wei
         from audiodf.models.wavlm import load_wavlm
 
         models["wavlm"] = load_wavlm(out / WAVLM_FILE, device, settings.wavlm.pretrained)
+    if "whisper" in branches:
+        from audiodf.models.whisper import load_whisper
+
+        models["whisper"] = load_whisper(out / WHISPER_FILE, device, settings.whisper.pretrained)
     return ModelBundle(models, manifest, weights)

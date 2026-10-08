@@ -33,6 +33,8 @@ def benchmark(engine: DetectionEngine) -> dict:
         stats["rcnn_2s_window_ms"] = _time_ms(lambda: engine.rcnn_probabilities(seg))
     if "wavlm" in engine.models:
         stats["wavlm_2s_window_ms"] = _time_ms(lambda: engine.wavlm_probabilities(seg))
+    if "whisper" in engine.models:
+        stats["whisper_2s_window_ms"] = _time_ms(lambda: engine.whisper_probabilities(seg))
     chunk = window[:s.segment_hop_samples]
 
     def push_one_hop():

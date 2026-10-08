@@ -24,7 +24,7 @@ from audiodf.models.svm import CalibratedSvm, predict_spoof_proba
 
 EPS_S = 1e-3
 # Window branches: the dataset that feeds them and the scoring batch size (WavLM: 4.3 GB VRAM at 32).
-WINDOW_BRANCHES = {"rcnn": (RcnnWindowDataset, 256), "wavlm": (WaveWindowDataset, 32)}
+WINDOW_BRANCHES = {"rcnn": (RcnnWindowDataset, 256), "wavlm": (WaveWindowDataset, 32), "whisper": (WaveWindowDataset, 32)}
 
 
 @dataclass

@@ -10,10 +10,10 @@
   5. test       ASV5 eval (and ASV2019 eval as a cross-dataset check), scored once
   6. save       artifacts/ (models + tuned operating point) and results/training_report.json
 
-Flags: --no-impairments (as runs 3-5)   --noise-root DIR   --branches svm rcnn wavlm   --epochs N (RCNN)  --wavlm-epochs N  --svm-utts N
+Flags: --no-impairments (as runs 3-5)   --noise-root DIR   --branches svm rcnn wavlm whisper   --epochs N (RCNN)  --wavlm-epochs N  --svm-utts N
        --eval-utts N (0 = whole eval split)  --limit N (smoke test)
        --train-splits asv5:train asv5:dev asv19:train asv19:dev   --holdout-attacks asv5:A10 asv5:A12 asv5:A15
-       --svm-checkpoint F  --rcnn-checkpoint F  --wavlm-checkpoint F  (reuse a trained branch)
+       --svm-checkpoint F  --rcnn-checkpoint F  --wavlm-checkpoint F  --whisper-checkpoint F  (reuse a trained branch)
        --workers N  --config FILE  --rnn {bilstm,lstm}
 Serving and Kafka are separate (`python -m audiodf serve|consume`) and not needed for training.
 """
@@ -31,7 +31,7 @@ from audiodf.training.pipeline import run_training  # noqa: E402
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", help="YAML settings file")
-    ap.add_argument("--branches", nargs="+", choices=["svm", "rcnn", "wavlm"],
+    ap.add_argument("--branches", nargs="+", choices=["svm", "rcnn", "wavlm", "whisper"],
                     help="branches to train and fuse (default: wavlm alone)")
     ap.add_argument("--epochs", type=int, help="RCNN epochs (default from config)")
     ap.add_argument("--wavlm-epochs", type=int, help="WavLM epochs (default from config)")
@@ -42,9 +42,10 @@ def main() -> None:
     ap.add_argument("--holdout-attacks", nargs="*", metavar="DATASET:ATTACK",
                     help="attacks kept out of training for tuning (default asv5:A10 asv5:A12 asv5:A15); "
                          "give none to tune on ASV5 dev instead")
-    for name, ext in (("svm", "joblib"), ("rcnn", "pt"), ("wavlm", "pt")):
+    for name, ext in (("svm", "joblib"), ("rcnn", "pt"), ("wavlm", "pt"), ("whisper", "pt")):
+        label = {"wavlm": "WavLM", "whisper": "Whisper"}.get(name, name.upper())
         ap.add_argument(f"--{name}-checkpoint", type=Path, metavar=f"FILE.{ext}",
-                        help=f"reuse this trained {name.upper() if name != 'wavlm' else 'WavLM'} instead of training "
+                        help=f"reuse this trained {label} instead of training "
                              f"one (e.g. after an interrupted run, or from an earlier run on the same pool)")
     ap.add_argument("--rnn", choices=["bilstm", "lstm"], help="recurrent layer (default: bilstm)")
     ap.add_argument("--no-impairments", action="store_true",
@@ -89,7 +90,8 @@ def main() -> None:
         sys.exit(f"ASVspoof5 train/dev data not found at {root}\n"
                  f"Set AUDIODF_ASV5 to the folder containing ASVspoof5.train.tsv and flac_T/, flac_D/.")
 
-    checkpoints = {"svm": args.svm_checkpoint, "rcnn": args.rcnn_checkpoint, "wavlm": args.wavlm_checkpoint}
+    checkpoints = {"svm": args.svm_checkpoint, "rcnn": args.rcnn_checkpoint, "wavlm": args.wavlm_checkpoint,
+                   "whisper": args.whisper_checkpoint}
     d = settings.data
     print("recipe: " + (f"run 6 (room echo {d.reverb_p:.0%}, noise {d.noise_p:.0%} at {d.snr_db[0]:g}-{d.snr_db[1]:g} dB, "
                         f"packet loss on {d.loss_p:.0%} of windows, G.711 added, EnCodec share {d.neural_share:.0%})"

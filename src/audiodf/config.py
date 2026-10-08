@@ -83,6 +83,24 @@ class WavlmConfig:
 
 
 @dataclass
+class WhisperConfig:
+    """Whisper-encoder branch (models/whisper.py): same recipe as the WavLM branch."""
+    backbone: str = "openai/whisper-small"  # encoder only; whisper-base: 6 layers, d=512, ~20M
+    pretrained: bool = True  # False builds the architecture without downloading weights (tests only)
+    encoder_config: dict = field(default_factory=dict)  # WhisperConfig fields of a tiny encoder (tests only)
+    finetune_top: int = 4
+    hidden: int = 128
+    dropout: float = 0.2
+    epochs: int = 8
+    batch_size: int = 32
+    head_lr: float = 1e-3
+    backbone_lr: float = 2e-5
+    weight_decay: float = 1e-4
+    seed: int = 0
+    keep_epochs: bool = False
+
+
+@dataclass
 class EnsembleConfig:
     # Which branches to train and fuse. WavLM alone since run 4 (ASV5 eval 5.43% alone vs 5.51% fused with the
     # ~29% SVM/RCNN branches, and ~57 ms less compute per verdict); SVM and RCNN stay available.
@@ -165,6 +183,12 @@ class DataConfig:
     # Copies rendered with this EnCodec share and otherwise the same impairments are hard-linked when a clip's codec is
     # unchanged (run 7 = run 6 with share 0 reuses run 6's 0.07 copies). None: no reuse.
     reuse_neural_share: float | None = None
+    # Run 8 (echo and low-SNR babble; configs/run8.yaml): other measured rooms and a longer-reverb stretch of them, a mix of
+    # noise sources other than the default of data/impairments.py, empty = that default.
+    noise_mix: dict = field(default_factory=dict)
+    rir_corpora: tuple = ("sim_rir",)  # echo sources; picked per corpus, so ("sim_rir", "mit_rir") is half measured rooms
+    rir_stretch_p: float = 0.0  # share of the measured RIRs stretched in time (RT60 x 0.8-2.0)
+    rir_stretch: tuple = (0.8, 2.0)  # range of that stretch (log-uniform)
 
 
 @dataclass
@@ -189,6 +213,7 @@ class Settings:
     rcnn_train: RcnnTrainConfig = field(default_factory=RcnnTrainConfig)
     svm_model: SvmModelConfig = field(default_factory=SvmModelConfig)
     wavlm: WavlmConfig = field(default_factory=WavlmConfig)
+    whisper: WhisperConfig = field(default_factory=WhisperConfig)
     ensemble: EnsembleConfig = field(default_factory=EnsembleConfig)
     risk: RiskConfig = field(default_factory=RiskConfig)
     stream: StreamConfig = field(default_factory=StreamConfig)

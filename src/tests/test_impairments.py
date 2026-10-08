@@ -31,7 +31,7 @@ def _bank(tmp_path):
             p = tmp_path / f"{corpus}_{k}.wav"
             sf.write(p, tone(2.0, 300 + 100 * k, 0.2, k), SR)
             files[corpus].append(str(p))
-    for corpus in ("sim_rir", "real_rir"):
+    for corpus in ("sim_rir", "real_rir", "mit_rir"):
         p = tmp_path / f"{corpus}.wav"
         h = np.zeros(4000, dtype=np.float32)
         h[0], h[800], h[2400] = 0.4, 0.3, 0.2  # a direct path (not the largest tap) and two echoes
@@ -42,7 +42,7 @@ def _bank(tmp_path):
 
 def test_noise_bank_returns_unit_rms_segments_and_scaled_rirs(tmp_path):
     bank = _bank(tmp_path)
-    assert bank.corpora() == {"musan": 3, "esc50": 2, "sim_rir": 1, "real_rir": 1}
+    assert bank.corpora() == {"musan": 3, "esc50": 2, "sim_rir": 1, "real_rir": 1, "mit_rir": 1}
     rng = np.random.default_rng(0)
     for n in (SR // 2, 5 * SR):  # shorter and longer than the 2 s files: a short file is repeated
         seg = bank.noise(n, rng, ("musan",))
@@ -150,6 +150,60 @@ def test_impairment_plan_is_label_blind_reproducible_and_matches_the_config():
     assert abs(share("musan") - 0.35) < 0.03 and abs(share("babble") - 0.20) < 0.03 and abs(share("demand") - 0.05) < 0.03
     assert abs(sum(share(c) for c in COLOURS) - 0.25) < 0.03 and set(p.noise for p in noisy) <= {
         "musan", "pointsource", "demand", "babble", *COLOURS}
+
+
+def test_rir_stretch_lengthens_only_the_chosen_corpus_and_leaves_the_random_stream_alone(tmp_path):
+    bank = _bank(tmp_path)
+    plain = bank.rir(np.random.default_rng(5), ("mit_rir",))
+    assert np.array_equal(plain, bank.rir(np.random.default_rng(5), ("mit_rir",), stretch_p=0.0, stretch_corpora=("mit_rir",)))
+    seen = set()
+    for k in range(40):
+        h = bank.rir(np.random.default_rng(k), ("mit_rir",), stretch_p=1.0, stretch_range=(0.8, 3.0), stretch_corpora=("mit_rir",))
+        assert 0.8 * len(plain) - 2 <= len(h) <= 3.0 * len(plain) + 2 and abs(h).max() == pytest.approx(1.0)
+        seen.add(len(h))
+    assert len(seen) > 10 and max(seen) > 1.8 * len(plain)  # varied stretches, up to a much longer room
+    other = bank.rir(np.random.default_rng(5), ("sim_rir",), stretch_p=1.0, stretch_corpora=("mit_rir",))
+    assert np.array_equal(other, bank.rir(np.random.default_rng(5), ("sim_rir",)))  # other corpora are never stretched
+
+
+def test_training_refuses_the_held_out_corpora_and_run8_changes_only_the_intended_settings():
+    from dataclasses import asdict
+
+    from audiodf.config import Settings, load_settings
+    from audiodf.data.impairments import build_kit
+
+    for field, value in (("rir_corpora", ("sim_rir", "real_rir")), ("noise_mix", {"musan": 0.5, "esc50": 0.5})):
+        s = Settings()
+        setattr(s.data, field, value)
+        with pytest.raises(ValueError, match="held-out"):
+            build_kit(s, None)
+    flat = lambda d, pre="": {pre + k: v for kk, vv in d.items() for k, v in (  # noqa: E731
+        flat(vv, pre + kk + ".").items() if isinstance(vv, dict) and kk in ("data", "paths", "wavlm") else [(kk, vv)])}
+    from pathlib import Path
+
+    configs = Path(__file__).resolve().parent.parent / "configs"
+    a, b = (flat(asdict(load_settings(configs / f"run{n}.yaml"))) for n in (7, 8))
+    changed = {k for k in a if a[k] != b[k]}
+    assert changed == {"data.reuse_neural_share", "data.reverb_p", "data.snr_db", "data.noise_mix", "data.rir_corpora",
+                       "data.rir_stretch_p", "data.rir_stretch", "paths.artifacts_dir", "paths.results_dir"}
+    assert b["data.neural_share"] == 0.0 and b["data.loss_p"] == a["data.loss_p"] and b["wavlm.epochs"] == a["wavlm.epochs"]
+
+
+def test_run8_plan_has_the_stated_echo_noise_and_snr_mix():
+    from audiodf.config import load_settings
+    from pathlib import Path
+
+    s = load_settings(Path(__file__).resolve().parent.parent / "configs" / "run8.yaml")
+    cfg = ImpairConfig(reverb_p=s.data.reverb_p, noise_p=s.data.noise_p, snr_range=tuple(s.data.snr_db),
+                       mix=dict(s.data.noise_mix), rir_corpora=tuple(s.data.rir_corpora))
+    plans = [impair_plan(f"T_{k:010d}", 1, cfg) for k in range(8000)]
+    assert abs(np.mean([p.reverb for p in plans]) - 0.5) < 0.02
+    noisy = [p for p in plans if p.noise != "none"]
+    snr = np.array([p.snr_db for p in noisy])
+    assert 0 <= snr.min() and snr.max() <= 35 and abs(snr.mean() - 17.5) < 0.5
+    share = lambda name: np.mean([p.noise == name for p in noisy])  # noqa: E731
+    assert abs(share("babble") - 0.30) < 0.03 and abs(share("musan") - 0.30) < 0.03
+    assert abs(sum(share(c) for c in COLOURS) - 0.20) < 0.03
 
 
 def test_apply_impairment_runs_every_noise_kind(tmp_path):
@@ -287,6 +341,22 @@ def test_a_copy_classical_under_both_shares_is_identical(asv5, tmp_path):
     assert a.path(int(both[0])) != b.path(int(both[0]))  # two different folders, both rendered from scratch
     for i in both:
         assert np.array_equal(sf.read(a.path(int(i)), dtype="int16")[0], sf.read(b.path(int(i)), dtype="int16")[0])
+
+
+def test_render_tag_ignores_unused_corpora_and_unused_new_settings_but_not_used_ones(tmp_path):
+    """Runs 6 and 7 keep their tags (and cached copies) when run 8's corpus and settings exist but are not used."""
+    from dataclasses import replace
+
+    from audiodf.data.noise_bank import NoiseBank
+
+    kit = _kit(tmp_path)
+    without_mit = replace(kit, bank=NoiseBank({c: v for c, v in kit.bank.files.items() if c != "mit_rir"}))
+    assert kit.tag == without_mit.tag  # a measured corpus on disk that the recipe does not use changes nothing
+    stretched = replace(kit, cfg=replace(kit.cfg, rir_stretch_p=0.5))
+    uses_mit = replace(kit, cfg=replace(kit.cfg, rir_corpora=("sim_rir", "mit_rir")))
+    assert len({kit.tag, stretched.tag, uses_mit.tag}) == 3
+    assert replace(kit, cfg=replace(kit.cfg, rir_stretch=(0.5, 4.0))).tag == kit.tag  # a range that is not in use
+    assert replace(stretched, cfg=replace(stretched.cfg, rir_stretch=(0.5, 4.0))).tag != stretched.tag
 
 
 def test_run_training_with_noise_echo_and_packet_loss(tmp_path):

@@ -1,6 +1,6 @@
 """Shared, stateless scoring engine: each branch keeps its own preprocessing, then the branches fuse.
 
-SVM: hand-crafted features over the whole buffer. RCNN: Log-Mel of each 2 s window. WavLM: the raw 2 s window.
+SVM: hand-crafted features over the whole buffer. RCNN: Log-Mel of each 2 s window. WavLM and Whisper: the raw 2 s window.
 Only branches with a non-zero fusion weight are run.
 """
 
@@ -23,7 +23,7 @@ from audiodf.models.rcnn import predict_spoof_proba as rcnn_predict
 from audiodf.models.svm import predict_spoof_proba as svm_predict
 from audiodf.risk import RiskEngine
 
-WINDOW_BRANCHES = ("rcnn", "wavlm")
+WINDOW_BRANCHES = ("rcnn", "wavlm", "whisper")
 
 
 @dataclass(frozen=True)
@@ -40,6 +40,7 @@ class Verdict:
     latency_ms: float
     call_id: str | None = None
     wavlm_probability: float | None = None
+    whisper_probability: float | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -100,9 +101,16 @@ class DetectionEngine:
 
         return wavlm_predict(self.models["wavlm"], segments, self.device)
 
+    def whisper_probabilities(self, segments: np.ndarray) -> np.ndarray:
+        """Whisper-encoder branch: one probability per raw 2 s window, shape (n,)."""
+        from audiodf.models.whisper import predict_spoof_proba as whisper_predict
+
+        return whisper_predict(self.models["whisper"], segments, self.device)
+
     def window_probabilities(self, segments: np.ndarray) -> dict:
         """Every active window branch on the same (n, samples) windows -> {branch: (n,)}."""
-        score = {"rcnn": self.rcnn_probabilities, "wavlm": self.wavlm_probabilities}
+        score = {"rcnn": self.rcnn_probabilities, "wavlm": self.wavlm_probabilities,
+                 "whisper": self.whisper_probabilities}
         return {b: score[b](segments) for b in self.window_branches}
 
     def make_verdict(self, svm_p: float | None, window_probs: dict, audio_seconds: float, final: bool,
@@ -113,11 +121,11 @@ class DetectionEngine:
             probs["svm"] = svm_p
         fake_p = float(fuse(probs, self.weights))
         risk = self.risk.classify(fake_p)
-        rounded = {b: (round(probs[b], 5) if b in probs else None) for b in ("svm", "rcnn", "wavlm")}
+        rounded = {b: (round(probs[b], 5) if b in probs else None) for b in ("svm", "rcnn", "wavlm", "whisper")}
         n_windows = max((len(v) for v in window_probs.values()), default=0)
         return Verdict(label="fake" if fake_p >= 0.5 else "real", fake_probability=round(fake_p, 5),
                        svm_probability=rounded["svm"], rcnn_probability=rounded["rcnn"],
-                       wavlm_probability=rounded["wavlm"], risk_level=risk.level, action=risk.action,
+                       wavlm_probability=rounded["wavlm"], whisper_probability=rounded["whisper"], risk_level=risk.level, action=risk.action,
                        segments_scored=n_windows, audio_seconds=round(audio_seconds, 2), final=final,
                        latency_ms=round(latency_ms, 2), call_id=call_id)
 

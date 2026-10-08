@@ -14,7 +14,7 @@ Last updated: 2026-10-06 (after the live-call check and the swap to run 4's WavL
 | Run 6 vs served | Better on ASV5 eval (4.46 vs 5.43%) and on every noisy / echoey / lossy call set (babble 7.75 vs 15.54%, held-out v2 11.41 vs 16.95%, loss-driven false alarms +3.8 vs +35.7 points), **worse by ~1 point on the 2019-derived real-phone sets** (ASVspoof2019 eval 5.82 vs 4.85%, ASVspoof 2021 9.86 vs 8.81%). The pre-set rule says do not adopt; your decision (phase 17). Denoising was tested and rejected. |
 | Deployment | FastAPI tested for real (53 ms to first verdict on GPU, WavLM alone; live path matches batched scoring); **Kafka, Docker runtime, Kubernetes, Grafana untested**. No real phone-call audio (you cannot provide any; simulated calls used instead). |
 | Disk | Data: `dataset19/LA` 7.1 GB (renamed from `dataset/` on 2026-10-06), `dataset21/` 7.6 GB, `dataset_noise/` ~8 GB, simulated call sets ~6 GB, `dataset5/` ~75 GB (train, dev, 2 of 10 eval tars); codec renders in the cache (catalogue 1 ~35 GB, catalogue 2 adds ~7 GB, the rest hard links). |
-| Next | **Run 7 is the served model** (phase 18), thresholds verify 0.0060 / block 0.90 (phase 19, banking policy). Next: echo robustness (run 8, section 9). |
+| Next | **Run 7 is the served model** (verify 0.0060 / block 0.90). Run 8 (echo, babble) met 0 of 5 targets: not adopted (phase 20). Next: the Whisper-encoder branch (section 9). |
 
 ## 2. Timeline
 
@@ -642,6 +642,120 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
     models (run 8: echo, babble), not looser thresholds. An option for later: per-action levels (strict for money movement, 0.161 for
     enquiries), which needs a small serving change.
 
+### Phase 20: run 8, echo and low-SNR babble robustness (plan and rule written 2026-10-07 before any result)
+
+- **Why:** run 7's weakest spots on held-out call set v2 are real room echo (2.7% without echo, 12.6% with it, 19.9% with noise too),
+  babble (13.2%) and 5-10 dB noise (16.6%), and echo is what now drives genuine-caller flags at the call-based thresholds (phase 19).
+  Banking policy: keep the strict verify level and cut the verification load through the model.
+- **Recipe, rule and flow:** `new_plan.md` 7.3r (the rule is there, with run 7's numbers). Config `src/configs/run8.yaml`; run 7 and run
+  8 differ only in echo share (.30 -> .50), echo sources (+ MIT IR Survey, 270 measured spaces, CC-BY 4.0, stretched in time by 0.8-3.0
+  for half of them), the noise floor (5 -> 0 dB) and the mix (babble .20 -> .30, colours .25 -> .20, MUSAN .35 -> .30).
+- **Code:** `NoiseBank.rir(stretch_p, stretch_range, stretch_corpora)` (random stream untouched when off), `ImpairConfig.rir_stretch*`,
+  `DataConfig.noise_mix / rir_corpora / rir_stretch_p / rir_stretch`, `mit_rir` in the bank (`dataset_noise/mit_rir`, from the Hugging
+  Face parquet `benjamin-paine/mit-impulse-response-survey-16khz`), `build_kit` refuses the held-out corpora. 155 tests green; a test pins
+  run 8's difference to run 7 to exactly those settings.
+- **Disk:** the re-render needs ~24 GB (73 GB free); caches of runs 3-7 are kept.
+- **Plan after run 8 (your order):** Whisper-encoder branch, then transcript-based intent as a separate module, then LLM explanations
+  (`new_plan.md` 7.3r).
+- **Training (2026-10-07 ~14:15 to 22:10; render 7,059 s + 322 s, then 8 passes of ~48 min):** tuning EER by pass 7.95, 7.70, 5.88, 6.36,
+  4.67, 4.56, **4.50** (pass 7 kept), 4.53%. The tuning set holds more echo and noise than run 7's, so it is not comparable with it. All
+  passes saved in `artifacts_run8/epochs/`. Bundle `artifacts_run8/` (not served), report `results/run8/training_report.json`.
+- **Results (EER at 10 s, WavLM alone, same clips; 95% paired-bootstrap interval of run 8 minus run 7 where per-clip scores exist):**
+
+| Test set | run 4 | run 7 (served) | run 8 | run 8 minus run 7 | rule for run 8 |
+|---|---|---|---|---|---|
+| ASV5 eval (30k) | 5.43% | 5.74% | 5.73% | -0.01 | <= 6.24 met |
+| ASVspoof2019 eval (30k) | 4.85% | 5.33% | 5.32% | -0.01 | <= 5.63 met |
+| ASVspoof 2021 real phone channels (30k) | 8.81% | 9.14% | 9.42% | **+0.28 [+0.06, +0.51]** | <= 9.44 met (by 0.02) |
+| Call set v1 | 4.96% | 3.06% | 3.03% | -0.03 [-0.22, +0.25] | <= 3.36 met |
+| Babble set | 15.54% | 7.00% | 6.29% | **-0.71 [-1.13, -0.08]** | target <= 6.0 **not met** |
+| Call set v2 overall | 16.95% | 10.78% | 10.47% | -0.31 [-0.81, +0.17] | target <= 9.5 **not met** |
+| v2 no noise, no echo | 3.98% | 2.72% | 2.41% | | <= 3.2 met |
+| v2 echo, no noise | 18.34% | 12.58% | 12.27% | | target <= 9.5 **not met** |
+| v2 echo + noise | 30.47% | 19.95% | 19.16% | | target <= 16.5 **not met** |
+| v2 SNR 5-10 dB | 26.58% | 16.56% | 15.90% | | target <= 14.5 **not met** |
+| Fakes caught with verify at 10% of genuine ASVspoof 2021 calls | | 91.7% | 91.1% | -0.6 | >= 90.7 met |
+
+- **Verdict by the rule fixed before training: 0 of 5 targets met, every regression limit met (ASVspoof 2021 by 0.02 points).** Not
+  proposed for serving; `artifacts/` is still run 7. The gains are real but small: babble -0.71 (interval excludes zero), v2 -0.31
+  (interval includes zero), at +0.28 on real phone lines (interval excludes zero) and 4.4 points fewer fakes caught at a 1% false-alarm
+  budget there (run 7 60.0%, run 8 55.7%).
+- **Why the echo did not move (analysis after the result, not a rule change):** the held-out echo rooms are very reverberant (218 real
+  rooms, rough RT60 percentiles 10/50/90 = 0.16 / 0.92 / 1.93 s, cut at 1 s), far above the 0.2-0.6 s of typical homes and offices
+  (my 270 measured MIT rooms: median 0.3 s). By room reverberation, echo calls without noise (run 4 / 7 / 8): RT60 < 0.3 s 1.8 / 2.5 / 2.5%
+  (n=118); 0.3-0.6 s 24.1 / 7.6 / **4.9%** (n=79); 0.6-1.0 s 24.8 / 15.0 / 14.5% (n=186); > 1.0 s 19.8 / 13.4 / 14.8% (n=277).
+  With noise: 8.3 / 16.8 / 20.8 / 20.5% for run 7 and 8.9 / 16.5 / 20.8 / 18.7% for run 8. So the training helps rooms of plausible
+  size (0.3-0.6 s, small samples) and does nothing for halls; 60% of v2's echo calls are in rooms of RT60 > 0.6 s.
+- **Mistake 24:** I fixed the echo targets (12.6 -> 9.5 and 19.9 -> 16.5) without first checking what the held-out rooms look like;
+  the RT60 analysis above was done after the result. The targets were guesses that the test set's long rooms made unreachable by
+  this recipe. The rule stands as written (run 8 fails it); a better test of "realistic call rooms" would hold out measured rooms
+  of 0.2-0.8 s.
+- **Epoch diagnostic (your hypothesis: would more epochs of run 8 help? run 2026-10-08 after run 9; diagnostic only, never used to pick a
+  checkpoint):** run 8's saved epochs 5, 6, 8 scored next to epoch 7 (the bundle; weights verified identical):
+
+| Run 8 epoch | tuning EER | ASVspoof 2021 | Babble | Held-out v2 |
+|---|---|---|---|---|
+| 5 | 4.67% | 9.42% | 6.00% | 9.97% |
+| 6 | 4.56% | 9.21% | 6.37% | 10.25% |
+| **7 (kept)** | 4.50% | 9.42% | 6.29% | 10.47% |
+| 8 | 4.53% | 9.33% | 6.33% | 10.16% |
+
+  Range across epochs 5-8: 0.21 / 0.37 / 0.50 points, in no consistent direction. Paired bootstrap, epoch 7 minus epoch 5: ASVspoof 2021
+  -0.00 [-0.18, +0.24]; babble +0.29 [-0.10, +0.71]; v2 +0.50 [+0.05, +1.06]; epoch 8 minus 7: -0.09 [-0.24, -0.01], +0.04 [-0.33, +0.21],
+  -0.31 [-0.52, -0.02]. **Epochs 5 to 8 are equivalent within a few tenths of a point: the extra passes did not improve test
+  performance** (epoch 7 is no better than epoch 5 and slightly worse on v2), which does not support a longer schedule. Choosing epoch 5 or 6 from
+  this table would be tuning on test sets and is not done.
+- **What run 8 tells us:** more training data of the same kind does not fix echo; the two weak spots are very long reverberation
+  (where speech is smeared for a second or more) and echo combined with noise. Whether those matter for real calls is unknown;
+  they matter less than typical-room echo, which run 7 already handles at 2.5-7.6%. The next lever is a different model (the Whisper
+  branch: different pretraining data, may keep traces WavLM loses), not more of this recipe.
+
+### Phase 21: run 9, the Whisper-encoder branch (plan and rule written 2026-10-07 before training)
+
+- **Why:** step 2 of your flow; run 8 showed more data of the same kind does not close run 7's weak spots (very long reverberation,
+  echo + noise, 8% of fakes on real phone lines scored as confidently genuine). A second encoder trained on different audio is the next
+  lever. The Whisper-small encoder is as fast as WavLM (measured: 2.4 vs 4.5 ms per window, 1.2 vs 1.9 GB VRAM).
+- **Code (162 tests, 6 new):** `models/whisper.py` (encoder over 2 s windows without the 30 s pad; GPU log-mel equal to Whisper's
+  feature extractor), `training/train_whisper.py`, branch registered everywhere WavLM is (config `WhisperConfig`, `BRANCHES`, bundle files
+  and manifest, `stream_eval.WINDOW_BRANCHES`, serving engine and verdict `whisper_probability`, benchmark, CLI, `run.py
+  --whisper-checkpoint`); `transformers` added to `requirements-dev.txt` only (the Docker image needs it only if the branch is served).
+  A test caught that the checkpoint did not store the head width (a model trained with another `hidden` could not be loaded): fixed.
+  The render-folder tag was made backward-compatible (run 6 / 7 / 8 tags verified: cafd37e9 / a7fd0e14 / 93c5eff0), so run 7's cached
+  copies are reused.
+- **Recipe and rule:** `new_plan.md` 7.3t; config `src/configs/run9.yaml`.
+- **Smoke test (real weights, 150 clips per split, 1 pass, 10.7 min) passed before the real run.** Training 2026-10-07 22:50 to 2026-10-08
+  ~04:20, 8 passes of 31-37 min (faster than WavLM's 48): Whisper tuning EER by pass 6.45, 5.93, 5.33, 4.83, 4.96, **4.72** (pass 6 kept),
+  4.87, 4.89%. Fusion tuned on the tuning set: WavLM 0.65, Whisper 0.35 (tuning set: WavLM 2.94, Whisper 4.72, fused 2.57%). Run 9's WavLM
+  is run 7's, verified weight for weight against `artifacts_run7/wavlm.pt` and `artifacts/wavlm.pt`. Bundle `artifacts_run9/` (not served),
+  report `results/run9/training_report.json`.
+- **Results (EER at 10 s, same clips; WavLM column = run 7; 95% paired-bootstrap interval of fused minus WavLM):**
+
+| Test set | WavLM (run 7) | Whisper alone | Fused 65/35 | fused - WavLM | rule |
+|---|---|---|---|---|---|
+| ASV5 eval (30k) | 5.74% | 7.75% | 5.72% | -0.02 | <= 6.24 met |
+| ASVspoof2019 eval (30k) | 5.33% | 8.46% | 5.40% | +0.07 | <= 5.63 met |
+| ASVspoof 2021 real phone lines (30k) | 9.14% | 13.86% | 9.83% | **+0.72 [+0.39, +1.00]** | <= 8.64 **not met** |
+| Call set v1 | 3.06% | 5.47% | 2.96% | -0.10 [-0.30, +0.16] | <= 3.36 met |
+| Babble set | 7.00% | 8.31% | 6.21% | **-0.79 [-1.19, -0.33]** | <= 7.30 met |
+| Call set v2 | 10.78% | 10.48% | 9.62% | **-1.16 [-1.62, -0.69]** | <= 11.08 met |
+| Fakes caught, verify at 10% / 5% / 1% of genuine ASVspoof 2021 calls | 91.7 / 85.3 / 60.0% | 83.1 / 75.9 / 48.1% | 90.3 / 84.3 / 64.0% | | 10%: >= 93.0 **not met** |
+| First-verdict latency, batch 1, GPU (`benchmark`) | 51.1 ms | Whisper window 40.3 ms | 91.4 ms | **1.79x** | <= 1.7x **not met** |
+
+  (The fused ASVspoof 2021 figure is 9.83% in the evaluator and 9.86% in the comparison helper, from the rounding of the scores file.)
+- **Verdict by the rule fixed before training: not adopted.** The phone-line gain is missed (the fused model is 0.69 points worse than
+  WavLM, and catches 1.4 points fewer fakes at the 10% level), and the cost limit is missed (1.79x). Every no-regression limit is met.
+  Whisper stays a documented branch; `artifacts/` is still run 7.
+- **Where Whisper helps and where it does not (v2, EER %, run 7 / run 8 / Whisper alone / fused):** no noise, no echo 2.72 / 2.41 / 4.60 /
+  2.62; noise, no echo 5.94 / 5.45 / 7.54 / 4.96; **echo, no noise 12.58 / 12.27 / 10.91 / 11.82; echo + noise 19.95 / 19.16 / 17.50 /
+  17.71**; babble 13.19 / 12.48 / 13.61 / 12.18; 5-10 dB 16.56 / 15.90 / 15.26 / 15.03. Whisper alone is the better encoder wherever there
+  is echo (better than run 8, which trained on 40% more echo and measured rooms, without any echo-specific training of its own) and the
+  worse one on clean and noise-only audio. Its pretraining on reverberant web audio is the likely reason; this is a hypothesis.
+- **Is it complementary on real phone lines?** WavLM passes 8.3% of fakes at its verify level (0.0060); Whisper, at its own
+  10%-of-genuine level, flags 24.4% of those. But an "either model flags" verify rule flags 15.9% of genuine calls and catches 93.7%,
+  while WavLM alone with its level loosened to flag the same 15.9% catches 94.8%: no gain over simply loosening WavLM. On the call sets
+  the either-model rule flags 10 more points of genuine calls for +0.2-0.3 points of fakes caught. Offline, thresholds from ASVspoof 2021.
+  Log-score correlation WavLM vs Whisper on ASVspoof 2021: 0.83.
+
 ## 3. Decisions and the reasoning behind them
 
 - **Train on ASV5 only, drop ASV2019 (run 1).** Chosen because ASV5 dev gives attack-disjoint tuning and ASV2019 has a silence
@@ -728,6 +842,8 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
 23. Run 7's decision rule (written 2026-10-06) allowed +0.3 points on ASVspoof2019 (limit 5.15%), while run 6's framework had
     allowed +0.5 (5.35%); I tightened it without saying so. Run 7 scored 5.33%: it fails the rule as written and would have passed
     the old one. Reported both ways in phase 18; the rule is not changed after the fact.
+24. Run 8's echo targets were set without looking at the held-out rooms' reverberation times (median ~0.9 s, a third above 1 s,
+    far beyond typical call rooms), so they were not reachable by training on more echo; found afterwards and reported in phase 20.
 
 ## 5. Known limitations (current)
 
@@ -822,10 +938,10 @@ simulated; a small set of real recordings would still be the best final check.
 **Step 1: second threshold pass for run 7: done (phase 19).** Served: verify 0.0060, block 0.90. Calibration call sets and the
 `call-thresholds` tool stay for every later model.
 
-**Step 2: echo and low-SNR robustness (run 8, ~7 h + scoring).** Run 7's biggest weakness is real room echo (2.7% -> 12.6%; with noise
-19.9%), then babble (13.2%) and 5-10 dB noise (16.6%), because it trained on simulated echoes only. Add measured impulse responses that
-are not the held-out set, more echo (e.g. 30% -> 50% of copies), more low-SNR babble; same decision-rule discipline, judged on v2.
-Fine-tuning run 7 on the new recipe (2-3 passes) may be enough instead of training from scratch.
+**Step 2: run 8 (echo, low-SNR babble): done, not adopted (phase 20).** 0 of 5 targets met; babble -0.71, v2 -0.31, phone lines +0.28.
+More echo of the same kind does not fix very long reverberation. Next (your flow): **the Whisper-encoder branch**, judged alone and fused
+with WavLM against run 7 under a rule fixed before training; then transcript-based scam intent as a separate module; then LLM
+explanations. A later recipe change worth testing: held-out measured rooms of 0.2-0.8 s as a realistic echo test.
 
 **Step 3: remaining ML work** (`new_plan.md` 7.3k): out-of-domain test (In-the-Wild and/or ASVspoof 2021 DF; no retraining);
 a second training seed (measures run-to-run noise, which every decision so far lacks); probability calibration of the WavLM

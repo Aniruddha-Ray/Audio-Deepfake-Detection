@@ -1,0 +1,15 @@
+# Run 9: the Whisper-encoder branch next to the served WavLM. Recipe = run 7 (its cached copies are reused: same configuration
+# tag); WavLM is run 7's trained model (reused with --wavlm-checkpoint ../artifacts_run7/wavlm.pt), Whisper-small's encoder is
+# trained fresh (top 4 layers + head, 8 passes), fusion weights and thresholds tuned on the held-out tuning set. Rule: new_plan.md 7.3t.
+#   cd src && python run.py --config configs/run9.yaml --wavlm-checkpoint ../artifacts_run7/wavlm.pt --eval-utts 30000
+ensemble:
+  branches: [wavlm, whisper]
+data:
+  neural_share: 0.0
+wavlm:
+  keep_epochs: false
+whisper:
+  keep_epochs: true
+paths:
+  artifacts_dir: ../artifacts_run9
+  results_dir: ../results/run9

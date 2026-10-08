@@ -3,7 +3,8 @@
 Corpora, all 16 kHz mono (`audiodf prepare-noise` unpacks and resamples the parquet ones):
   training noise   musan (OpenSLR 17, noise folder: free-sound and sound-bible), pointsource (RIRS_NOISES point-source
                    noises), demand (DEMAND subset: kitchen, street, cafeteria...)
-  training echo    sim_rir (RIRS_NOISES simulated room impulse responses)
+  training echo    sim_rir (RIRS_NOISES simulated room impulse responses), mit_rir (MIT IR Survey: 270 measured everyday
+                   spaces at 1.5 m, CC-BY 4.0, Traer and McDermott 2016; run 8)
   held-out tests   esc50 (environmental sounds), real_rir (RIRS_NOISES real, measured RIRs)
 Keeping the test corpora out of training means a noise-robust model is judged on noise and rooms it never saw.
 """
@@ -20,7 +21,7 @@ from scipy.signal import resample_poly
 SR = 16000
 TRAIN_NOISE = ("musan", "pointsource", "demand")
 TEST_NOISE = ("esc50",)
-TRAIN_RIR, TEST_RIR = ("sim_rir",), ("real_rir",)
+TRAIN_RIR, TEST_RIR = ("sim_rir", "mit_rir"), ("real_rir",)
 
 
 def _wavs(folder: Path, pattern: str = "*.wav") -> list[str]:
@@ -67,6 +68,7 @@ class NoiseBank:
             "demand": _wavs(root / "demand_wav", "*.flac"),
             "esc50": _wavs(root / "esc50_wav", "*.flac"),
             "sim_rir": _wavs(rirs / "simulated_rirs"),
+            "mit_rir": _wavs(root / "mit_rir", "*.flac"),
             "real_rir": [p for p in _wavs(rirs / "real_rirs_isotropic_noises") if "_rir_" in Path(p).name],
         })
 
@@ -95,14 +97,22 @@ class NoiseBank:
         rms = float(np.sqrt((seg.astype(np.float64) ** 2).mean()))
         return seg / rms if rms > 1e-9 else seg  # a silent stretch stays silent
 
-    def rir(self, rng: np.random.Generator, corpora: tuple[str, ...], max_seconds: float = 1.0) -> np.ndarray:
-        """One room impulse response from a random file, direct path scaled to 1 and cut at `max_seconds`."""
+    def rir(self, rng: np.random.Generator, corpora: tuple[str, ...], max_seconds: float = 1.0, stretch_p: float = 0.0,
+            stretch_range: tuple = (0.8, 2.0), stretch_corpora: tuple = ()) -> np.ndarray:
+        """One room impulse response from a random file (the corpus is picked first, so a small measured corpus is not
+        swamped by a large simulated one), peak scaled to 1 and cut at `max_seconds`. With probability `stretch_p` an RIR of
+        a corpus in `stretch_corpora` is stretched in time by a log-uniform factor in `stretch_range`: the room gets that
+        much longer (or shorter) reverberation, which widens a small measured set. The random stream is untouched
+        when stretching is off, so earlier recipes render exactly as before."""
         corpus = corpora[int(rng.integers(len(corpora)))]
         path = self.files[corpus][int(rng.integers(len(self.files[corpus])))]
         h, sr = sf.read(path, dtype="float32", always_2d=True)
         h = h.mean(axis=1)
         if sr != SR:
             h = resample_poly(h, SR, sr).astype(np.float32)
+        if stretch_p > 0 and corpus in stretch_corpora and rng.random() < stretch_p:
+            factor = float(np.exp(rng.uniform(np.log(stretch_range[0]), np.log(stretch_range[1]))))
+            h = resample_poly(h, int(round(factor * 100)), 100).astype(np.float32)
         h = h[: int(max_seconds * SR)]
         peak = float(np.abs(h).max())
         return h / peak if peak > 0 else h

@@ -1,0 +1,9 @@
+{
+  "branches": {
+    "wavlm": 1.0
+  },
+  "wavlm_2s_window_ms": 52.059,
+  "session_first_verdict_ms": 51.105,
+  "device": "cuda",
+  "note": "synthetic noise audio; per-call cost, batch size 1"
+}

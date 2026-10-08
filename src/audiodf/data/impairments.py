@@ -22,7 +22,7 @@ from dataclasses import asdict, dataclass, field
 import numpy as np
 from scipy.signal import fftconvolve
 
-from audiodf.data.noise_bank import NoiseBank
+from audiodf.data.noise_bank import TEST_NOISE, TEST_RIR, NoiseBank
 from audiodf.data.voip_sim import PACKET, BabblePool, speech_rms
 
 TRAIN_STYLES = ("repeat_fade", "zero", "crossfade", "comfort")
@@ -130,6 +130,10 @@ class ImpairConfig:
                                                "colours": 0.25})
     rir_corpora: tuple = ("sim_rir",)
     noise_corpora: tuple = ("musan", "pointsource", "demand")
+    # run 8: share of RIRs from `rir_stretch_corpora` that are stretched in time by a factor in `rir_stretch` (see NoiseBank.rir)
+    rir_stretch_p: float = 0.0
+    rir_stretch: tuple = (0.8, 2.0)
+    rir_stretch_corpora: tuple = ("mit_rir",)
 
 
 @dataclass(frozen=True)
@@ -159,7 +163,8 @@ def apply_impairment(x: np.ndarray, plan: ImpairPlan, bank: NoiseBank | None, ba
     rng = np.random.default_rng(plan.seed)
     y = np.asarray(x, dtype=np.float32)
     if plan.reverb:
-        y = reverb(y, bank.rir(rng, cfg.rir_corpora))
+        y = reverb(y, bank.rir(rng, cfg.rir_corpora, stretch_p=cfg.rir_stretch_p, stretch_range=cfg.rir_stretch,
+                               stretch_corpora=cfg.rir_stretch_corpora))
     if plan.noise == "none":
         return y
     if plan.noise == "babble":
@@ -185,7 +190,15 @@ class ImpairKit:
 
     @property
     def tag(self) -> str:
-        blob = json.dumps({"cfg": asdict(self.cfg), "neural_share": self.neural_share, "bank": self.bank.corpora(),
+        """Hash of everything that decides the copies. Settings added after run 7 enter it only when they are in use, and
+        a corpus enters it only when the recipe uses it, so runs 6 and 7 keep their tags (and their cached copies)."""
+        cfg = asdict(self.cfg)
+        if cfg["rir_stretch_p"] == 0:
+            for key in ("rir_stretch_p", "rir_stretch", "rir_stretch_corpora"):
+                del cfg[key]
+        used = set(cfg["noise_corpora"]) | set(cfg["rir_corpora"]) | {"esc50", "real_rir"}  # held-out sets were always listed
+        bank = {c: n for c, n in self.bank.corpora().items() if c in used or c not in ("mit_rir",)}
+        blob = json.dumps({"cfg": cfg, "neural_share": self.neural_share, "bank": bank,
                            "babble": len(self.babble.paths) if self.babble else 0}, sort_keys=True)
         return hashlib.md5(blob.encode()).hexdigest()[:8]
 
@@ -197,7 +210,12 @@ def build_kit(settings, pool) -> ImpairKit:
     """The impairment kit for training from the settings: noise bank from paths.noise_root, babble from the genuine clips
     of the training pool `pool` (other speakers' speech; never the same speaker as the clip)."""
     d = settings.data
-    cfg = ImpairConfig(reverb_p=d.reverb_p, noise_p=d.noise_p, snr_range=tuple(d.snr_db))
+    extra = {"mix": dict(d.noise_mix)} if d.noise_mix else {}  # empty: the default mix of ImpairConfig
+    cfg = ImpairConfig(reverb_p=d.reverb_p, noise_p=d.noise_p, snr_range=tuple(d.snr_db), rir_corpora=tuple(d.rir_corpora),
+                       rir_stretch_p=d.rir_stretch_p, rir_stretch=tuple(d.rir_stretch), **extra)
+    held_out = (set(TEST_NOISE) | set(TEST_RIR)) & (set(cfg.noise_corpora) | set(cfg.rir_corpora) | set(cfg.mix))
+    if held_out:
+        raise ValueError(f"training may not use the held-out test corpora {sorted(held_out)}")
     bank = NoiseBank.scan(settings.paths.noise_root)
     bank.require(*cfg.noise_corpora, *cfg.rir_corpora)
     return ImpairKit(cfg, bank, BabblePool.from_index(pool), d.neural_share)
