@@ -166,10 +166,22 @@ def test_rir_stretch_lengthens_only_the_chosen_corpus_and_leaves_the_random_stre
     assert np.array_equal(other, bank.rir(np.random.default_rng(5), ("sim_rir",)))  # other corpora are never stretched
 
 
-def test_training_refuses_the_held_out_corpora_and_run8_changes_only_the_intended_settings():
-    from dataclasses import asdict
+# Run 8's recipe as documented in new_plan.md 7.3r (the same values as configs/run8.yaml, which is not part of the repository).
+RUN8_DATA = {"neural_share": 0.0, "reverb_p": 0.5, "snr_db": [0, 35],
+             "noise_mix": {"musan": 0.30, "pointsource": 0.15, "demand": 0.05, "babble": 0.30, "colours": 0.20},
+             "rir_corpora": ["sim_rir", "mit_rir"], "rir_stretch_p": 0.5, "rir_stretch": [0.8, 3.0]}
 
-    from audiodf.config import Settings, load_settings
+
+def _run8_settings():
+    from audiodf.config import Settings, _merge
+
+    s = Settings()
+    _merge(s, {"data": dict(RUN8_DATA)})
+    return s
+
+
+def test_training_refuses_the_held_out_corpora():
+    from audiodf.config import Settings
     from audiodf.data.impairments import build_kit
 
     for field, value in (("rir_corpora", ("sim_rir", "real_rir")), ("noise_mix", {"musan": 0.5, "esc50": 0.5})):
@@ -177,23 +189,31 @@ def test_training_refuses_the_held_out_corpora_and_run8_changes_only_the_intende
         setattr(s.data, field, value)
         with pytest.raises(ValueError, match="held-out"):
             build_kit(s, None)
-    flat = lambda d, pre="": {pre + k: v for kk, vv in d.items() for k, v in (  # noqa: E731
-        flat(vv, pre + kk + ".").items() if isinstance(vv, dict) and kk in ("data", "paths", "wavlm") else [(kk, vv)])}
+
+
+def test_run8_yaml_matches_the_documented_recipe_and_differs_from_run7_only_there():
+    """Pins configs/run8.yaml (kept local, not in the repository) to the documented recipe; skipped where it is absent."""
+    from dataclasses import asdict
     from pathlib import Path
 
+    from audiodf.config import load_settings
+
     configs = Path(__file__).resolve().parent.parent / "configs"
+    if not (configs / "run8.yaml").exists():
+        pytest.skip("configs/run8.yaml is not in this checkout")
+    flat = lambda d, pre="": {pre + k: v for kk, vv in d.items() for k, v in (  # noqa: E731
+        flat(vv, pre + kk + ".").items() if isinstance(vv, dict) and kk in ("data", "paths", "wavlm") else [(kk, vv)])}
     a, b = (flat(asdict(load_settings(configs / f"run{n}.yaml"))) for n in (7, 8))
     changed = {k for k in a if a[k] != b[k]}
     assert changed == {"data.reuse_neural_share", "data.reverb_p", "data.snr_db", "data.noise_mix", "data.rir_corpora",
                        "data.rir_stretch_p", "data.rir_stretch", "paths.artifacts_dir", "paths.results_dir"}
-    assert b["data.neural_share"] == 0.0 and b["data.loss_p"] == a["data.loss_p"] and b["wavlm.epochs"] == a["wavlm.epochs"]
+    for key, value in RUN8_DATA.items():
+        assert b[f"data.{key}"] == (tuple(value) if isinstance(value, list) else value)
+    assert b["data.loss_p"] == a["data.loss_p"] and b["wavlm.epochs"] == a["wavlm.epochs"]
 
 
 def test_run8_plan_has_the_stated_echo_noise_and_snr_mix():
-    from audiodf.config import load_settings
-    from pathlib import Path
-
-    s = load_settings(Path(__file__).resolve().parent.parent / "configs" / "run8.yaml")
+    s = _run8_settings()
     cfg = ImpairConfig(reverb_p=s.data.reverb_p, noise_p=s.data.noise_p, snr_range=tuple(s.data.snr_db),
                        mix=dict(s.data.noise_mix), rir_corpora=tuple(s.data.rir_corpora))
     plans = [impair_plan(f"T_{k:010d}", 1, cfg) for k in range(8000)]
@@ -204,6 +224,7 @@ def test_run8_plan_has_the_stated_echo_noise_and_snr_mix():
     share = lambda name: np.mean([p.noise == name for p in noisy])  # noqa: E731
     assert abs(share("babble") - 0.30) < 0.03 and abs(share("musan") - 0.30) < 0.03
     assert abs(sum(share(c) for c in COLOURS) - 0.20) < 0.03
+    assert s.data.neural_share == 0.0 and tuple(s.data.rir_corpora) == ("sim_rir", "mit_rir") and s.data.rir_stretch_p == 0.5
 
 
 def test_apply_impairment_runs_every_noise_kind(tmp_path):
