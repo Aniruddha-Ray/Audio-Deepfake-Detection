@@ -81,7 +81,8 @@ class SplitIndex:
         self.dataset, self.split = dataset, split
         for k in self.FIELDS:
             setattr(self, k, arrays[k])
-        self.audio_dirs = [str(Path(samples[0].path).parent)]  # all clips of one split share a folder
+        self.audio_dirs = [str(Path(samples[0].path).parent)]  # all clips of one split share a folder...
+        self.audio_exts = [Path(samples[0].path).suffix or ".flac"]  # ...and a file type (In-the-Wild ships .wav)
         self.dir_of = np.zeros(len(samples), dtype=np.int16)
         self.utt_id = np.array([s.utt_id for s in samples])
         self.attack = np.array([s.attack for s in samples])
@@ -99,17 +100,18 @@ class SplitIndex:
             setattr(out, k, np.concatenate([getattr(p, k) for p in parts]))
         out.attack = np.concatenate([np.where(p.attack == "-", "-", np.char.add(f"{p.dataset}:", p.attack))
                                      for p in parts])
-        out.audio_dirs, offsets = [], []
+        out.audio_dirs, out.audio_exts, offsets = [], [], []
         for p in parts:
             offsets.append(len(out.audio_dirs))
             out.audio_dirs += p.audio_dirs
+            out.audio_exts += p.audio_exts
         out.dir_of = np.concatenate([p.dir_of + off for p, off in zip(parts, offsets)]).astype(np.int16)
         return out
 
     def subset(self, select: np.ndarray, split: str) -> "SplitIndex":
         """The clips picked by a boolean mask or index array, as a new index (audio folders shared)."""
         out = object.__new__(SplitIndex)
-        out.dataset, out.split, out.audio_dirs = self.dataset, split, list(self.audio_dirs)
+        out.dataset, out.split, out.audio_dirs, out.audio_exts = self.dataset, split, list(self.audio_dirs), list(self.audio_exts)
         for k in self.FIELDS + ("utt_id", "attack", "codec", "speaker", "source", "dir_of"):
             setattr(out, k, getattr(self, k)[select])
         if self.rendered is not None:
@@ -132,7 +134,8 @@ class SplitIndex:
     def path(self, i: int) -> str:
         if self.is_rendered(i):
             return f"{self.render_dir}/{self.utt_id[i]}.flac"
-        return f"{self.audio_dirs[self.dir_of[i]]}/{self.utt_id[i]}.flac"
+        d = self.dir_of[i]
+        return f"{self.audio_dirs[d]}/{self.utt_id[i]}{self.audio_exts[d]}"
 
     @property
     def has_speech(self) -> np.ndarray:

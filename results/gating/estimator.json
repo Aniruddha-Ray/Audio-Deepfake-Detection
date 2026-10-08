@@ -1,0 +1,10 @@
+{
+ "echo_accuracy": 0.8928154692448741,
+ "echo_auc": 0.9375578726298313,
+ "noisy_accuracy": 0.8693948991498583,
+ "noisy_auc": 0.8912831407214323,
+ "tuning_clips": 11998,
+ "mean_q_clean": 0.1329684026535574,
+ "mean_q_degraded": 0.6881751292990642,
+ "leak_auc_tuning": 0.49798471492873214
+}

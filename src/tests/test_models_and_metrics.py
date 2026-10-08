@@ -30,7 +30,7 @@ def test_simplex_grid_and_old_manifests():
     assert weights_from_manifest({"fusion_weights": {"rcnn": 0.4, "wavlm": 0.6}}) == {"rcnn": 0.4, "wavlm": 0.6}
 
 
-@pytest.mark.parametrize("p,level,action", [(0.95, "high", "block"), (0.80, "high", "block"),
+@pytest.mark.parametrize("p,level,action", [(0.95, "high", "escalate"), (0.80, "high", "escalate"),
                                             (0.65, "medium", "verify"), (0.50, "medium", "verify"),
                                             (0.49, "low", "allow"), (0.0, "low", "allow")])
 def test_risk_thresholds(p, level, action):

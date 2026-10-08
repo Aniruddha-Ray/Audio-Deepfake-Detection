@@ -237,6 +237,24 @@ def _cmd_benchmark(args, settings):
     print(json.dumps(benchmark(DetectionEngine.from_artifacts(settings)), indent=2))
 
 
+def _cmd_explain(args, settings):
+    from audiodf.data.audio import load_audio
+    from audiodf.explain.explainer import explain_call
+    from audiodf.inference.engine import DetectionEngine
+
+    engine = DetectionEngine.from_artifacts(settings)
+    out = explain_call(engine, load_audio(args.audio, settings.audio.sample_rate), args.provider, args.nsamples, plot=args.plot)
+    if out is None:
+        print("no speech detected")
+        return
+    text = json.dumps(out, indent=2)
+    if args.out:
+        Path(args.out).write_text(text)
+    e = out["explanation"]
+    print(text if args.json else "\n".join([f"[{e['source']}] {e['summary']}", *[f"  - {r}" for r in e["reasons"]],
+                                             *[f"  ! {c}" for c in e["caveats"]]] + ([f"  ({e['fallback']})"] if "fallback" in e else [])))
+
+
 def _cmd_serve(args, settings):
     import os
 
@@ -277,7 +295,7 @@ def main(argv=None) -> None:
     sp.add_argument("--svm-utts", type=int, help="clips the SVM trains on")
     sp.add_argument("--eval-utts", type=int, help="test clips scored per report (0 = whole split)")
     sp = add("evaluate", _cmd_evaluate, "score saved artifacts on a dataset split")
-    sp.add_argument("--dataset", choices=["asv5", "asv19", "asv21", "calls"], default="asv5",
+    sp.add_argument("--dataset", choices=["asv5", "asv19", "asv21", "calls", "itw"], default="asv5",
                     help="asv21 = ASVspoof 2021 LA eval, real telephony channels (run `prepare21` first); "
                          "calls = simulated VoIP calls from ASV5 eval clips (run `render-calls` first)")
     sp.add_argument("--split", choices=["train", "dev", "eval"], default="eval")
@@ -359,6 +377,14 @@ def main(argv=None) -> None:
     sp.add_argument("--workers", type=int, default=8)
     add("predict", _cmd_predict, "score one audio file").add_argument("audio")
     add("benchmark", _cmd_benchmark, "per-stage latency")
+    sp = add("explain", _cmd_explain, "explain one recording: verdict, SHAP regions, plain-language text (LLM or template)")
+    sp.add_argument("audio")
+    sp.add_argument("--provider", choices=["template", "groq", "gemini", "openrouter"], default="template",
+                    help="free-tier LLM through its OpenAI-compatible API (key in AUDIODF_LLM_API_KEY); template = no LLM")
+    sp.add_argument("--nsamples", type=int, default=160, help="SHAP evaluations (more = steadier, slower)")
+    sp.add_argument("--plot", help="also save a picture of the explanation (PNG)")
+    sp.add_argument("--out", help="save the full result (verdict, facts, explanation) as JSON")
+    sp.add_argument("--json", action="store_true", help="print the full JSON instead of the text")
     sp = add("serve", _cmd_serve, "run the FastAPI service")
     sp.add_argument("--host", default="0.0.0.0")
     sp.add_argument("--port", type=int, default=8000)

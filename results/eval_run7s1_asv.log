@@ -1,0 +1,13 @@
+[1/2] seed 1 on ASV5 eval 
+  scoring asv5/eval: 30000 of 136376 clips
+  scoring wavlm on 30000 clips
+  asv5/eval    n= 30000 | EER at 10 s: wavlm   5.75%  fused   5.75%
+               fused EER by seconds of speech: 2s 7.27%  4s 6.29%  6s 5.85%  8s 5.75%  10s 5.75%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_asv5_eval_run7s1.json
+[2/2] seed 1 on ASVspoof 2019 eval 
+  scoring asv19/eval: 29988 of 71237 clips
+  scoring wavlm on 29988 clips
+  asv19/eval   n= 29988 | EER at 10 s: wavlm   5.48%  fused   5.48%
+               fused EER by seconds of speech: 2s 5.83%  4s 5.50%  6s 5.48%  8s 5.48%  10s 5.48%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_asv19_eval_run7s1.json
+ALL DONE 

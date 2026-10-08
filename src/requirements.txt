@@ -12,3 +12,5 @@ prometheus_client
 imageio-ffmpeg
 encodec
 confluent-kafka
+shap  # explanations: SHAP over time x frequency regions (audiodf/explain)
+matplotlib  # explanation pictures

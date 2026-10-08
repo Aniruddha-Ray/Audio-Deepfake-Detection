@@ -58,7 +58,7 @@ def test_verdict_fields_are_consistent(engine):
     assert 0 <= v.fake_probability <= 1
     assert abs(v.fake_probability - (0.7 * v.svm_probability + 0.3 * v.rcnn_probability)) < 1e-3
     assert v.label == ("fake" if v.fake_probability >= 0.5 else "real")
-    assert v.action == {"high": "block", "medium": "verify", "low": "allow"}[v.risk_level]
+    assert v.action == {"high": "escalate", "medium": "verify", "low": "allow"}[v.risk_level]
 
 
 def test_chunk_processor_routes_calls_and_ends_on_eof(engine):

@@ -1,0 +1,122 @@
+{
+  "n": 29988,
+  "spoof_fraction": 0.7547,
+  "fusion_weights": {
+    "wavlm": 0.65,
+    "whisper": 0.35
+  },
+  "at_horizon": {
+    "wavlm": {
+      "eer_pct": 5.327,
+      "auc": 0.98839,
+      "acc_at_eer_thr": 0.94675,
+      "recall_spoof": 0.94676,
+      "fpr_bonafide_flagged": 0.0533,
+      "acc_at_0.5": 0.88449,
+      "eer_threshold": 0.00438
+    },
+    "whisper": {
+      "eer_pct": 8.457,
+      "auc": 0.97087,
+      "acc_at_eer_thr": 0.91543,
+      "recall_spoof": 0.91543,
+      "fpr_bonafide_flagged": 0.08457,
+      "acc_at_0.5": 0.8432,
+      "eer_threshold": 0.00353
+    },
+    "fused": {
+      "eer_pct": 5.396,
+      "auc": 0.98744,
+      "acc_at_eer_thr": 0.94605,
+      "recall_spoof": 0.94605,
+      "fpr_bonafide_flagged": 0.05398,
+      "acc_at_0.5": 0.88239,
+      "eer_threshold": 0.02014
+    }
+  },
+  "per_attack_eer_pct": {
+    "wavlm": {
+      "A07": 1.781,
+      "A08": 1.6,
+      "A09": 1.083,
+      "A10": 16.719,
+      "A11": 6.6,
+      "A12": 2.311,
+      "A13": 1.389,
+      "A14": 3.219,
+      "A15": 1.09,
+      "A16": 0.783,
+      "A17": 0.81,
+      "A18": 8.164,
+      "A19": 1.732
+    },
+    "whisper": {
+      "A07": 2.926,
+      "A08": 2.025,
+      "A09": 0.81,
+      "A10": 26.601,
+      "A11": 15.455,
+      "A12": 5.224,
+      "A13": 2.054,
+      "A14": 10.916,
+      "A15": 3.667,
+      "A16": 1.774,
+      "A17": 0.859,
+      "A18": 10.77,
+      "A19": 2.991
+    },
+    "fused": {
+      "A07": 1.494,
+      "A08": 0.893,
+      "A09": 0.839,
+      "A10": 19.233,
+      "A11": 7.41,
+      "A12": 1.942,
+      "A13": 0.978,
+      "A14": 3.841,
+      "A15": 0.852,
+      "A16": 0.663,
+      "A17": 0.524,
+      "A18": 7.723,
+      "A19": 1.096
+    }
+  },
+  "time_to_decision_eer_pct": {
+    "wavlm": {
+      "2s": 5.62,
+      "4s": 5.351,
+      "6s": 5.327,
+      "8s": 5.327,
+      "10s": 5.327
+    },
+    "whisper": {
+      "2s": 8.77,
+      "4s": 8.497,
+      "6s": 8.459,
+      "8s": 8.457,
+      "10s": 8.457
+    },
+    "fused": {
+      "2s": 5.654,
+      "4s": 5.412,
+      "6s": 5.396,
+      "8s": 5.396,
+      "10s": 5.396
+    }
+  },
+  "operating_point": {
+    "overall": {
+      "verify": {
+        "threshold": 0.12547,
+        "bonafide_flagged": 0.0307,
+        "spoof_caught": 0.9178
+      },
+      "block": {
+        "threshold": 0.43297,
+        "bonafide_flagged": 0.0084,
+        "spoof_caught": 0.8603
+      }
+    }
+  },
+  "scores_csv": "C:\\Users\\Asus\\OneDrive\\Desktop\\Audio-Deepfake-Detection\\results\\evaluate_asv19_eval_run9_scores.csv"
+}

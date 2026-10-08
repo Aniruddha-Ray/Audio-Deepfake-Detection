@@ -756,6 +756,159 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
   the either-model rule flags 10 more points of genuine calls for +0.2-0.3 points of fakes caught. Offline, thresholds from ASVspoof 2021.
   Log-score correlation WavLM vs Whisper on ASVspoof 2021: 0.83.
 
+### Phase 22: channel-quality-gated fusion of run 7 and Whisper (plan and rule written 2026-10-08 before any test)
+
+- **Your decisions (2026-10-08):** keep run 7, do not adopt run 8; fuse run 7 with Whisper where Whisper is good; push (without run 8's own files);
+  DVC for the weights (remote: DagsHub, pending your account and token). Order: gated fusion, second seed of run 7, transcript intent, LLM explanations.
+- **Mistake 25:** the push of 2026-10-08 failed CI (`d561fbe`): two tests read `configs/run8.yaml`, which I had not pushed. Found with a clean
+  checkout of the pushed commit, fixed (`1db0270`: recipe inline in the tests, YAML check skipped where the file is absent), clean checkout 162 passed.
+  I should have run the suite in a clean checkout before pushing a subset of the files.
+- **Design and rule:** `new_plan.md` 7.3v (written before any test).
+- **Build (`audiodf/gating/`, 6 tests):** `channel_quality.py` (35 hand-computed features of the first 10 s of speech; two gradient-boosted classifiers, echo and
+  noisy; q = the larger probability; fitted on 30,000 training clips with echo / noise known from the impairment plan, a label unrelated to real / fake),
+  `fusion.py` (Whisper weight w = w_min + (w_max - w_min) q, grid for the two parameters, chosen on the tuning set), `run.py` (tuning, fit, features, eval).
+  A test found that a clip of pure digital silence gave NaN features (division by zero); none of the 100,000+ real clips was affected (0 NaN rows in every
+  feature file); fixed. First run of the chain 2026-10-08 12:10-16:00: per-clip scores of run 9 on ASV5 and ASVspoof 2019 (reproduce 5.74 / 7.75 / 5.72% and
+  5.33 / 8.46 / 5.40%), tuning set scored by both models, features for the six test sets, estimator, evaluation.
+- **Estimator quality (held-out tuning clips, never trained on):** echo accuracy 89.3% (AUC 0.938), noisy 86.9% (AUC 0.891); mean q 0.13 on clean clips and 0.69 on
+  degraded ones; on v2's known conditions echo 80.7% (AUC 0.846), noisy 81.9% (AUC 0.872). AUC of q for fake vs real: 0.498 on the tuning set, 0.514 / 0.497 /
+  0.541 / 0.511 / 0.504 / 0.511 on ASV5 / ASVspoof 2019 / 2021 / v1 / babble / v2: q carries no label information (my intended ceiling was 0.65; the rule text
+  of 7.3v lists it as reported, not as a limit).
+- **Result: gate chosen on the tuning set = w_min 0, w_max 0.5** (tuning-set mean EER by setting 4.05-4.21%, all within 0.17 points: the choice is not
+  sharp). Table and per-condition numbers in `new_plan.md` 7.3w; files `results/gating/{tuning.npz, features_*.npz, estimator.joblib, gate_eval.json}`,
+  `results/chain_gate.log`. Against the rule: ASVspoof 2021 9.46% vs limit 9.29% (**missed by 0.17**; +0.32 [+0.09, +0.54] against WavLM alone), fakes caught at the
+  10% verify level 90.9% vs 91.0% (**missed by 0.1**), every other limit met (v2 9.41, babble 6.25, echo-only 11.36, echo + noise 17.03, ASVspoof 2019 5.07,
+  ASV5 5.68, v1 2.92, fakes caught at the 1% level 65.5%).
+- **Verdict by the rule: not adopted, by 0.17 and 0.1 points.** Compared with the fixed 65/35 mix: the phone-line loss falls from +0.72 to +0.32, all call-set gains stay
+  (v2 -1.38 [-1.97, -0.91], babble -0.75 [-1.15, -0.27], ASVspoof 2019 -0.26 [-0.41, -0.12]), fakes caught at the strict 1% level +5.5 points (65.5 vs 60.0%) but
+  -0.8 at the 10% level. Whisper takes no weight (< 0.1) on 61-93% of the clean-ish clips and on 26-31% of the noisy call sets.
+- **Why phone lines still lose a little (hypothesis, not tested):** the estimator never saw a real phone channel (it was fitted on simulated echo / noise),
+  so some real phone lines look degraded to it. A gate that treats real phone channels as clean needs real phone-channel examples for the estimator, and the
+  only ones available are the ASVspoof 2021 test calls: using them would break the rule that nothing is tuned on a test set. Options for you: keep run 7 alone;
+  adopt the gated model as an override (it is better on every noisy call set, slightly worse on real phone lines); or fix a gate v2 whose estimator is also
+  fitted on other real phone-channel audio (none is available today).
+
+### Phase 23: second seed of run 7, the run-to-run spread (2026-10-08; measurement, rule in `new_plan.md` 7.3w written before training)
+
+- **Run:** `configs/run7_seed1.yaml` = run 7 with `wavlm.seed` 1 (head / layer-mix initialisation, window sampling, augmentation draws); cached copies reused. Training
+  ~13:30 to 19:50, 8 passes of 46-50 min; tuning EER by pass 4.83, 5.68, 3.68, 4.07, 3.48, **2.83** (pass 6 kept), 3.00, 3.09% (seed 0: 5.56, 5.15, 3.64, 4.78, 3.39, 3.28, 2.95,
+  2.94 with pass 8 kept). Bundle `artifacts_run7_seed1/`, report `results/run7_seed1/training_report.json`, scores `results/evaluate_*_run7s1*`, comparison `results/run7_seed_spread.json`.
+  (My earlier clock times for this run, "16:25 start, 23:00 end", were guesses; the real ones are above.)
+- **Results (EER at 10 s, WavLM alone, same clips; 95% paired-bootstrap interval of seed 1 minus seed 0; avg = mean of the two seeds' scores):**
+
+| Test set | seed 0 (run 7) | seed 1 | seed 1 - seed 0 | average of 2 seeds | avg - seed 0 |
+|---|---|---|---|---|---|
+| ASV5 eval | 5.74% | 5.75% | +0.01 | | |
+| ASVspoof2019 eval | 5.33% | 5.48% | +0.15 | | |
+| ASVspoof 2021 real phone lines | 9.14% | 9.14% | +0.00 [-0.28, +0.23] | 8.97% | -0.16 [-0.37, +0.04] |
+| Call set v1 | 3.06% | 3.07% | +0.01 [-0.18, +0.31] | 2.81% | -0.25 [-0.32, +0.04] |
+| Babble | 7.00% | 7.56% | +0.56 [-0.12, +1.08] | 7.12% | +0.12 [-0.25, +0.58] |
+| Held-out v2 | 10.78% | 11.14% | +0.36 [-0.16, +0.86] | 10.83% | +0.05 [-0.33, +0.38] |
+
+  v2 by condition (seed 0 / seed 1 / average): no noise, no echo 2.72 / 1.88 / 2.41; echo only 12.58 / 12.74 / 11.81; noise only 5.94 / 6.25 / 5.66; **echo + noise
+  19.95 / 21.30 / 20.21**; babble 13.19 / 14.09 / 13.43. (ASV5 and ASVspoof 2019 are from the training logs: the per-clip scores of the first seed were not saved.)
+- **Reading:** on clean-speech sets the two seeds agree to 0.00-0.15 points; on noisy sets they differ by 0.36-0.56 on whole sets and up to 1.35 inside a condition (echo + noise).
+  Every seed-to-seed interval includes zero (the test clips are the noise that the interval measures; the seed adds to it). **Largest whole-set difference: 0.56 (babble).**
+  This is the yardstick for earlier comparisons: run 7 vs run 4 on ASVspoof 2019 (+0.48 / +0.63 against 0.15) and ASVspoof 2021 (+0.33 against 0.00) are larger than the spread on
+  those sets, so a real cost of the noise recipe; run 8's babble gain (6.29% vs seeds 7.00 / 7.56) is larger than the spread, its held-out v2 gain (10.47% vs 10.78 / 11.14)
+  is within it, and its ASVspoof 2021 loss (+0.28 against a spread of 0.00) is not; the gated Whisper fusion's v2 gain (-1.38) is well beyond it and its phone-line loss
+  (+0.32) is too. Differences below ~0.5 points on noisy sets should not be read as real without a second seed.
+- **A second WavLM seed as an ensemble:** averaging the two seeds gains -0.16 / -0.25 on ASVspoof 2021 / v1 (intervals touch zero) and nothing on babble and v2: the opposite of
+  the Whisper fusion (gains on noisy calls, loss on phone lines). Both cost about twice the single-model compute.
+
+### Phase 24: the model is final (your decision, 2026-10-08)
+
+- **Final model: run 7 seed 0, WavLM-Base+ alone** (`artifacts/`, verify >= 0.0060, block >= 0.90), chosen on the deciding measure you set: fakes missed at the verify
+  level (`new_plan.md` 7.3x). It is best or tied on every set except real phone lines, where run 4 misses 3 fewer fakes per 1,000 but misses 75 per 1,000 on noisy v2 calls
+  against run 7's 6. Whisper (alone, fixed or gated) and a second WavLM seed stay documented options; none is served.
+- **Next (your request):** an explanation agent on a free-tier LLM, fed by SHAP attributions of the served model's decision; then the remaining work (`new_plan.md` 7.3y).
+
+### Phase 25: explanation agent (SHAP + free-tier LLM), built 2026-10-08 for demos
+
+- **Your decisions:** the model is final (run 7 seed 0); explanations by an LLM on a free tier, fed by SHAP; a project, so a free cloud API is fine for demos.
+- **Design (`src/audiodf/explain/`):** the explained audio is the first 10 s of speech, prepared as the serving path does. `attribution.py`: 2 s time slices x 4 bands (below
+  300 Hz, 300 Hz-1 kHz, 1-3 kHz, 3-8 kHz) = at most 20 regions; a region is removed by attenuating its short-time-spectrum cells by 30 dB; the audio is re-scored exactly as
+  the serving path does (2 s windows, 1 s hop, mean, bundle weights); KernelSHAP (160 evaluations) gives each region's contribution; a faithfulness check compares the score
+  drop when the 3 top regions are removed with the mean drop for 3 random regions. `explainer.py` builds a facts record (numbers and labels only: verdict, thresholds, top
+  regions, window scores, channel estimate, check) and runs the explainer; `llm.py`: Groq / Gemini / OpenRouter through their OpenAI-compatible APIs (key in
+  `AUDIODF_LLM_API_KEY`, never stored), every number in the LLM's answer must match a number in the facts, any failure falls back to a fixed template; `plot.py`: a
+  spectrogram with each region's contribution and the window scores. CLI `audiodf explain AUDIO [--provider] [--plot] [--out]`, API `POST /explain`. The LLM never sees audio,
+  never decides, and runs only when asked (about 10 s per call on this GPU, for flagged calls and demos).
+- **Checks on real calls:** on a fake (A32, mu-law, brown noise; action verify) and a genuine call (allow) the explained-audio score equals the served verdict (0.7789 / 0.77889;
+  0.0047 / 0.00474) and the faithfulness check passes (fake: removing the top 3 regions drops the score by 0.67 against 0.33 for random regions). Demo files in
+  `results/explain_demo/`.
+- **Found and fixed while building:** the channel estimate showed "echo 0.80" for a call with no echo. Measured on the call sets: the echo estimate is above 0.5 for 7.5% of
+  echo-free calls (up to 15% on G.711 / GSM), and a low value is no proof of absence (11-21% of echo calls score <= 0.05-0.2). The facts now say only "likely" (p >= 0.9:
+  wrong on < 1% of echo-free and < 0.3% of noise-free calls) or "not established", never a probability and never "unlikely". Small scores were printed as "0.00" against a
+  verify level of 0.0060; now 4 decimals.
+- **Tests:** 7 new (a stand-in model whose score is known checks that SHAP finds the right region, that the values add up, the faithfulness check, that the facts hold no
+  audio or caller data, that an LLM answer with an invented number or any failure falls back to the template, and the API endpoint); 176 tests green. `shap` and `matplotlib`
+  added to `requirements.txt`.
+
+### Phase 26: early decisions and calibration of the final model (2026-10-08; from the saved per-time scores, no new scoring)
+
+- **Early decisions (served levels fixed: verify 0.0060, block 0.90; `results/early_decisions_run7.json`).** Fakes missed at the verify level per 1,000 after 2 / 4 / 6 / 8 / 10 s
+  of speech: phone lines 88 / 83 / 83 / 83 / 83 (clips are short: the decision is fixed by 4 s); v1 34 / 15 / 11 / 9 / 9; babble 28 / 12 / 9 / 8 / 8; v2 31 / 11 / 8 / 6 / 6. Genuine
+  callers blocked per 1,000: v2 19.1 / 3.1 / 1.2 / 1.2 / 1.2; babble 7.5 / 0.4 / 0 / 0 / 0; v1 2.3 / 0.4 / 0 / 0 / 0; phone lines 19.8 then 19.2. **A verify decision after ~6 s is
+  almost as good as at 10 s; a block before ~4-6 s blocks many more genuine callers** (the early score rests on one or two windows).
+- **Calibration (`results/calibration_run7_scores.json`).** The raw score is not a probability: 0.0060 already flags 10% of genuine phone-line callers. Platt scaling fitted
+  on the tuning set only, calibrated = sigmoid(1.314 logit(score) + 1.594): expected calibration error on phone lines 0.135 -> 0.113, on v2 0.098 -> 0.034 (each set re-based to
+  its own share of fakes). A probability also needs the real share of fraud, which is unknown; the likelihood ratio of a flag does not: verify 9.2 / block 37.4 on phone lines,
+  verify 2.3 / block 318 on v2 calls.
+- **What a flag means when fraud is rare (Bayes, from those ratios).** On phone lines, if 1 call in 1,000 is a deepfake: P(fake | verify flag) = 0.9%, **P(fake | block) = 3.6%**,
+  i.e. about 96% of blocked phone-line calls would be genuine customers (the block level blocks 1.92% of genuine phone-line callers). On v2 calls P(fake | block) = 24% at the
+  same rate. **Consequence: the block level must not be a hard reject on its own; "block" should mean escalation to the strongest check (e.g. agent callback). A hard reject
+  would need a channel-aware block level.** The verify policy stands (a cheap step-up check is exactly what a 1-in-100 precision calls for). This was not examined when
+  block 0.90 was chosen in phase 19 (mistake 26).
+
+### Phase 27: out-of-domain test on In-the-Wild (2026-10-08; plan `new_plan.md` 7.3z written before scoring; scored once, nothing changed after)
+
+- **Data:** the authors' upload (`mueller91/In-The-Wild`, CC-BY-SA 4.0), 31,779 clips of 54 public figures; 31,668 with speech (11,806 fake, 19,862 genuine), median 3.2 s.
+  `dataset_itw/release_in_the_wild` (zip removed after a verified extraction; it re-downloads in ~2 min). Loader: dataset `itw` (`data/protocol.py`, `AUDIODF_ITW`).
+- **Bug found and fixed on the way:** the first scoring run failed on every clip: `SplitIndex.path` rebuilt paths as `<id>.flac`, and In-the-Wild ships `.wav` (index building worked
+  because it used the protocol's real paths). The index now keeps each folder's file type; a test indexes and reads a small WAV set; all 81,232 real windows read.
+- **Results (EER at 10 s; each model at its own verify level that flags 10% of genuine ASVspoof 2021 callers; `results/itw_report.json`):**
+
+| Model | EER | fakes missed at verify, per 1,000 | genuine asked to verify, per 1,000 | at block 0.90 |
+|---|---|---|---|---|
+| **Final model (run 7 WavLM)** | **4.47%** | **16** | 89 | 601 fakes / 9.2 genuine blocked per 1,000 |
+| Whisper alone | 12.95% | 168 | 101 | |
+| Fixed fusion 65/35 | 5.23% | 29 | 85 | |
+
+  - The served thresholds carry over: the verify level flags 8.9% of genuine speakers here (designed 10% on phone lines); per speaker (38 with >= 50 genuine clips) 2.9-31.4%,
+    median 8.3%.
+  - Clip length: under 4 s of speech (21,092 clips) EER 5.48%, 25 fakes missed per 1,000; 4 s or more (10,576) EER 1.91%, 4 per 1,000.
+  - Per speaker (37 with >= 50 fakes): median 0.3% of fakes missed, but **Adam Driver 42% (58 of 137)**, 31% of all 186 missed fakes; next Barack Obama 8% (25 of 331), Donald
+    Trump 6% (9 of 155). Without Adam Driver, 11 fakes missed per 1,000. Likely one convincing deepfake source for that voice (not examined).
+- **Reading:** on real-world deepfakes made with tools none of the training data contains, the final model holds up (4.47% EER, 16 per 1,000 missed at the served level),
+  better than on the lab's real phone lines (9.14%); Whisper and the fusion do worse here too, which agrees with the final choice. Caveats: In-the-Wild deepfakes date from
+  around 2020-2022 and are mostly clean studio-like audio; newer cloning tools and phone channels are harder (phone lines: 83 missed per 1,000).
+
+### Phase 28: serving cost of the final model (2026-10-08; `src/audiodf/evaluation/serving_cost.py`, `results/serving_cost.json`)
+
+- **Method:** a live call needs one 2 s window scored per second (1 s hop), so the calls one device can carry is its window throughput. Timed on this laptop (GPU 4.3 GB,
+  16 CPU threads) with real call windows; decision check on 300 random calls of set v1 (first 10 s of speech), actions (allow / verify / block) against GPU float32.
+
+| Variant | ms per window, batch 1 | windows / s (best batch) | live calls per device | actions changed / 300 | max score difference |
+|---|---|---|---|---|---|
+| GPU float32 | 42.7 | 115.8 (32) | ~115 | reference | |
+| **GPU float16, autocast (served)** | 53.4 | **236.6 (32)** | **~235** | 1 | 0.0099 |
+| CPU float32 | 236.9 | 5.6 (8) | ~5 | 0 | 0.0000 |
+| CPU int8, dynamic quantisation of Linear layers | 269.1 | 6.2 (8) | ~6 | **75** | 0.7255 |
+
+- **Reading:** serving needs a GPU: float16 doubles the throughput of float32 for one changed action in 300 (a score near a threshold); one laptop-class GPU carries ~235
+  simultaneous calls. A CPU carries ~5 calls; int8 dynamic quantisation gives no speed-up on this CPU and changes a quarter of the actions: **rejected**. Batch-1 latency
+  (one call alone) is 43-53 ms on the GPU, well inside the 1 s between windows. Not measured: server GPUs (T4 / L4 / A10), CPU with ONNX Runtime or OpenVINO, layer pruning or
+  distillation.
+
+### Phase 29: the high level escalates instead of blocking (your decision, 2026-10-09)
+
+- Action names: `allow` / `verify` / **`escalate`** (was `block`). Escalate = route to the strongest check (an agent callback on the number on file, in-branch verification);
+  the system never rejects a call by itself. Reason: phase 26 (at 1 deepfake in 1,000 calls, ~96% of high-level phone-line calls would be genuine). Thresholds unchanged
+  (verify 0.0060, escalate 0.90). Changed: `risk.py`, the explanation facts / text / picture, API and README docs, 3 tests. The analysis tools (calibration, call thresholds,
+  serving cost) keep calling the high threshold "block" so earlier reports stay comparable.
+- Your other decisions the same day: push (done, phase 29 commit); **transcript-based scam intent: keep** (demo-grade module next); deployment only after these.
+
 ## 3. Decisions and the reasoning behind them
 
 - **Train on ASV5 only, drop ASV2019 (run 1).** Chosen because ASV5 dev gives attack-disjoint tuning and ASV2019 has a silence
@@ -844,6 +997,10 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
     the old one. Reported both ways in phase 18; the rule is not changed after the fact.
 24. Run 8's echo targets were set without looking at the held-out rooms' reverberation times (median ~0.9 s, a third above 1 s,
     far beyond typical call rooms), so they were not reachable by training on more echo; found afterwards and reported in phase 20.
+25. I pushed a subset of files that excluded `configs/run8.yaml` while two tests read it; CI failed (`d561fbe`). Fixed by `1db0270`; the pushed commit is now
+    tested in a clean checkout before pushing a subset (phase 22).
+26. When the block level 0.90 was chosen (phase 19) I compared catch rates and false-block rates but not what a block means at a realistic fraud
+    rate: on real phone lines about 96% of blocked calls would be genuine if 1 call in 1,000 were a deepfake. Found in phase 26; block should escalate, not reject.
 
 ## 5. Known limitations (current)
 

@@ -1,4 +1,8 @@
-"""Risk engine: fused P(spoof) -> risk level and call action."""
+"""Risk engine: fused P(spoof) -> risk level and call action.
+
+Actions: allow; verify (a cheap step-up check: OTP, security question); escalate (the strongest check: e.g. an agent callback on the
+number on file, or in-branch verification). The high level never rejects a call by itself: on real phone lines, if 1 call in 1,000 were a
+deepfake, about 96% of calls at that level would be genuine customers (audit.md phase 26). "block" was the old name of this action."""
 
 from __future__ import annotations
 
@@ -6,7 +10,7 @@ from dataclasses import dataclass
 
 from audiodf.config import RiskConfig
 
-ACTIONS = {"high": "block", "medium": "verify", "low": "allow"}
+ACTIONS = {"high": "escalate", "medium": "verify", "low": "allow"}
 
 
 @dataclass(frozen=True)

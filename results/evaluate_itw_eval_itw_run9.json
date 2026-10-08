@@ -1,0 +1,86 @@
+{
+  "n": 31668,
+  "spoof_fraction": 0.3728,
+  "fusion_weights": {
+    "wavlm": 0.65,
+    "whisper": 0.35
+  },
+  "at_horizon": {
+    "wavlm": {
+      "eer_pct": 4.472,
+      "auc": 0.98811,
+      "acc_at_eer_thr": 0.95529,
+      "recall_spoof": 0.95528,
+      "fpr_bonafide_flagged": 0.04471,
+      "acc_at_0.5": 0.94152,
+      "eer_threshold": 0.0795
+    },
+    "whisper": {
+      "eer_pct": 12.954,
+      "auc": 0.93364,
+      "acc_at_eer_thr": 0.87047,
+      "recall_spoof": 0.8704,
+      "fpr_bonafide_flagged": 0.12949,
+      "acc_at_0.5": 0.78123,
+      "eer_threshold": 0.01591
+    },
+    "fused": {
+      "eer_pct": 5.226,
+      "auc": 0.98454,
+      "acc_at_eer_thr": 0.94774,
+      "recall_spoof": 0.94774,
+      "fpr_bonafide_flagged": 0.05226,
+      "acc_at_0.5": 0.92488,
+      "eer_threshold": 0.14348
+    }
+  },
+  "per_attack_eer_pct": {
+    "wavlm": {
+      "itw": 4.472
+    },
+    "whisper": {
+      "itw": 12.954
+    },
+    "fused": {
+      "itw": 5.226
+    }
+  },
+  "time_to_decision_eer_pct": {
+    "wavlm": {
+      "2s": 5.097,
+      "4s": 4.496,
+      "6s": 4.453,
+      "8s": 4.472,
+      "10s": 4.472
+    },
+    "whisper": {
+      "2s": 15.511,
+      "4s": 13.486,
+      "6s": 13.01,
+      "8s": 12.966,
+      "10s": 12.954
+    },
+    "fused": {
+      "2s": 6.252,
+      "4s": 5.39,
+      "6s": 5.208,
+      "8s": 5.208,
+      "10s": 5.226
+    }
+  },
+  "operating_point": {
+    "overall": {
+      "verify": {
+        "threshold": 0.12547,
+        "bonafide_flagged": 0.0551,
+        "spoof_caught": 0.9509
+      },
+      "block": {
+        "threshold": 0.43297,
+        "bonafide_flagged": 0.0184,
+        "spoof_caught": 0.8635
+      }
+    }
+  },
+  "scores_csv": "C:\\Users\\Asus\\OneDrive\\Desktop\\Audio-Deepfake-Detection\\results\\evaluate_itw_eval_itw_run9_scores.csv"
+}

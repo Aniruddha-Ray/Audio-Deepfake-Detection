@@ -1,0 +1,9 @@
+[1/1] In-the-Wild, run-9 bundle (WavLM = final model, Whisper, fixed fusion) 
+Loading weights:   0%|          | 0/479 [00:00<?, ?it/s]Loading weights:   3%|2         | 12/479 [00:00<00:04, 106.99it/s]Loading weights:   7%|7         | 35/479 [00:00<00:02, 172.06it/s]Loading weights:  11%|#1        | 55/479 [00:00<00:02, 181.97it/s]Loading weights:  15%|#5        | 74/479 [00:00<00:02, 179.15it/s]Loading weights:  21%|##        | 100/479 [00:00<00:01, 196.22it/s]Loading weights:  25%|##5       | 120/479 [00:00<00:02, 160.09it/s]Loading weights:  29%|##8       | 137/479 [00:00<00:02, 136.04it/s]Loading weights:  32%|###1      | 152/479 [00:01<00:02, 125.57it/s]Loading weights: 100%|##########| 479/479 [00:01<00:00, 447.14it/s]
+  scoring itw/eval: 31668 of 31779 clips
+  scoring wavlm on 31668 clips
+  scoring whisper on 31668 clips
+  itw/eval     n= 31668 | EER at 10 s: wavlm   4.47%  whisper  12.95%  fused   5.23%
+               fused EER by seconds of speech: 2s 6.25%  4s 5.39%  6s 5.21%  8s 5.21%  10s 5.23%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_itw_eval_itw_run9.json
+ALL DONE 

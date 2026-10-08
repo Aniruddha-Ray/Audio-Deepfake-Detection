@@ -197,6 +197,7 @@ class PathsConfig:
     asv5_root: str = str(REPO_ROOT / "dataset5")
     asv21_root: str = str(REPO_ROOT / "dataset21")  # ASVspoof 2021 LA eval: telephony test set (data/asv21.py)
     noise_root: str = str(REPO_ROOT / "dataset_noise")  # MUSAN, DEMAND, ESC-50, RIRS_NOISES (data/noise_bank.py)
+    itw_root: str = str(REPO_ROOT / "dataset_itw" / "release_in_the_wild")  # In-the-Wild: out-of-domain test only
     calls_root: str = str(REPO_ROOT / "dataset_calls")  # simulated VoIP calls from ASV5 eval clips (data/voip_sim.py)
     cache_dir: str = str(Path.home() / ".cache" / "audiodf")
     artifacts_dir: str = str(REPO_ROOT / "artifacts")
@@ -224,7 +225,7 @@ class Settings:
 
     def dataset_root(self, dataset: str | None = None) -> str:
         dataset = dataset or self.data.dataset
-        return {"asv19": self.paths.data_root, "asv5": self.paths.asv5_root, "asv21": self.paths.asv21_root,
+        return {"asv19": self.paths.data_root, "asv5": self.paths.asv5_root, "asv21": self.paths.asv21_root, "itw": self.paths.itw_root,
                 "calls": self.paths.calls_root}[dataset]
 
     @property
@@ -269,6 +270,8 @@ def load_settings(path: str | Path | None = None) -> Settings:
         settings.paths.data_root = os.environ["AUDIODF_DATA"]
     if os.environ.get("AUDIODF_ASV5"):
         settings.paths.asv5_root = os.environ["AUDIODF_ASV5"]
+    if os.environ.get("AUDIODF_ITW"):
+        settings.paths.itw_root = os.environ["AUDIODF_ITW"]
     if os.environ.get("AUDIODF_ASV21"):
         settings.paths.asv21_root = os.environ["AUDIODF_ASV21"]
     if os.environ.get("AUDIODF_NOISE"):
@@ -279,6 +282,6 @@ def load_settings(path: str | Path | None = None) -> Settings:
         settings.paths.artifacts_dir = os.environ["AUDIODF_ARTIFACTS"]
     if os.environ.get("KAFKA_BOOTSTRAP_SERVERS"):
         settings.kafka.bootstrap_servers = os.environ["KAFKA_BOOTSTRAP_SERVERS"]
-    for name in ("data_root", "asv5_root", "asv21_root", "calls_root", "noise_root", "cache_dir", "artifacts_dir", "results_dir"):
+    for name in ("data_root", "asv5_root", "asv21_root", "itw_root", "calls_root", "noise_root", "cache_dir", "artifacts_dir", "results_dir"):
         setattr(settings.paths, name, os.path.expanduser(getattr(settings.paths, name)))
     return settings

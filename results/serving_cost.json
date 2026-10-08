@@ -1,0 +1,79 @@
+{
+ "cpu_threads": 8,
+ "verify": 0.006032000000000007,
+ "block": 0.9,
+ "variants": {
+  "GPU float32": {
+   "timing": {
+    "batch 1": {
+     "ms_per_batch": 42.7,
+     "windows_per_s": 23.4
+    },
+    "batch 8": {
+     "ms_per_batch": 74.5,
+     "windows_per_s": 107.4
+    },
+    "batch 32": {
+     "ms_per_batch": 276.3,
+     "windows_per_s": 115.8
+    }
+   },
+   "calls_per_device": 115,
+   "max_abs_score_diff_vs_first": 0.0,
+   "actions_changed_vs_first": 0,
+   "clips": 300
+  },
+  "GPU float16 (served)": {
+   "timing": {
+    "batch 1": {
+     "ms_per_batch": 53.4,
+     "windows_per_s": 18.7
+    },
+    "batch 8": {
+     "ms_per_batch": 64.4,
+     "windows_per_s": 124.3
+    },
+    "batch 32": {
+     "ms_per_batch": 135.2,
+     "windows_per_s": 236.6
+    }
+   },
+   "calls_per_device": 236,
+   "max_abs_score_diff_vs_first": 0.009918484836816788,
+   "actions_changed_vs_first": 1,
+   "clips": 300
+  },
+  "CPU float32": {
+   "timing": {
+    "batch 1": {
+     "ms_per_batch": 236.9,
+     "windows_per_s": 4.2
+    },
+    "batch 8": {
+     "ms_per_batch": 1435.4,
+     "windows_per_s": 5.6
+    }
+   },
+   "calls_per_device": 5,
+   "max_abs_score_diff_vs_first": 4.880130290985107e-06,
+   "actions_changed_vs_first": 0,
+   "clips": 300
+  },
+  "CPU int8 (dynamic)": {
+   "timing": {
+    "batch 1": {
+     "ms_per_batch": 269.1,
+     "windows_per_s": 3.7
+    },
+    "batch 8": {
+     "ms_per_batch": 1299.0,
+     "windows_per_s": 6.2
+    }
+   },
+   "calls_per_device": 6,
+   "max_abs_score_diff_vs_first": 0.7255426291048934,
+   "actions_changed_vs_first": 75,
+   "clips": 300
+  }
+ }
+}

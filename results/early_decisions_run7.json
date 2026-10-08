@@ -1,0 +1,150 @@
+{
+ "phone lines (2021)": {
+  "2": {
+   "eer": 9.151,
+   "missed_verify": 87.67630289086726,
+   "asked": 95.0,
+   "blocked_fakes": 730.1690507152146,
+   "blocked_genuine": 19.8
+  },
+  "4": {
+   "eer": 9.144,
+   "missed_verify": 83.07492247674303,
+   "asked": 100.0,
+   "blocked_fakes": 719.5158547564268,
+   "blocked_genuine": 19.2
+  },
+  "6": {
+   "eer": 9.136,
+   "missed_verify": 82.87486245873762,
+   "asked": 100.0,
+   "blocked_fakes": 719.0157047114134,
+   "blocked_genuine": 19.2
+  },
+  "8": {
+   "eer": 9.136,
+   "missed_verify": 82.87486245873762,
+   "asked": 100.0,
+   "blocked_fakes": 718.7656296889066,
+   "blocked_genuine": 19.2
+  },
+  "10": {
+   "eer": 9.136,
+   "missed_verify": 82.87486245873762,
+   "asked": 100.0,
+   "blocked_fakes": 718.7656296889066,
+   "blocked_genuine": 19.2
+  }
+ },
+ "v1 calls": {
+  "2": {
+   "eer": 4.312,
+   "missed_verify": 33.541666666666664,
+   "asked": 57.708333333333336,
+   "blocked_fakes": 725.0,
+   "blocked_genuine": 2.2916666666666665
+  },
+  "4": {
+   "eer": 3.5,
+   "missed_verify": 14.791666666666666,
+   "asked": 99.58333333333333,
+   "blocked_fakes": 610.8333333333334,
+   "blocked_genuine": 0.4166666666666667
+  },
+  "6": {
+   "eer": 3.146,
+   "missed_verify": 11.25,
+   "asked": 129.375,
+   "blocked_fakes": 577.7083333333334,
+   "blocked_genuine": 0.0
+  },
+  "8": {
+   "eer": 3.104,
+   "missed_verify": 9.375,
+   "asked": 137.29166666666669,
+   "blocked_fakes": 567.0833333333334,
+   "blocked_genuine": 0.0
+  },
+  "10": {
+   "eer": 3.062,
+   "missed_verify": 9.375,
+   "asked": 139.375,
+   "blocked_fakes": 565.625,
+   "blocked_genuine": 0.0
+  }
+ },
+ "babble": {
+  "2": {
+   "eer": 9.708,
+   "missed_verify": 28.333333333333332,
+   "asked": 212.91666666666666,
+   "blocked_fakes": 590.0,
+   "blocked_genuine": 7.5
+  },
+  "4": {
+   "eer": 8.333,
+   "missed_verify": 12.5,
+   "asked": 306.25,
+   "blocked_fakes": 474.1666666666667,
+   "blocked_genuine": 0.4166666666666667
+  },
+  "6": {
+   "eer": 7.438,
+   "missed_verify": 9.166666666666666,
+   "asked": 356.25,
+   "blocked_fakes": 432.9166666666667,
+   "blocked_genuine": 0.0
+  },
+  "8": {
+   "eer": 7.083,
+   "missed_verify": 8.333333333333334,
+   "asked": 371.66666666666663,
+   "blocked_fakes": 419.5833333333333,
+   "blocked_genuine": 0.0
+  },
+  "10": {
+   "eer": 7.0,
+   "missed_verify": 7.916666666666667,
+   "asked": 373.75,
+   "blocked_fakes": 413.3333333333333,
+   "blocked_genuine": 0.0
+  }
+ },
+ "v2 calls": {
+  "2": {
+   "eer": 14.0,
+   "missed_verify": 30.9375,
+   "asked": 306.875,
+   "blocked_fakes": 565.0,
+   "blocked_genuine": 19.0625
+  },
+  "4": {
+   "eer": 11.844,
+   "missed_verify": 11.25,
+   "asked": 390.625,
+   "blocked_fakes": 441.5625,
+   "blocked_genuine": 3.125
+  },
+  "6": {
+   "eer": 11.0,
+   "missed_verify": 7.5,
+   "asked": 424.375,
+   "blocked_fakes": 400.3125,
+   "blocked_genuine": 1.25
+  },
+  "8": {
+   "eer": 10.766,
+   "missed_verify": 6.25,
+   "asked": 435.0,
+   "blocked_fakes": 395.625,
+   "blocked_genuine": 1.25
+  },
+  "10": {
+   "eer": 10.781,
+   "missed_verify": 5.9375,
+   "asked": 437.5,
+   "blocked_fakes": 397.1875,
+   "blocked_genuine": 1.25
+  }
+ }
+}

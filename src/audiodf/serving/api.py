@@ -1,6 +1,7 @@
 """FastAPI service.
 
-POST /predict          raw audio file bytes (wav/flac/ogg) -> Verdict
+POST /predict          raw audio file bytes (wav/flac/ogg) -> Verdict (action: allow | verify | escalate)
+POST /explain          raw audio bytes, ?provider=template|groq|gemini|openrouter -> verdict, SHAP facts, explanation (~10 s)
 WS   /stream/{call_id} binary frames of 16 kHz mono PCM16 -> JSON Verdict per completed window;
                        send the text frame "end" to get the final verdict
 GET  /health, GET /metrics
@@ -73,6 +74,27 @@ def create_app(engine: DetectionEngine | None = None, settings: Settings | None 
             raise HTTPException(422, "no speech detected")
         metrics.record_verdict(verdict, "http")
         return verdict.to_dict()
+
+    @app.post("/explain")
+    async def explain_endpoint(request: Request, provider: str = "template", nsamples: int = 160):
+        """Verdict + SHAP regions + plain-language explanation of one recording (slow: ~10 s on a GPU; for flagged calls and demos)."""
+        from audiodf.explain.explainer import explain_call
+        from audiodf.explain.llm import PROVIDERS
+
+        if provider != "template" and provider not in PROVIDERS:
+            raise HTTPException(400, f"provider must be template or one of {sorted(PROVIDERS)}")
+        eng = get_engine()
+        body = await request.body()
+        if not body or len(body) > MAX_UPLOAD_BYTES:
+            raise HTTPException(400, "send raw audio bytes (at most 50 MB)")
+        try:
+            wave = await run_in_threadpool(load_audio, body, settings.audio.sample_rate)
+        except Exception as exc:
+            raise HTTPException(400, f"could not decode audio: {exc}") from exc
+        out = await run_in_threadpool(explain_call, eng, wave, provider, max(16, min(nsamples, 512)))
+        if out is None:
+            raise HTTPException(422, "no speech detected")
+        return out
 
     @app.websocket("/stream/{call_id}")
     async def stream(ws: WebSocket, call_id: str):

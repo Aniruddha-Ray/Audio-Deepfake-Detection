@@ -1,0 +1,12 @@
+# Second seed of run 7: the same recipe, copies and settings; only wavlm.seed differs (0 -> 1). A measurement of run-to-run spread
+# (new_plan.md 7.3w): both seeds are scored on every test set, then compared with a paired bootstrap.
+#   cd src && python run.py --config configs/run7_seed1.yaml --eval-utts 30000
+data:
+  neural_share: 0.0
+  reuse_neural_share: 0.07
+wavlm:
+  keep_epochs: true
+  seed: 1
+paths:
+  artifacts_dir: ../artifacts_run7_seed1
+  results_dir: ../results/run7_seed1

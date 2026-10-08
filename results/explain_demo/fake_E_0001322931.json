@@ -1,0 +1,95 @@
+{
+  "verdict": {
+    "label": "fake",
+    "fake_probability": 0.77889,
+    "svm_probability": null,
+    "rcnn_probability": null,
+    "risk_level": "medium",
+    "action": "verify",
+    "segments_scored": 3,
+    "audio_seconds": 4.64,
+    "final": true,
+    "latency_ms": 101.89,
+    "call_id": null,
+    "wavlm_probability": 0.77889,
+    "whisper_probability": null
+  },
+  "facts": {
+    "verdict": {
+      "action": "verify",
+      "risk_level": "medium",
+      "fake_probability": 0.7789,
+      "verify_threshold": 0.006,
+      "escalate_threshold": 0.9
+    },
+    "audio": {
+      "explained_seconds": 4.6
+    },
+    "score_of_explained_audio": 0.7789,
+    "score_with_every_region_removed": 0.4956,
+    "regions_top": [
+      {
+        "region": "2-4 s, 1-3 kHz",
+        "contribution": 0.192
+      },
+      {
+        "region": "0-2 s, below 300 Hz",
+        "contribution": 0.0935
+      },
+      {
+        "region": "0-2 s, 300 Hz-1 kHz",
+        "contribution": -0.053
+      },
+      {
+        "region": "0-2 s, 3-8 kHz",
+        "contribution": -0.0395
+      },
+      {
+        "region": "2-4 s, below 300 Hz",
+        "contribution": 0.0375
+      }
+    ],
+    "windows": [
+      {
+        "start_s": 0.0,
+        "end_s": 2.0,
+        "p_fake": 0.8628
+      },
+      {
+        "start_s": 1.0,
+        "end_s": 3.0,
+        "p_fake": 0.8674
+      },
+      {
+        "start_s": 2.0,
+        "end_s": 4.0,
+        "p_fake": 0.6061
+      }
+    ],
+    "channel": {
+      "room_echo": "not established",
+      "background_noise": "not established",
+      "note": "estimated from the audio; 'likely' is wrong on about 1 in 100 calls without it"
+    },
+    "attribution_check": {
+      "checked": true,
+      "k": 3,
+      "drop_top": 0.6701,
+      "drop_random": 0.3315,
+      "faithful": true
+    },
+    "model": "WavLM-Base+ (run 7, seed 0); explanation by SHAP over time x frequency regions"
+  },
+  "explanation": {
+    "summary": "The call scored 0.7789 on the synthetic-voice scale (0 = genuine, 1 = synthetic), at or above the verify level (verify 0.0060, escalate 0.90), so the action is 'verify'.",
+    "reasons": [
+      "The parts of the audio that pushed the score most towards synthetic: 2-4 s, 1-3 kHz (+0.192); 0-2 s, below 300 Hz (+0.093).",
+      "The highest-scoring 2-second window was 1-3 s (0.8674)."
+    ],
+    "caveats": [
+      "The regions show which parts of the audio drove the score, not why the voice is synthetic."
+    ],
+    "source": "template"
+  },
+  "plot": "../results/explain_demo/fake_E_0001322931.png"
+}

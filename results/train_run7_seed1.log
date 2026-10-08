@@ -1,0 +1,53 @@
+recipe: run 6 (room echo 30%, noise 65% at 5-35 dB, packet loss on 35% of windows, G.711 added, EnCodec share 0%)
+asv5=C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\dataset5
+artifacts=../artifacts_run7_seed1
+pool=asv5:train asv5:dev asv19:train asv19:dev  holdout=asv5:A10 asv5:A12 asv5:A15
+branches=wavlm  reused=none
+rcnn=BiLSTM, epochs=10; wavlm epochs=8, top 4 layers fine-tuned; windows/clip/epoch=1, svm clips=20000, codec aug p=0.4
+device=cuda artifacts=..\artifacts_run7_seed1 branches=wavlm
+[1/6] integrity audit (training pool: asv5:train, asv5:dev, asv19:train, asv19:dev)
+  finding (asv5): attacks shared by train and dev: none
+  finding (asv5): attacks shared by train and eval: none
+  finding (asv5): attacks shared by dev and eval: none
+  finding (asv5): train: duration differs between bonafide (14.52) and spoof (10.736)
+  finding (asv5): train: leading silence differs between bonafide (0.412) and spoof (0.05)
+  finding (asv5): train: trailing silence differs between bonafide (0.213) and spoof (0.025)
+  finding (asv5): dev: digital-silence frame fraction (mean) differs between bonafide (0.003) and spoof (0.014)
+  finding (asv19): attacks shared by train and dev: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06']
+  finding (asv19): attacks shared by train and eval: none
+  finding (asv19): attacks shared by dev and eval: none
+  finding (asv19): train: leading silence differs between bonafide (1.025) and spoof (0.35)
+  finding (asv19): dev: leading silence differs between bonafide (0.838) and spoof (0.35)
+  finding (asv19): eval: leading silence differs between bonafide (0.775) and spoof (0.05)
+  finding (asv19): eval: trailing silence differs between bonafide (0.825) and spoof (0.175)
+[2/6] index clips (decode once, record VAD speech bounds) and split off the tuning set
+  training clips: 307454 (260166 spoof, 47288 bonafide), 19 attack systems
+  tuning set: held-out attacks asv5:A10, asv5:A12, asv5:A15 + bonafide of 196 held-out asv5:dev speakers: 49077 clips (41106 spoof, 7971 bonafide)
+  rendering real-codec copies (ffmpeg; label-blind; cached on disk); room echo 30%, noise 65% at 5-35 dB from ['musan', 'pointsource', 'demand'] + babble + colours, echo from ['sim_rir'] (held-out test corpora not used), EnCodec share 0%; packet loss on 35% of training windows
+  real-codec copies: 184407 training clips, 8967 of 11998 tuning clips
+[3/6] branches
+  WavLM: random 2 s raw windows, top 4 layers fine-tuned; best tuning epoch kept
+  epoch 1/8: {'epoch': 1, 'loss': 0.08779, 'dev_eer_pct': 4.826, 'minutes': 46.9}
+  epoch 2/8: {'epoch': 2, 'loss': 0.03628, 'dev_eer_pct': 5.676, 'minutes': 49.8}
+  epoch 3/8: {'epoch': 3, 'loss': 0.02742, 'dev_eer_pct': 3.675, 'minutes': 50.1}
+  epoch 4/8: {'epoch': 4, 'loss': 0.02166, 'dev_eer_pct': 4.069, 'minutes': 47.6}
+  epoch 5/8: {'epoch': 5, 'loss': 0.01762, 'dev_eer_pct': 3.482, 'minutes': 46.5}
+  epoch 6/8: {'epoch': 6, 'loss': 0.01462, 'dev_eer_pct': 2.825, 'minutes': 47.2}
+  epoch 7/8: {'epoch': 7, 'loss': 0.0122, 'dev_eer_pct': 3.0, 'minutes': 47.2}
+  epoch 8/8: {'epoch': 8, 'loss': 0.01109, 'dev_eer_pct': 3.088, 'minutes': 47.6}
+[4/6] tune on the held-out set (codec-processed): SVM calibration, fusion weights, risk thresholds
+  scoring wavlm on 11998 clips
+  fusion weights wavlm=1.00; risk thresholds: verify >= 0.1270, block >= 0.4747
+  tuning set   n= 11998 | EER at 10 s: wavlm   2.83%  fused   2.83%
+               fused EER by seconds of speech: 2s 5.48%  4s 3.55%  6s 2.94%  8s 2.81%  10s 2.83%
+[5/6] test sets (scored once, never tuned on)
+  scoring asv5/eval: 30000 of 136376 clips
+  scoring wavlm on 30000 clips
+  asv5/eval    n= 30000 | EER at 10 s: wavlm   5.75%  fused   5.75%
+               fused EER by seconds of speech: 2s 7.27%  4s 6.29%  6s 5.85%  8s 5.75%  10s 5.75%
+  scoring asv19/eval: 29988 of 71237 clips
+  scoring wavlm on 29988 clips
+  asv19/eval   n= 29988 | EER at 10 s: wavlm   5.48%  fused   5.48%
+               fused EER by seconds of speech: 2s 5.83%  4s 5.50%  6s 5.48%  8s 5.48%  10s 5.48%
+[6/6] save the bundle
+report: ..\results\run7_seed1\training_report.json

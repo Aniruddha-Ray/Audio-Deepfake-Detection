@@ -791,6 +791,140 @@ noise-gated ensemble idea (7.3p): the clean-audio model and the degraded-audio m
 nothing over loosening WavLM's own level (same 15.9% of genuine calls flagged: 93.7% against 94.8% caught). A gate on channel quality
 (echo / noise estimate) choosing the weight is the untested variant; the 65/35 fixed fusion is what failed.
 
+### 7.3v Decided 2026-10-08: channel-quality-gated fusion of run 7 and Whisper (rule fixed before any test), then a second seed of run 7
+
+**Your verdict:** keep run 7 as the base (run 8 not adopted: +0.28 on real phone lines, 4.3 points fewer fakes caught at a 1% false-alarm
+budget there) and fuse it with run 9's Whisper where Whisper is good. Next, in this order: (1) channel-quality-gated fusion, (2) a second
+training seed of run 7, (3) transcript-based scam intent, then LLM explanations. Push done except run 8's own files; weights to be backed up
+with DVC on DagsHub (`.dvc/` initialised, 13 model folders tracked, remote pending).
+
+**Why a gate:** the fixed 65/35 mix is the part that failed. Whisper alone is better than WavLM wherever there is echo (v2, echo only 10.9 vs
+12.6%; echo + noise 17.5 vs 20.0%; 5-10 dB 15.3 vs 16.6%) and worse on clean and noise-only audio (4.6 vs 2.7%; 7.5 vs 5.9%; ASVspoof 2021
+13.9 vs 9.1%). A weight that follows the channel should keep run 7's phone-line accuracy and take the call-set gains.
+
+**Design (no training of either model; the gate uses no spoof label):**
+- **Fusion:** score = (1 - w) * P_WavLM(run 7) + w * P_Whisper(run 9), probabilities as in run 9; w = w_min + (w_max - w_min) * q, with q in
+  [0, 1] the estimated degradation of the call. w is bounded (w_max <= 0.8, w_min >= 0), so neither model is ever switched off.
+- **Channel-quality estimate q (`audiodf/gating/`):** hand-computed features of the first 10 s of speech (frame-energy percentiles and their
+  spread, spectral flatness statistics, the energy that decays after speech offsets, a modulation-energy ratio) and a small gradient-boosted
+  classifier that predicts "echo" and "noisy (SNR < 20 dB)" from them. It is fitted on training copies whose echo and noise are known from the
+  impairment plan (a label unrelated to real / fake) and q = the larger of the two probabilities. Fitted on the training pool, never on a test set.
+- **Gate parameters (w_min, w_max):** a small grid (w_min in {0, 0.1, 0.2}, w_max in {0.5, 0.65, 0.8}) chosen on the held-out tuning set (its
+  copies have known impairments; q is computed by the estimator, so its errors count), by the same criterion as the fusion in training: mean EER over
+  every time-to-decision, ties resolved to the smaller Whisper weight. Never chosen on a test set.
+- **Test:** ASV5 eval, ASVspoof 2019, ASVspoof 2021, call sets v1, babble, v2, scored once; per-clip scores of both models saved.
+
+**Rule (EER at 10 s; run 7 = WavLM alone in brackets):**
+- Real phone lines must not get worse: ASVspoof 2021 <= 9.29% (9.14); fakes caught with verify at 10% / 1% of genuine calls >= 91.0% / 60.0%
+  (91.7 / 60.0).
+- The call-set gains must be kept, at least two thirds of the fixed mix's: v2 <= 10.0% (10.78; fixed mix 9.62); babble <= 6.6% (7.00; 6.21);
+  v2 echo-only <= 11.8% (12.58) and echo + noise <= 18.5% (19.95).
+- No other regression: ASV5 <= 5.94% (5.74); ASVspoof 2019 <= 5.53% (5.33); v1 <= 3.21% (3.06).
+- All met: proposed as the served design (your yes; verify / block re-derived with `call-thresholds` under the strict banking policy; the cost
+  question stays yours: run both models, or Whisper only when q is high). Any limit missed: not adopted; reported with the reason.
+- Reported with no limit: how well q predicts echo and noise on held-out copies and on v2's known conditions; the mean Whisper weight per set;
+  the share of calls where Whisper is skipped at w < 0.1; the serving cost of both designs.
+
+**Second seed of run 7 (after the gate):** run 7's recipe and cached copies unchanged, `wavlm.seed` 1; measures run-to-run spread on every test set
+(paired bootstrap seed 0 vs seed 1), and what averaging the two seeds gives (a same-architecture ensemble as a reference for the Whisper gain).
+~6.5 h training + scoring. No adoption rule: it is a measurement.
+
+### 7.3w Gated fusion result (2026-10-08) and the second seed of run 7 (measurement; fixed before training)
+
+**Gated fusion (run 7 WavLM + run 9 Whisper, `audiodf/gating/`, rule 7.3v): not adopted by the rule, by 0.17 and 0.1 points.** The estimator (no real / fake label)
+spots echo with 89% and noise with 87% accuracy on held-out tuning clips (AUC 0.94 / 0.89), 81% / 82% on v2's known conditions, and carries no label
+information (AUC of q for fake vs real 0.50-0.54 on every set). The gate chose w_min = 0, w_max = 0.5 on the tuning set.
+
+| EER at 10 s | WavLM (run 7) | fixed 65/35 | gated | gated - WavLM [95% CI] | rule |
+|---|---|---|---|---|---|
+| ASVspoof 2021 real phone lines | 9.14% | 9.86% | **9.46%** | +0.32 [+0.09, +0.54] | <= 9.29: **not met** |
+| Fakes caught at verify 10% / 1% of genuine (ASVspoof 2021) | 91.7 / 60.0% | 90.3 / 64.0% | **90.9** / 65.5% | | >= 91.0: **not met** / >= 60.0 met |
+| Held-out v2 | 10.78% | 9.62% | **9.41%** | -1.38 [-1.97, -0.91] | <= 10.0 met |
+| Babble | 7.00% | 6.21% | 6.25% | -0.75 [-1.15, -0.27] | <= 6.6 met |
+| v2 echo only / echo + noise | 12.58 / 19.95% | 11.82 / 17.71% | 11.36 / 17.03% | | <= 11.8 / 18.5 met |
+| ASVspoof 2019 / ASV5 / v1 | 5.33 / 5.74 / 3.06% | 5.40 / 5.72 / 2.96% | 5.07 / 5.68 / 2.92% | -0.26 [-0.41, -0.12] / -0.06 / -0.15 | met |
+
+Whisper gets no weight on 61-93% of the clean-ish clips (mean weight 0.03-0.12) and 0.28 on the noisy call sets. The gate removes most of the fixed mix's loss on phone
+lines (+0.72 -> +0.32) and keeps all of its call-set gains, but real phone lines still get slightly worse: the estimator, fitted on simulated echo and noise, takes
+some real phone channels for degraded. Details and the options for you: `audit.md` phase 22.
+
+**Second seed of run 7 (`configs/run7_seed1.yaml`):** run 7's recipe, cached copies and WavLM-only model exactly as before; only `wavlm.seed` changes (0 -> 1: head and
+layer-mix initialisation, window sampling and augmentation draws). A measurement, no adoption rule. Reported: both seeds' EER on every test set and call-set
+condition, the paired-bootstrap difference seed 1 minus seed 0 (is the run-to-run difference more than test-clip noise?), the largest per-set difference as the
+yardstick for every earlier 0.3-0.5 point comparison (runs 4-8), and the plain average of the two seeds' scores (a same-architecture ensemble, to compare with
+what Whisper adds). ~6.5 h training + ~1.2 h scoring.
+
+**Second seed of run 7: done (2026-10-08).** EER at 10 s, seed 0 / seed 1: ASV5 5.74 / 5.75; ASVspoof 2019 5.33 / 5.48; ASVspoof 2021 9.14 / 9.14; v1 3.06 / 3.07; babble 7.00 / 7.56;
+v2 10.78 / 11.14. Spread 0.00-0.15 on clean sets and 0.36-0.56 on noisy ones (up to 1.35 inside echo + noise); averaging the seeds gives 8.97 / 2.81 / 7.12 / 10.83. Yardstick for every
+earlier comparison: differences under ~0.5 points on noisy sets are not distinguishable from seed noise; run 4 vs run 7 on clean sets and the gated fusion's v2 gain are (`audit.md` phase 23).
+
+**WavLM seeds, Whisper and their ensembles in one table (2026-10-08; `results/ensemble_table_seeds_whisper.json`).** The fusion weights (0.65 / 0.35) and the gate (w_min 0, w_max 0.5) were tuned for seed 0 and are applied unchanged to seed 1 and to the two-seed average; the last two rows were not planned (exploratory).
+
+| EER at 10 s (%) | ASV5 eval | ASVspoof 2019 | ASVspoof 2021 | Call set v1 | Babble | Held-out v2 |
+|---|---|---|---|---|---|---|
+| WavLM seed 0 (run 7, served) | 5.74 | 5.33 | 9.14 | 3.06 | 7.00 | 10.78 |
+| WavLM seed 1 | 5.75 | 5.48 | 9.14 | 3.07 | 7.56 | 11.14 |
+| WavLM avg of 2 seeds | 5.65 | 5.28 | 8.97 | 2.81 | 7.12 | 10.83 |
+| Whisper alone | 7.73 | 8.46 | 13.86 | 5.47 | 8.31 | 10.48 |
+| S0 + Whisper, fixed 65/35 | 5.72 | 5.40 | 9.83 | 2.96 | 6.21 | 9.62 |
+| S1 + Whisper, fixed 65/35 | 5.74 | 5.42 | 9.71 | 2.94 | 6.27 | 9.75 |
+| S0 + Whisper, gated | 5.68 | 5.07 | 9.46 | 2.92 | 6.25 | 9.41 |
+| S1 + Whisper, gated | 5.71 | 5.29 | 9.41 | 2.95 | 6.27 | 9.31 |
+| avg2 + Whisper, fixed 65/35 | 5.70 | 5.28 | 9.68 | 2.95 | 6.13 | 9.48 |
+| avg2 + Whisper, gated | 5.56 | 5.15 | 9.21 | 2.86 | 6.40 | 9.27 |
+
+### 7.3x Decided 2026-10-08: the deciding measure is fakes missed at the verify level, not EER
+
+For banking (a missed fake can empty an account), every model is judged at its operating point: its verify level is set the way the served model's is (flag 10% of
+genuine ASVspoof 2021 phone-line callers), and the measure is the number of fakes that pass that level, then the number of genuine callers asked to verify. EER (one
+point in the middle of the curve) is reported but does not decide. Table: `results/fakes_missed_at_verify_all_runs.json` (fakes in the sets: phone lines 19,994, v1 4,800,
+babble 2,400, v2 3,200; runs 1-3 were never scored on these sets, run 5 only on two).
+
+| Per 1,000 fakes: fakes missed at the verify level | phone lines | v1 | babble | v2 | genuine asked to verify per 1,000 (phone / v1 / babble / v2) |
+|---|---|---|---|---|---|
+| Run 4 WavLM | **80** | 13 | 24 | 75 | 100 / 165 / 403 / 297 |
+| Run 5 WavLM (+ EnCodec 18%) | 99 | 37 | - | - | 100 / 127 / - / - |
+| Run 6 | 98 | 12 | 13 | 8 | 100 / 109 / 332 / 406 |
+| **Run 7 seed 0 (served)** | 83 | **9** | **8** | **6** | 100 / 139 / 374 / 438 |
+| Run 7 seed 1 | 84 | 10 | 11 | 8 | 100 / 136 / 329 / 412 |
+| Run 8 | 89 | 11 | 12 | 8 | 100 / 118 / 324 / 412 |
+| Run 9 Whisper alone | 169 | 24 | 19 | 26 | 100 / 169 / 360 / 407 |
+| Run 9 fused 65/35 | 97 | 15 | 16 | 10 | 100 / 108 / 292 / 367 |
+| Run 7 + Whisper, gated | 91 | 12 | 12 | 8 | 100 / 119 / 362 / 412 |
+| Run 7, 2 seeds averaged | 83 | 11 | 12 | 7 | 100 / 120 / 322 / 405 |
+| Run 7, 2 seeds + Whisper, gated | 86 | 12 | 12 | 8 | 100 / 108 / 325 / 391 |
+
+Reading: the two seeds of run 7 differ by 1-3 fakes per 1,000 on the call sets (9 / 10, 8 / 11, 6 / 8), so call-set differences of that size between systems are not
+distinguishable; on phone lines the seeds agree (83 / 84), so the 8 extra misses per 1,000 of the gated Whisper ensemble (about 160 fakes on this set) and the 15 of
+run 6 are real. Run 7 seed 0 is best or tied on every set except phone lines, where run 4 misses 3 fewer per 1,000 but misses 75 per 1,000 on v2 calls. Decision:
+run 7 seed 0 stays served; Whisper and the gate are candidates for shadow mode on live calls, not for serving.
+
+### 7.3y Remaining work after the model was finalised (2026-10-08)
+
+1. **Explanation agent: done** (`audit.md` phase 25). To demo with a free LLM: get a free key (Groq, Gemini or OpenRouter), set `AUDIODF_LLM_API_KEY` in your own
+   terminal, run `python -m audiodf explain <audio> --provider groq --plot out.png`. Without a key it uses the template.
+2. **Out-of-domain test:** In-the-Wild (real deepfakes of public figures from the internet), scored once with the final model and its served thresholds; no retraining.
+3. **Probability calibration and early decisions:** reliability of the score as a probability; fakes missed at the verify level after 2 / 4 / 6 s of speech.
+4. **Serving cost:** FP16 / INT8, CPU vs GPU, calls per server.
+5. **Transcript-based scam intent:** explained to you on 2026-10-08 (what is said, not how it sounds; demo-grade rules + LLM classification on scripted calls; never
+   decides alone; consent and injection risks); keep or drop is your call.
+6. **Deployment:** Kafka end to end with real audio chunks, Docker runtime test, Kubernetes, Grafana; fix the relative paths in `configs/default.yaml`.
+7. DVC backup to DagsHub (when you say), final docs, the GitHub cleanup at the end.
+
+### 7.3z Out-of-domain test on In-the-Wild (plan written 2026-10-08 before scoring; a measurement, no adoption rule)
+
+**Data:** In-the-Wild (Mueller et al., "Does Audio Deepfake Detection Generalize?", 2022; CC-BY-SA 4.0; the authors' upload `mueller91/In-The-Wild`): 31,779
+clips of 54 public figures from online videos, 19,963 genuine and 11,816 deepfakes made with tools that none of our data contains; 16 kHz mono, median 3.2 s
+(10th-90th percentile 1.6-8.6 s), so most verdicts use fewer than 10 s of speech. Never used for training, tuning or thresholds.
+
+**Scored once, as served:** the run-9 bundle gives in one pass the final model's scores (its WavLM is run 7 seed 0, weight for weight), Whisper's and the fixed fusion's.
+Reported: EER of each; at the **served** levels (verify 0.0060, block 0.90): fakes missed per 1,000 and genuine callers flagged per 1,000 (the deciding measure, 7.3x);
+per-speaker spread of genuine flags; fakes missed by clip length (under / over 4 s). Nothing is changed afterwards on the strength of these numbers: they say how far
+the lab results carry to unseen, real-world deepfakes.
+
+**In-the-Wild results (2026-10-08):** final model EER 4.47%, 16 fakes missed per 1,000 at the served verify level with 89 genuine per 1,000 asked to verify; Whisper 12.95% /
+168; fixed fusion 5.23% / 29. Short clips (< 4 s) 25 per 1,000 missed, longer 4. One speaker (Adam Driver) holds 31% of the misses. Details `audit.md` phase 27.
+
 ### 7.4 Fusion: don't jump to an ANN yet
 
 Considered a small ANN/learned voting classifier instead of the fixed 0.7/0.3 weight. Verdict:

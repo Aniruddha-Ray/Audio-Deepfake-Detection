@@ -1,0 +1,120 @@
+{
+  "verdict": {
+    "label": "real",
+    "fake_probability": 0.00474,
+    "svm_probability": null,
+    "rcnn_probability": null,
+    "risk_level": "low",
+    "action": "allow",
+    "segments_scored": 8,
+    "audio_seconds": 9.78,
+    "final": true,
+    "latency_ms": 125.15,
+    "call_id": null,
+    "wavlm_probability": 0.00474,
+    "whisper_probability": null
+  },
+  "facts": {
+    "verdict": {
+      "action": "allow",
+      "risk_level": "low",
+      "fake_probability": 0.0047,
+      "verify_threshold": 0.006,
+      "escalate_threshold": 0.9
+    },
+    "audio": {
+      "explained_seconds": 9.8
+    },
+    "score_of_explained_audio": 0.0047,
+    "score_with_every_region_removed": 0.0046,
+    "regions_top": [
+      {
+        "region": "6-8 s, 300 Hz-1 kHz",
+        "contribution": 0.0283
+      },
+      {
+        "region": "6-8 s, 1-3 kHz",
+        "contribution": -0.0166
+      },
+      {
+        "region": "8-10 s, 3-8 kHz",
+        "contribution": -0.0157
+      },
+      {
+        "region": "6-8 s, below 300 Hz",
+        "contribution": 0.0145
+      },
+      {
+        "region": "8-10 s, 300 Hz-1 kHz",
+        "contribution": -0.0106
+      }
+    ],
+    "windows": [
+      {
+        "start_s": 0.0,
+        "end_s": 2.0,
+        "p_fake": 0.0001
+      },
+      {
+        "start_s": 1.0,
+        "end_s": 3.0,
+        "p_fake": 0.0004
+      },
+      {
+        "start_s": 2.0,
+        "end_s": 4.0,
+        "p_fake": 0.0
+      },
+      {
+        "start_s": 3.0,
+        "end_s": 5.0,
+        "p_fake": 0.0
+      },
+      {
+        "start_s": 4.0,
+        "end_s": 6.0,
+        "p_fake": 0.0
+      },
+      {
+        "start_s": 5.0,
+        "end_s": 7.0,
+        "p_fake": 0.0003
+      },
+      {
+        "start_s": 6.0,
+        "end_s": 8.0,
+        "p_fake": 0.0036
+      },
+      {
+        "start_s": 7.0,
+        "end_s": 9.0,
+        "p_fake": 0.0333
+      }
+    ],
+    "channel": {
+      "room_echo": "not established",
+      "background_noise": "not established",
+      "note": "estimated from the audio; 'likely' is wrong on about 1 in 100 calls without it"
+    },
+    "attribution_check": {
+      "checked": true,
+      "k": 3,
+      "drop_top": 0.0024,
+      "drop_random": -0.0167,
+      "faithful": true
+    },
+    "model": "WavLM-Base+ (run 7, seed 0); explanation by SHAP over time x frequency regions"
+  },
+  "explanation": {
+    "summary": "The call scored 0.0047 on the synthetic-voice scale (0 = genuine, 1 = synthetic), below the verify level (verify 0.0060, escalate 0.90), so the action is 'allow'.",
+    "reasons": [
+      "The parts of the audio that pushed the score most towards synthetic: 6-8 s, 300 Hz-1 kHz (+0.028); 6-8 s, below 300 Hz (+0.015).",
+      "The highest-scoring 2-second window was 7-9 s (0.0333)."
+    ],
+    "caveats": [
+      "The regions show which parts of the audio drove the score, not why the voice is synthetic."
+    ],
+    "source": "template"
+  },
+  "plot": "../results/explain_demo/real_E_0000502309.png"
+}

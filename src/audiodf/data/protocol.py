@@ -27,7 +27,9 @@ ASV5_SPLITS = {
 ASV21_SPLITS = {"eval": ("ASVspoof2021.LA.eval.tsv", "flac_eval")}
 # Simulated VoIP calls built from clean ASV5 eval clips (data/voip_sim.py). Test only.
 CALLS_SPLITS = {"eval": ("ASV5.eval.calls.tsv", "flac")}
-SPLIT_TABLES = {"asv19": ASV19_SPLITS, "asv5": ASV5_SPLITS, "asv21": ASV21_SPLITS, "calls": CALLS_SPLITS}
+# In-the-Wild (Mueller et al. 2022): real and deepfake speech of 58 public figures from online videos; meta.csv next to the wavs. Test only.
+ITW_SPLITS = {"eval": ("meta.csv", ".")}
+SPLIT_TABLES = {"asv19": ASV19_SPLITS, "asv5": ASV5_SPLITS, "asv21": ASV21_SPLITS, "calls": CALLS_SPLITS, "itw": ITW_SPLITS}
 
 
 @dataclass(frozen=True)
@@ -107,16 +109,33 @@ def _read_calls(root: Path, split: str) -> list[Sample]:
     return out
 
 
+def _read_itw(root: Path, split: str) -> list[Sample]:
+    """meta.csv: file,speaker,label with label "spoof" or "bona-fide". The attack system is unknown (internet deepfakes): "itw"."""
+    import csv
+
+    proto, audio_dir = ITW_SPLITS[split]
+    out = []
+    with open(root / proto, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            label = row["label"].strip().lower()
+            if label not in ("spoof", "bona-fide"):
+                raise ValueError(f"{proto}: unknown label {row['label']!r}")
+            name = row["file"].strip()
+            out.append(Sample(str(root / audio_dir / name), int(label == "spoof"), "itw" if label == "spoof" else "-",
+                              name.rsplit(".", 1)[0], row["speaker"].strip(), "-", "itw"))
+    return out
+
+
 def read_protocol(data_root: str | Path, split: str, limit: int | None = None,
                   dataset: str = "asv19", available_only: bool = False) -> list[Sample]:
     """available_only keeps just the clips whose audio is on disk (a partially downloaded test split)."""
-    readers = {"asv19": _read_asv19, "asv5": _read_asv5, "asv21": _read_asv21, "calls": _read_calls}
+    readers = {"asv19": _read_asv19, "asv5": _read_asv5, "asv21": _read_asv21, "calls": _read_calls, "itw": _read_itw}
     if dataset not in readers:
         raise ValueError(f"unknown dataset {dataset!r}; expected one of {sorted(readers)}")
     samples = readers[dataset](Path(data_root), split)
     if available_only:
         audio_dir = Path(data_root) / SPLIT_TABLES[dataset][split][1]
-        have = {f[:-5] for f in os.listdir(audio_dir) if f.endswith(".flac")}
+        have = {f.rsplit(".", 1)[0] for f in os.listdir(audio_dir) if f.lower().endswith((".flac", ".wav"))}
         samples = [s for s in samples if s.utt_id in have]
     if limit and limit < len(samples):
         keep = np.sort(np.random.default_rng(0).choice(len(samples), limit, replace=False))

@@ -18,7 +18,7 @@ CallSession (per call): skip silence before speech -> rolling 10 s buffer
    '--> RCNN branch: every completed 2 s window (1 s hop) -> Log-Mel 64x200 -> CNN -> BiLSTM
                      (scores averaged over the windows inside the last 10 s)
    v
-fuse: w * P_svm + (1-w) * P_rcnn  ->  risk engine (verify / block thresholds)
+fuse: w * P_svm + (1-w) * P_rcnn  ->  risk engine (allow / verify / escalate thresholds)
    v                                  w and thresholds are tuned on dev and stored in the model bundle
 Verdict JSON  (+ Prometheus metrics)
 ```
@@ -112,7 +112,8 @@ python -m audiodf benchmark                  # per-stage latency
 python -m audiodf serve --port 8000          # API: /predict, /stream/{id}, /health, /metrics
 python -m audiodf consume                    # Kafka worker (needs a broker + confluent-kafka)
 python -m audiodf produce call.wav --realtime
-python -m pytest                             # 155 tests, no dataset or GPU needed
+python -m pytest                             # 176 tests, no dataset or GPU needed
+python -m audiodf explain call.wav --plot out.png   # verdict + SHAP regions + plain-language reasons (--provider groq|gemini|openrouter with AUDIODF_LLM_API_KEY)
 ```
 
 Stream over a WebSocket: send binary frames of 16 kHz mono PCM16, receive a JSON verdict each time a
@@ -171,7 +172,7 @@ model now in `artifacts/`. **Known weak spots:** packet loss (genuine calls flag
 
 Run 7 gives up 0.3-0.5 points on clean-speech phone audio against run 4 for 2-8.5 points on noisy, babbling, echoey and lossy calls
 (your decision; it missed the rule fixed before training by 0.18 / 0.03 points, `audit.md` phase 18). Thresholds were set on all 67
-ASVspoof 2021 speakers (verify >= 0.0060); block was lowered to >= 0.90 on 2026-10-07 from a call-audio threshold study (banking
+ASVspoof 2021 speakers (verify >= 0.0060); the high level was lowered to >= 0.90 on 2026-10-07 from a call-audio threshold study (banking
 policy: verify kept strict because a missed fake costs far more than a verification; `audit.md` phase 19). The live serving path matches the batched scores (400 calls, p95
 difference 0.0013) with a 47 ms median verdict time. A classical denoising front end was tested and rejected: it made every call set worse.
 
@@ -181,6 +182,10 @@ babble 6.29% (run 7: 7.00%), held-out calls v2 10.47% (10.78%). It missed all fi
 "Statistics of natural reverberation enable perceptual separation of sound and space", PNAS 2016.
 The earlier ASVspoof2019 prototype (5.7% eval EER) used feature version 1 and an easier benchmark; it is not
 reproducible with this code and not comparable to these numbers.
+
+**Actions (since 2026-10-09):** `allow`; `verify` (a cheap step-up check such as an OTP); `escalate` (the strongest check, e.g. an agent
+callback on the number on file). The high level never rejects a call by itself: on real phone lines, if 1 call in 1,000 were a deepfake, about 96%
+of calls at that level would be genuine customers (`audit.md` phase 26). `escalate` replaces the old `block` action.
 
 ## Known limitations (read before relying on the risk levels)
 

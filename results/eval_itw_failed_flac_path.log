@@ -1,0 +1,47 @@
+[1/1] In-the-Wild, run-9 bundle (WavLM = final model, Whisper, fixed fusion) 
+Loading weights:   0%|          | 0/479 [00:00<?, ?it/s]Loading weights:   3%|3         | 16/479 [00:00<00:03, 129.05it/s]Loading weights:   6%|6         | 29/479 [00:00<00:03, 119.29it/s]Loading weights:   9%|8         | 43/479 [00:00<00:03, 125.62it/s]Loading weights:  12%|#2        | 58/479 [00:00<00:03, 133.52it/s]Loading weights:  16%|#6        | 79/479 [00:00<00:02, 158.06it/s]Loading weights:  21%|##        | 100/479 [00:00<00:02, 166.37it/s]Loading weights:  24%|##4       | 117/479 [00:00<00:02, 160.97it/s]Loading weights:  28%|##7       | 134/479 [00:00<00:02, 161.00it/s]Loading weights:  32%|###1      | 151/479 [00:01<00:02, 140.94it/s]Loading weights:  35%|###4      | 167/479 [00:01<00:02, 141.24it/s]Loading weights: 100%|##########| 479/479 [00:01<00:00, 389.24it/s]
+    index itw/eval: 20000/31779 (257 utt/s)
+  indexed itw/eval: 31779 utts in 93s, 111 without speech
+  scoring itw/eval: 31668 of 31779 clips
+  scoring wavlm on 31668 clips
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\__main__.py", line 3, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\cli.py", line 399, in main
+    args.fn(args, load_settings(args.config))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\cli.py", line 66, in _cmd_evaluate
+    rep = evaluate_artifacts(settings, args.dataset, args.split, args.eval_utts, args.workers, args.limit,
+                             branches=tuple(args.branches) if args.branches else None,
+                             scores_path=results / f"{name}_scores.csv" if args.save_scores else None)
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\training\pipeline.py", line 298, in evaluate_artifacts
+    rep = evaluate_on(models, settings, dataset, split, n_utts, device, workers, limit, log, risk, scores_path)
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\training\pipeline.py", line 92, in evaluate_on
+    scores = score_split(models, idx, utts, settings, device, workers, f"{split}{len(utts)}", log)
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\evaluation\stream_eval.py", line 121, in score_split
+    branches[name] = score_window_branch(model, idx, utts, settings, device, workers, grid, augment_p,
+                     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                         dataset_cls, batch)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\evaluation\stream_eval.py", line 91, in score_window_branch
+    probs = score_windows(model, idx, keys, settings, device, workers, augment_p, batch_size, dataset_cls)
+  File "C:\Users\Asus\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\src\audiodf\evaluation\stream_eval.py", line 80, in score_windows
+    for x, _ in loader:
+                ^^^^^^
+  File "C:\Users\Asus\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\torch\utils\data\dataloader.py", line 725, in __next__
+    data = self._next_data()
+  File "C:\Users\Asus\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\torch\utils\data\dataloader.py", line 1531, in _next_data
+    return self._process_data(data, worker_id)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\Asus\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\torch\utils\data\dataloader.py", line 1569, in _process_data
+    data.reraise()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\Asus\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\torch\_utils.py", line 803, in reraise
+    raise exception
+soundfile.LibsndfileError: <exception str() failed>
+ALL DONE 
