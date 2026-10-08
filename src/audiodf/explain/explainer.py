@@ -38,7 +38,11 @@ def channel_facts(x: np.ndarray, model_path: Path | None) -> dict | None:
         return None
     from audiodf.gating.channel_quality import ChannelQualityModel, channel_features
 
-    pe, pn, _ = ChannelQualityModel.load(model_path).predict(channel_features(x)[None])
+    try:  # a pickled scikit-learn model only loads under the version that wrote it; the channel line is optional, the explanation is not
+        model = ChannelQualityModel.load(model_path)
+    except Exception:
+        return None  # refit for the installed version: python -m audiodf.gating.run fit ...
+    pe, pn, _ = model.predict(channel_features(x)[None])
     word = lambda p: "likely" if p >= LIKELY else "not established"  # noqa: E731
     return {"room_echo": word(float(pe[0])), "background_noise": word(float(pn[0])),
             "note": "estimated from the audio; 'likely' is wrong on about 1 in 100 calls without it"}

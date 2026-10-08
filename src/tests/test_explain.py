@@ -145,3 +145,10 @@ def test_explain_endpoint_returns_the_verdict_facts_and_text():
         r = client.post("/explain?nsamples=40", content=buf.getvalue())
         assert r.status_code == 200 and set(r.json()) == {"verdict", "facts", "explanation"}
         assert client.post("/explain?provider=nope", content=buf.getvalue()).status_code == 400
+
+
+def test_an_unloadable_channel_model_leaves_out_the_channel_line_but_never_fails(tmp_path):
+    bad = tmp_path / "estimator.joblib"
+    bad.write_bytes(b"not a pickle from this scikit-learn")
+    out = explain_call(FakeEngine(), _call(), "template", nsamples=40, channel_model=bad)
+    assert out["facts"]["channel"] is None and out["explanation"]["summary"]

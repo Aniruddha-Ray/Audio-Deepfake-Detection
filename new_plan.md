@@ -17,8 +17,8 @@ Read this section first; it is the exact point to resume from. Details of every 
 - **Built and working (all in git as of this push, 195 tests green locally):** detector, streaming API (`/predict`, `/stream`, `/explain`), explanation agent
   (`audiodf explain`), scam-intent module (`audiodf intent`), channel-quality gate (experiment, not served), Whisper branch (experiment, not served),
   evaluation tools (`call-thresholds`, `calibrate`, `serving_cost`, `intent.evaluate`, `gating.run`).
-- **Git:** pushed through the commit of this session's end (intent work + docs). CI: `1db0270` green; the result for `3d0c21a` and the final commit was not
-  read yet (the GitHub API rate limit ran out; check with the command in 0.4). **Kept local on purpose (your decision): run 8's files** (`src/configs/run8.yaml`,
+- **Git:** pushed through the commit of this session's end. CI: `3d0c21a` and `e482d3c` failed (a version-bound scikit-learn pickle loaded by `/explain`;
+  `audit.md` mistake 27); fixed in the final commit, verified under Python 3.11 with CI's package versions (195 passed). Read CI once more when resuming (0.4). **Kept local on purpose (your decision): run 8's files** (`src/configs/run8.yaml`,
   `results/*run8*`, `results/train_run8.log`, `results/eval_run8_battery.log`, `results/chain_run9_and_run8_epochs.log`) and the **DVC pointer files** (`*.dvc`).
 - **DVC:** installed (3.67) and initialised (`.dvc/`, analytics off); 13 `artifacts*` folders tracked in the local DVC cache (`.dvc/cache`, ~3.4 GB); **no remote
   yet** (waiting for you, DagsHub); `artifacts_run7_seed1/` is not tracked yet. Model weights exist only on this disk.
@@ -61,6 +61,8 @@ Read this section first; it is the exact point to resume from. Details of every 
 - CI: `curl -s "https://api.github.com/repos/Aniruddha-Ray/Audio-Deepfake-Detection/actions/runs?per_page=3"` (gh is not installed; poll every 3-5 min at most:
   the unauthenticated API allows 60 requests per hour).
 - Before any push of a subset of files: run the suite in a clean checkout of the commit (`git worktree add <dir> HEAD`), then push, then read CI.
+  For new dependencies also run it under CI's Python 3.11 with fresh packages: `python -m uv venv --python 3.11 <dir>`, CPU torch from the PyTorch index,
+  `uv pip install -r requirements-dev.txt`, then pytest (a clean checkout is not a clean environment; mistake 27).
 - Rules that held all session: a decision rule is written in `new_plan.md` / `audit.md` before each run or measurement and applied as written; nothing is tuned on a
   test set; no edits to imported `.py` files and no second data-loading job while a training run is active; do not move or rename dataset folders during a run;
   never swap `artifacts/` without your yes; ask before every push; no GitHub cleanup until the end.

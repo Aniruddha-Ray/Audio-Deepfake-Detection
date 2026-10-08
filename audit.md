@@ -1067,6 +1067,11 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
     tested in a clean checkout before pushing a subset (phase 22).
 26. When the block level 0.90 was chosen (phase 19) I compared catch rates and false-block rates but not what a block means at a realistic fraud
     rate: on real phone lines about 96% of blocked calls would be genuine if 1 call in 1,000 were a deepfake. Found in phase 26; block should escalate, not reject.
+27. The pushes of 2026-10-09 (`3d0c21a`, `e482d3c`) failed CI: the `/explain` endpoint loads the channel-quality estimator from
+    `results/gating/estimator.joblib`, a scikit-learn pickle that only loads under the version that wrote it, and CI installs a newer one. Local runs and the
+    clean-checkout test passed because they used this machine's library versions. Reproduced with an isolated Python 3.11 environment matching CI (uv), fixed
+    (an unloadable estimator now just leaves out the optional channel line; a test covers it); 195 passed under 3.11. Lesson: a clean checkout is not a clean
+    environment; test with CI's Python and freshly installed packages before pushing new dependencies.
 
 ## 5. Known limitations (current)
 
@@ -1148,7 +1153,7 @@ python -m audiodf.intent.evaluate [--provider groq --pause 2]                  #
 | Deployment: Docker runtime, Kafka end to end, Grafana, Kubernetes | **waiting for your go** (`new_plan.md` 0.2 item 1) |
 | `configs/default.yaml` relative paths | open, minor (part of deployment) |
 | DVC remote (DagsHub) + `artifacts_run7_seed1` tracking | **waiting for you** (`new_plan.md` 0.2 item 4) |
-| CI results of `3d0c21a` and the final commit | to read (API rate limit) |
+| CI | `3d0c21a` and `e482d3c` failed (mistake 27), fixed in the next commit |
 | Real bank call recordings | not available |
 | Full ASV5 eval (8 more tars, ~68 GB) | optional |
 | Final docs (model card), GitHub cleanup | at the very end (your decision) |
