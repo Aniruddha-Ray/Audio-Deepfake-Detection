@@ -1,20 +1,48 @@
 # Audit log: Real-Time Deepfake Voice Detection
 
 Running record of what was done, what was found, what turned out wrong, and what is open.
-Last updated: 2026-10-06 (after the live-call check and the swap to run 4's WavLM). Companion docs: `new_plan.md` (plan and analysis), `src/README.md` (usage).
+Last updated: 2026-10-09 (end of the session of 2026-10-06 to 2026-10-09: model final, explanation agent, scam intent). Companion docs: `new_plan.md` (start at section 0, RESUME HERE), `src/README.md` (usage).
 
 ## 1. Current state at a glance
 
 | Item | State |
 |---|---|
-| Codebase | `src/audiodf/` (44 modules), 147 passing tests. Pushed through `2cfc76a`; CI green. Phase 17 code (noise bank, impairments, v2 calls, denoise test) and results are not yet pushed. |
-| Trained model | `artifacts/` = **run 4's WavLM-Base+ alone** (swapped in 2026-10-06 after beating run 5 on simulated live calls, 4.96% vs 7.45%); thresholds set on 67 phone-channel speakers. Run 6 (noise / echo / loss robust, not adopted yet) in `artifacts_run6/`; run 5 in `artifacts_run5_encodec/`; run 4's 3-branch bundle in `artifacts_run4_wavlm/`; WavLM-only copy in `artifacts_run4_wavlm_only/`; runs 1-3 kept. |
-| Previous model | `artifacts_prev_asv2019/` (ASV2019 prototype, feature v1, cannot load in current code). Kept, git-ignored. |
-| Best honest number | Served model (run 4's WavLM): ASV5 eval EER **5.43%** (worst codec condition, EnCodec, 18.5%), ASVspoof 2021 real-phone-channel EER **8.81%**, simulated live calls **4.96%**. Run 5: 5.51% / 9.96% / 7.45%. |
-| Run 6 vs served | Better on ASV5 eval (4.46 vs 5.43%) and on every noisy / echoey / lossy call set (babble 7.75 vs 15.54%, held-out v2 11.41 vs 16.95%, loss-driven false alarms +3.8 vs +35.7 points), **worse by ~1 point on the 2019-derived real-phone sets** (ASVspoof2019 eval 5.82 vs 4.85%, ASVspoof 2021 9.86 vs 8.81%). The pre-set rule says do not adopt; your decision (phase 17). Denoising was tested and rejected. |
-| Deployment | FastAPI tested for real (53 ms to first verdict on GPU, WavLM alone; live path matches batched scoring); **Kafka, Docker runtime, Kubernetes, Grafana untested**. No real phone-call audio (you cannot provide any; simulated calls used instead). |
-| Disk | Data: `dataset19/LA` 7.1 GB (renamed from `dataset/` on 2026-10-06), `dataset21/` 7.6 GB, `dataset_noise/` ~8 GB, simulated call sets ~6 GB, `dataset5/` ~75 GB (train, dev, 2 of 10 eval tars); codec renders in the cache (catalogue 1 ~35 GB, catalogue 2 adds ~7 GB, the rest hard links). |
-| Next | **Run 7 is the served model** (verify 0.0060 / block 0.90). Run 8 (echo, babble) met 0 of 5 targets: not adopted (phase 20). Next: the Whisper-encoder branch (section 9). |
+| Codebase | `src/audiodf/` (+ `explain/`, `intent/`, `gating/`), 195 passing tests. Pushed with this session's last commit; `1db0270` CI green, later CI results to be read (API rate limit). Run 8's own files and the DVC pointer files are kept local on purpose. |
+| **Final model** | **Run 7 seed 0, WavLM-Base+ alone** in `artifacts/` (your decision, 2026-10-08): verify >= 0.0060, **escalate** >= 0.90 (the high level escalates to the strongest check; it never rejects a call by itself). Other bundles kept for reference: runs 1-9, run 7 seed 1, run 9 (WavLM + Whisper). |
+| Best honest numbers (final model) | EER at 10 s / fakes missed per 1,000 at the verify level: ASVspoof 2021 real phone lines 9.14% / 83; simulated calls v1 3.06% / 9, babble 7.00% / 8, held-out v2 10.78% / 6; **In-the-Wild real-world deepfakes 4.47% / 16**; ASV5 eval 5.74%; ASVspoof 2019 5.33%. |
+| Deciding measure | Fakes missed at the verify level (each system's verify level flags 10% of genuine ASVspoof 2021 callers), then genuine callers asked to verify; EER is reported, never decides (`new_plan.md` 7.3x). |
+| Explanations | `audiodf explain` / `POST /explain`: SHAP over time x frequency regions, faithfulness check, numbers-only facts, free-tier LLM (Groq / Gemini / OpenRouter) with number checking and a template fallback. The LLM demo needs your API key. |
+| Scam intent | `audiodf intent`: local Whisper speech-to-text, 8 intent patterns, optional bounded LLM, a policy that only raises the check. Rules: 0.6% of normal calls flagged at high on BothBosu, **37.8% on the independent set** (legitimate calls on the same topics); the LLM path is unmeasured. |
+| Serving | GPU float16: 53 ms per window alone, ~235 simultaneous calls per laptop GPU; CPU ~5 calls; int8 rejected. Verify after ~6 s of speech is as good as at 10 s; no escalation before ~4-6 s. |
+| Deployment | FastAPI tested (live path matches batched scoring). **Kafka, Docker runtime, Kubernetes, Grafana untested**; Docker Desktop installed, not running; no cluster. Waiting for your go. |
+| Backup | DVC initialised, 13 model folders in the local DVC cache, **no remote** (DagsHub pending you); the weights exist only on this disk. |
+| Next | `new_plan.md` section 0: your go for deployment, a free LLM key, the LLM intent measurement (rule fixed), the DVC remote, final docs and cleanup. |
+
+## 1b. Session of 2026-10-06 to 2026-10-09: findings and improvements (details in phases 15-31)
+
+**Findings**
+- Telephony (phase 15): on ASVspoof 2021 real phone channels run 4's WavLM beat run 5 (8.81 vs 9.96%); thresholds tuned on the tuning set were far too loose on phone audio.
+- Simulated live calls (16): run 4 beat run 5 (4.96 vs 7.45%) and was served; the served model was fragile to babble (15.5%), real echo (18%) and packet loss (genuine calls flagged 6% -> 42%).
+- Denoising (17): ffmpeg afftdn made every set worse: rejected. Noise / echo / loss training (run 6) gained 2-8 points on noisy calls but cost ~1 point on clean phone audio.
+- EnCodec (18): removing it (run 7) halved that cost; run 7 was adopted by your override (the pre-set rule missed by 0.18 / 0.03 points).
+- Call-audio thresholds (19): phone-speech thresholds asked 15-45% of genuine callers to verify on noisy calls; room echo became the main driver of false alarms.
+- More echo of the same kind (run 8, 20) does not fix very long reverberation; the held-out rooms are far more reverberant than real call rooms; more epochs do not help (epochs 5-8 equivalent).
+- Whisper (21): the better encoder under echo, the worse one on clean audio; fixed and gated fusion (22) both lose on real phone lines (+0.72 / +0.32) and win on noisy calls.
+- Run-to-run spread (23): 0.00-0.15 points on clean sets, 0.36-0.56 on noisy ones (up to 1.35 in one condition): differences under ~0.5 on noisy sets are noise.
+- At the operating point run 7 alone misses the fewest fakes; every Whisper ensemble that won on EER misses more (`new_plan.md` 7.3x): EER can mislead for banking.
+- Out of domain (27): In-the-Wild 4.47% EER, 16 fakes missed per 1,000; one voice holds 31% of the misses; short clips are harder.
+- Calibration (26): the raw score is not a probability; at 1 deepfake in 1,000 calls ~96% of high-level phone-line calls would be genuine, so the high level must escalate, not block.
+- Serving (28): a GPU is needed (~235 calls vs ~5 on CPU); int8 changes a quarter of the decisions.
+- Scam intent (30): phrase rules find scam patterns but cannot tell a scam from a legitimate call on the same subject (37.8% of legitimate calls flagged on the independent set).
+
+**Improvements built**
+- Noise bank, impairment kit (echo, noise, babble, bursty loss with five concealment styles), measured MIT rooms with a time stretch, call simulators v1 / v2, calibration
+  call sets with a fixed speaker split, `call-thresholds`, `calibrate`, `live-check`, `compare_runs` (paired bootstrap), `channel_report`.
+- Reuse of renders across runs (EnCodec share, backward-compatible configuration tags), per-pass checkpoints, the Whisper branch end to end, the channel-quality gate.
+- The final model's operating policy: verify 0.0060 (banking: missed fakes outrank verification load), escalate 0.90, intent raises the check.
+- Explanation agent and scam-intent module (local speech-to-text, a bounded LLM with verbatim-quote checks, an injection-safe floor).
+- In-the-Wild loader and the index's per-folder file type (a latent `.flac` assumption), the serving-cost benchmark, DVC tracking.
+- Process: decision rules fixed before every run and applied as written; a clean-checkout test before partial pushes; slower CI polling. Mistakes 20-26 are in section 4.
 
 ## 2. Timeline
 
@@ -909,6 +937,37 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
   serving cost) keep calling the high threshold "block" so earlier reports stay comparable.
 - Your other decisions the same day: push (done, phase 29 commit); **transcript-based scam intent: keep** (demo-grade module next); deployment only after these.
 
+### Phase 30: transcript-based scam intent, the rules (2026-10-09; plan `new_plan.md` 8.0 written before any rule or test data)
+
+- **Data:** BothBosu/scam-dialogue (Apache-2.0; train 1,280 / test 320 synthetic phone dialogues, half scam; scam types refund, reward, Social Security, tech support;
+  normal types delivery, insurance, telemarketing, wrong number) and shakeleoatmeal/phone-scam-detection-synthetic (MIT; test 180, never looked at before the measurement;
+  its normal calls are *legitimate* refund / Social Security / support calls). `dataset_intent/`. Only the caller's turns are read.
+- **Rules (`src/audiodf/intent/rules.py`):** 8 intent categories (credential request 0.6, remote access 0.6, payment redirection 0.5, bypassing verification 0.5, secrecy 0.35,
+  authority impersonation 0.3, lure 0.3, urgency / threat 0.25); score = 1 - prod(1 - weight); caution >= 0.3, high >= 0.6; each match keeps its phrase. Written on the train
+  split only: first pass AUC 0.964 (scam 92.7% / normal 3.3% at caution or high); one round of fixes on train ("verify **our** credentials" is the caller offering theirs;
+  refund lures "refund you $500"; "account info") -> train AUC 0.981, scam 96.1% / normal 1.2% at caution or high, 86.6% / 0.6% at high. Then frozen.
+  The fix itself first carried a literal backspace character where `\b` was meant (the scripted-escape slip of mistake 13 again); found by inspecting the bytes, fixed.
+- **Results (measured once, rules unchanged; `results/intent_rules_eval.json`):** BothBosu test: AUC 0.989; caution or high: scam 96.9%, normal 0.6%; high: scam 88.8%, normal
+  0.6%. **shakeleoatmeal test (independent): AUC 0.790; caution or high: scam 90.0%, normal 82.2%; high: scam 83.3%, normal 37.8%** (normal refund 10%, Social Security 40%,
+  support 63% at high); scams by style: direct 94%, somewhat subtle 76%, very subtle 77% at high.
+- **Reading:** the rules find scam *patterns* reliably, but a legitimate call about the same subject uses the same words (a real agency also asks you to verify your identity),
+  so on the independent set they flag most legitimate calls. The pre-set demo bar (<= 5% of normal calls at high) is met on BothBosu and **missed on the independent set**.
+  Phrase rules alone cannot separate a scam from a legitimate call on the same topic. Consequences: intent never decides alone (as planned); in a bank, money movement
+  already gets a step-up check, so the extra friction falls on calls that need one anyway; context-aware classification (the LLM path) is the part that could separate them,
+  to be measured once a free API key is set. Both sets are synthetic and scammer-calls-victim; our case is a fraudster calling the bank.
+
+### Phase 31: the intent module around the rules (2026-10-09)
+
+- `intent/asr.py`: local Whisper-small speech-to-text with timestamps (cached weights; the transcript never leaves the machine). On real In-the-Wild clips: first call 25 s
+  (model load), then ~1.7 s per clip on this GPU; correct short transcripts.
+- `intent/llm_intent.py`: optional context-aware labels from a free-tier LLM (same client as the explanations), with bounded power because the transcript is untrusted: labels
+  only from the fixed list, each with a quote of at least 3 words found word for word in the transcript (else dropped); an "unlikely" judgement lowers a rules "high" to
+  "caution" and never further; any failure leaves the rules' result. Not yet measured (needs your free API key; `python -m audiodf.intent.evaluate --provider groq --pause 2`).
+- `intent/policy.py`: intent raises the check and never lowers the voice action: allow + high intent -> verify; verify + high -> escalate; "caution" is context only (the
+  rules flagged most legitimate calls on the independent set).
+- `intent/call.py`, CLI `audiodf intent --audio FILE | --text "caller: ..."`; `intent/evaluate.py` reproduces phase 30 exactly. 16 tests (rules, Hinglish phrases, timestamps,
+  the policy table, verbatim-quote validation, an injected "ignore your instructions" transcript held at caution, failures, the CLI); 195 tests green.
+
 ## 3. Decisions and the reasoning behind them
 
 - **Train on ASV5 only, drop ASV2019 (run 1).** Chosen because ASV5 dev gives attack-disjoint tuning and ASV2019 has a silence
@@ -933,6 +992,13 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
 - **Risk thresholds from bonafide quantiles** (1% block, 10% verify) instead of the slide's fixed 0.8/0.5.
 - **Bundle carries its operating point** (fusion weight, thresholds) and overrides the config at serving time.
 - **Eval scored on a stratified subset** (SVM runs ~35-80 clips/s), not the whole split.
+- **(2026-10-07) Verify stays strict for banking** (0.0060): a missed fake can empty an account, a verification costs a step-up check; break-even ~4,000-7,300
+  verifications per fraud stopped at an assumed 1-in-1,000 fraud rate.
+- **(2026-10-08) Run 8 not adopted; run 7 seed 0 is the final model;** the deciding measure is fakes missed at the verify level, not EER.
+- **(2026-10-08) Whisper and the gate are not served** (both rules missed); shadow mode is the way to collect live evidence if it is ever wanted.
+- **(2026-10-09) The high level escalates instead of blocking** (phases 26 and 29).
+- **(2026-10-09) Transcript intent kept;** it never decides alone and never lowers the voice action; the LLM may not lower a rules "high" below "caution".
+- **(2026-10-08) Explanations use a free cloud LLM for demos** (your call; a local model would be the private choice in production); the LLM sees numbers and labels only.
 
 ## 4. Mistakes and corrections (mine unless noted)
 
@@ -1004,37 +1070,32 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
 
 ## 5. Known limitations (current)
 
-- **Packet loss and noise (served model):** genuine calls flagged at the verify threshold rise from 6.4% (no loss) to
-  42% (5% simulated loss); white noise doubles the EER (2.9% -> 7.5%). Neither was in training; the concealment in the
-  test is cruder than real codecs', so the size of the loss effect is uncertain. Hardest attacks: A28 (15.6% EER, 65%
-  caught), A30, A31.
-- **Thresholds:** verify holds roughly (10.6% +- 2.2% of genuine flagged on unseen speakers; 6.4% on loss-free calls), but
-  block (1% budget) catches only 39% of fakes on simulated calls (62% on held-out 2021 speakers). Not final.
-- Codec trade-off (run 5, not served): EnCodec conditions improved to 9.4% / 10.5%, but the other conditions, clean audio
-  and ASV2019 lost 0.1-2.3 points, and run 5 lost to run 4 on every real phone channel.
-- Run-to-run (seed) noise is unmeasured, so differences under ~1 point per condition are uncertain.
-- The tuning set is far easier than eval (run 4: 0.34% vs 5.51%; run 3: 12.9% vs 29.4%); it ranks candidates but its
-  absolute numbers and thresholds do not transfer. **Measured on phone audio (phase 15): thresholds designed for 10% / 1%
-  of genuine clips flagged flag 14.6% / 6.2%.** Re-calibrate before any user-facing use.
-- ASV5 clips are read audiobook speech, not live VoIP audio (packet loss, DTX, echo untested). WavLM's pretraining
-  includes the same audiobook source (open condition).
-- Only 2 of 10 ASV5 eval tars (20%, verified representative); the 30k-clip subset is used for every comparison.
-- WavLM needs a GPU to serve many calls (48 ms per window on GPU, ~234 ms on CPU). SVM features cost ~41 ms per verdict
-  for a 0.10 weight.
-- ASV5 eval has been used to compare candidates; never tune on it.
-- No true cross-dataset test since run 2 (ASV2019 train/dev are in the pool).
+- **No real bank calls.** Every call test is simulated (ASV5 clips through VoIP codecs, noise, echo, loss) or from public benchmarks; a small set of real recordings would
+  be the best final check.
+- **Real phone lines are the weakest condition:** 83 fakes missed per 1,000 at the verify level (ASVspoof 2021, attacks from 2019); newer cloning tools may be harder.
+- **The escalate level on real phone lines** reaches 1.92% of genuine callers; at realistic fraud rates most escalations are genuine customers (hence escalate, never reject).
+- **Verification load on noisy calls:** the strict verify level asks 37-44% of genuine callers on babble / echoey simulated calls to verify.
+- **Very reverberant rooms and echo + noise** remain hard (v2 echo + noise 19.95%); neural codecs too (ASV5 C04 / C07 15-20%).
+- **Scam intent** cannot tell a scam from a legitimate call on the same subject (37.8% of legitimate calls flagged at high on the independent set); the datasets are synthetic,
+  English and scammer-calls-victim; Hindi / code-mixed speech-to-text is untested.
+- **Explanations** show which parts of the audio drove the score, not why the voice is synthetic; the channel estimate is shown only when "likely" (p >= 0.9).
+- **A GPU is required** for more than a handful of simultaneous calls.
+- **Only 2 of 10 ASV5 eval tars**; the 30k-clip subset is used for every comparison. ASV5 eval and the call sets have been used to compare candidates: never tune on them.
+- **The model weights exist only on this disk** until the DVC remote is set up.
 
 ## 6. Inventory
 
-- Code: `src/audiodf/` (data, features, models, training, evaluation, inference, serving, streaming, monitoring), `src/run.py`, `src/tests/` (6 test files), `src/deploy/`, `.github/workflows/ci.yml`.
-- Docs: `new_plan.md`, `src/README.md`, `audit.md`.
-- Models (git-ignored): `artifacts/` = run 5; `artifacts_run5_encodec/`, `artifacts_run4_wavlm/`, `artifacts_run3_codecs/`,
-  `artifacts_run2_pooled/`, `artifacts_run1_asv5/`, `artifacts_prev_asv2019/`.
-- Results: `results/training_report.json` (run 5), `training_report_run{1,2,3,4,5}.json`, `train_run{2,3,4,5}.log`, `evaluate_asv5_eval.json`, `data_integrity_asv5.json`, `data_integrity_asv19.json`, `segmented_baseline_bilstm.json`, logs (`train_asv5.log`, `asvspoof5_download.log`, ...).
-- Cache (outside the repo): `~/.cache/audiodf/prep_vad-45_0.025_0.05_svmv2_melv1/` (indexes + SVM snapshots, 0.38 GB). The obsolete
-  ASV2019 v1 feature caches (`seg2s_hop1s*`, 8.60 GB) were **deleted on 2026-10-03** after checking that nothing in `src/` reads them (only
-  `experiments/segmented_baseline.py` did; it rebuilds them in ~28 min). Their one model file, the prototype's 5-epoch RCNN, was kept as
-  `artifacts_prev_asv2019/experiment_5epoch_cnn_bilstm.pt`. Free disk after cleanup: 87.7 GB.
+- Code: `src/audiodf/` (data, features, models, training, evaluation, inference, serving, streaming, monitoring, explain, intent, gating), `src/run.py`, `src/tests/`
+  (195 tests), `src/configs/` (default, run6, run7, run7_seed1, run9; run8 local only), `src/deploy/` (Dockerfile, compose, k8s, Prometheus, Grafana),
+  `.github/workflows/ci.yml`, `.dvc/`.
+- Docs: `new_plan.md` (section 0 = the resume point), `audit.md`, `src/README.md`.
+- Models (git-ignored; DVC-tracked locally except the seed-1 bundle): `artifacts/` = **final (run 7 seed 0)**; `artifacts_run7/` (+ 8 passes), `artifacts_run7_wavlm_only/`,
+  `artifacts_run7_seed1/`, `artifacts_run8/` (+ passes), `artifacts_run9/` (WavLM + Whisper, + passes), `artifacts_run6/`, `artifacts_run5_encodec/`,
+  `artifacts_run4_wavlm(_only)/`, `artifacts_run3_codecs/`, `artifacts_run2_pooled/`, `artifacts_run1_asv5/`, `artifacts_prev_asv2019/`.
+- Results: `results/` (training reports per run, per-clip score CSVs per run and test set, `fakes_missed_at_verify_all_runs.json`, `ensemble_table_seeds_whisper.json`,
+  `run7_seed_spread.json`, `gating/`, `explain_demo/`, `itw_report.json`, `early_decisions_run7.json`, `calibration_run7_scores.json`, `serving_cost.json`,
+  `intent_rules_eval.json`, `intent_eval_rules.json`, calibration and call-threshold reports, logs).
+- Data and cache: see `new_plan.md` 0.4.
 
 ## 7. Reproduce
 
@@ -1060,53 +1121,39 @@ python -m audiodf.evaluation.compare_runs --first a=... --second b=... --column 
 python -m pytest                           # 126 tests
 ```
 
+Added this session:
+```
+python run.py --config configs/run7.yaml --eval-utts 30000                     # the final model's recipe (seed 0); configs/run7_seed1.yaml = seed 1
+python run.py --config configs/run9.yaml --wavlm-checkpoint ../artifacts_run7/wavlm.pt --eval-utts 30000   # Whisper branch next to run 7
+python -m audiodf render-calls --speaker-half A --n-genuine 0 --n-per-attack 100 --seed 5 --out ../dataset_calls_cal_v1   # calibration calls
+python -m audiodf render-calls-v2 --speaker-half A --n-genuine 0 --n-per-attack 100 --seed 5 --out ../dataset_calls_cal_v2
+python -m audiodf call-thresholds --cal <protocol,scores> ... --test v1=<protocol,scores> ... --stored ../artifacts --tag T
+python -m audiodf evaluate --dataset itw --eval-utts 0 --bundle ../artifacts_run9 --tag itw_run9 --save-scores   # In-the-Wild
+python -m audiodf.gating.run tuning|fit|features|eval ...                      # gated fusion experiment
+python -m audiodf.evaluation.serving_cost --clips 300                          # serving cost (AUDIODF_CALLS=../dataset_calls)
+python -m audiodf explain call.wav [--provider groq] [--plot out.png]          # explanation (AUDIODF_LLM_API_KEY for an LLM)
+python -m audiodf intent --audio call.wav | --text "caller: ... receiver: ..." [--provider groq]
+python -m audiodf.intent.evaluate [--provider groq --pause 2]                  # intent evaluation (phase 30)
+```
+
 ## 8. Open items
 
 | Item | Status |
 |---|---|
-| Run 2: pooled data + held-out-attack tuning (options 1+2 combined) | done: ASV5 eval 31.6% (run 1 33.0%) |
-| Real-codec augmenter via ffmpeg (encoders confirmed available) | done: run 3, 29.4% (not significant) |
-| Pretrained speech front end (WavLM) | done: run 4, **5.51%** (target <= 24.4%) |
-| EnCodec (neural codec) augmentation for C04/C07 | done: run 5, C04 9.4%, C07 10.5% (rule met; trade-off on other conditions) |
-| Serve WavLM alone | done: your call, default from run 5 |
-| Telephony check on real phone channels (ASVspoof 2021 LA eval), run 4 and run 5 WavLM | done: run 4 8.81% vs run 5 9.96% (phase 15) |
-| Pick the call model, thresholds on phone-channel data, simulated live-call test, swap | done: run 4's WavLM-only now in `artifacts/` (4.96% vs 7.45% on 9,600 calls, +2.49 [2.01, 2.83]; phase 16) |
-| Telephony-robust retrain (noise, echo, bursty loss, G.711), run 6 | done: robustness gains, ~1 point regression on 2019-derived sets; adoption is your call (phase 17) |
-| Run 7: run 6 recipe without EnCodec, to test the regression | done (phase 18): regression halved; rule missed by 0.18 / 0.03; **adopted and served** (your call) |
-| Noise-gated ensemble of run 4 and run 6 (your idea) | plan B; offline ceiling measured, conditions in `new_plan.md` 7.3p |
-| Denoising front end | tested and rejected (phase 17) |
-| Second threshold pass on call-like data with loss, other speakers | open (section 9 step 2) |
-| Live call audio from real recordings | not possible now (no recordings); simulated calls used |
-| Remaining ML list (`new_plan.md` 7.3k): out-of-domain test, second seed, probability calibration, serving cost, ... | open |
-| Investigate A12 inversion and the cross-dataset collapse | superseded: run 4 has no inverted eval attack |
-| Download the remaining 8 ASV5 eval tars (~68 GB; needs space) for the final number | optional |
-| Delete the obsolete ASV2019 cache | done (8.60 GB freed) |
-| Kafka / Docker runtime / Kubernetes / Grafana verification | not started (Docker image builds in CI) |
-| `configs/default.yaml` paths are relative to the working directory (`artifacts` from `src/` misses the repo's folder) | open, minor |
-| Commits | `573fe30`, `bef9ad7`, `756e79e`, `34467a8`, `38fe200`, `4a69e80`, `2cfc76a` (live-call test) pushed; all CI green; phase 17 code, tests, docs and results are uncommitted |
-| GitHub cleanup | at the very end, after everything is final (your decision); push as we go until then |
+| Runs 1-9, run 7 seed 1, gated fusion, In-the-Wild, calibration, early decisions, serving cost | done (phases 6-28) |
+| Final model | **done: run 7 seed 0** (your decision 2026-10-08) |
+| Block -> escalate | done (phase 29) |
+| Explanation agent | done (phase 25); the LLM demo needs your API key |
+| Transcript intent | rules + module done (phases 30-31); **LLM path unmeasured** (rule fixed in `new_plan.md` 0.2 item 3) |
+| Deployment: Docker runtime, Kafka end to end, Grafana, Kubernetes | **waiting for your go** (`new_plan.md` 0.2 item 1) |
+| `configs/default.yaml` relative paths | open, minor (part of deployment) |
+| DVC remote (DagsHub) + `artifacts_run7_seed1` tracking | **waiting for you** (`new_plan.md` 0.2 item 4) |
+| CI results of `3d0c21a` and the final commit | to read (API rate limit) |
+| Real bank call recordings | not available |
+| Full ASV5 eval (8 more tars, ~68 GB) | optional |
+| Final docs (model card), GitHub cleanup | at the very end (your decision) |
 
-## 9. Next steps (updated 2026-10-07, run 7 served)
+## 9. Next steps (updated 2026-10-09, end of session)
 
-**Done:** telephony check (phase 15); simulated live calls and phone-channel thresholds (phase 16); denoising test (rejected) and run 6
-(phase 17); run 7, run 6 without EnCodec, **adopted and served** (phase 18). Live calls cannot be recorded, so call tests are
-simulated; a small set of real recordings would still be the best final check.
-
-**Step 1: second threshold pass for run 7: done (phase 19).** Served: verify 0.0060, block 0.90. Calibration call sets and the
-`call-thresholds` tool stay for every later model.
-
-**Step 2: run 8 (echo, low-SNR babble): done, not adopted (phase 20).** 0 of 5 targets met; babble -0.71, v2 -0.31, phone lines +0.28.
-More echo of the same kind does not fix very long reverberation. Next (your flow): **the Whisper-encoder branch**, judged alone and fused
-with WavLM against run 7 under a rule fixed before training; then transcript-based scam intent as a separate module; then LLM
-explanations. A later recipe change worth testing: held-out measured rooms of 0.2-0.8 s as a realistic echo test.
-
-**Step 3: remaining ML work** (`new_plan.md` 7.3k): out-of-domain test (In-the-Wild and/or ASVspoof 2021 DF; no retraining);
-a second training seed (measures run-to-run noise, which every decision so far lacks); probability calibration of the WavLM
-score; early-decision accuracy (first 2 s); serving cost (drop unused layers, FP16/INT8, distillation); the full ASV5 eval.
-Neural-codec audio is weak again in run 7 (ASV5 C04 / C07 15-20%); a small EnCodec share can come back in run 8 if calls through
-neural codecs matter to you (run 6's 7% gave large ASV5 gains but cost ~0.5 points on ASVspoof2019).
-
-**Step 4: deployment work** (after the model is final): Kafka end-to-end with real chunked audio, Docker runtime test,
-Kubernetes manifests, monitoring (Grafana), CPU vs GPU serving capacity; fix the relative paths in `configs/default.yaml`.
-
-**Step 5: finalise** documentation, then the GitHub cleanup you planned.
+The resume point, every open decision with a recommendation, optional work and the rules to keep are in **`new_plan.md` section 0 (RESUME HERE)**. In short:
+your go for the deployment stage; a free LLM key for the demos and the LLM intent measurement (its rule is fixed); the DVC remote; then final docs and the GitHub cleanup.

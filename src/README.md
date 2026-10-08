@@ -112,8 +112,10 @@ python -m audiodf benchmark                  # per-stage latency
 python -m audiodf serve --port 8000          # API: /predict, /stream/{id}, /health, /metrics
 python -m audiodf consume                    # Kafka worker (needs a broker + confluent-kafka)
 python -m audiodf produce call.wav --realtime
-python -m pytest                             # 176 tests, no dataset or GPU needed
+python -m pytest                             # 195 tests, no dataset or GPU needed
 python -m audiodf explain call.wav --plot out.png   # verdict + SHAP regions + plain-language reasons (--provider groq|gemini|openrouter with AUDIODF_LLM_API_KEY)
+python -m audiodf intent --audio call.wav        # local speech-to-text + scam-intent patterns + the voice verdict -> one action
+python -m audiodf intent --text "caller: ... receiver: ..."   # intent of a written transcript (--provider adds a bounded LLM)
 ```
 
 Stream over a WebSocket: send binary frames of 16 kHz mono PCM16, receive a JSON verdict each time a

@@ -1,0 +1,31 @@
+{
+ "provider": "template",
+ "sets": {
+  "BothBosu test": {
+   "n": 320,
+   "auc": 0.98865234375,
+   "caution_or_high": {
+    "scam": 0.96875,
+    "normal": 0.00625
+   },
+   "high": {
+    "scam": 0.8875,
+    "normal": 0.00625
+   },
+   "llm_failed": 0
+  },
+  "shakeleoatmeal test (independent)": {
+   "n": 180,
+   "auc": 0.7897530864197531,
+   "caution_or_high": {
+    "scam": 0.9,
+    "normal": 0.8222222222222222
+   },
+   "high": {
+    "scam": 0.8333333333333334,
+    "normal": 0.37777777777777777
+   },
+   "llm_failed": 0
+  }
+ }
+}

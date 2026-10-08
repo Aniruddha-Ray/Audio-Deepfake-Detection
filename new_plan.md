@@ -1,5 +1,76 @@
 # Replan: Real-Time Deepfake Voice Detection
 
+## 0. RESUME HERE (state at the end of the session of 2026-10-06 to 2026-10-09)
+
+Read this section first; it is the exact point to resume from. Details of every result: `audit.md` phases 15-31 (section 1 there is the summary).
+
+### 0.1 Where things stand
+
+- **Final model (your decision, 2026-10-08): run 7 seed 0, WavLM-Base+ alone**, in `artifacts/` (verify >= 0.0060, escalate >= 0.90). Do not retrain or swap
+  without your say. Deciding measure for any future model or threshold: **fakes missed at the verify level** (each system's verify level set to flag 10% of
+  genuine ASVspoof 2021 callers), then genuine callers asked to verify; EER is reported but never decides (7.3x).
+- **Actions:** allow / verify (cheap step-up check) / **escalate** (strongest check, e.g. agent callback; never an automatic reject). Intent can raise the
+  check (allow -> verify; verify -> escalate) and never lower it.
+- **Headline numbers of the final model (EER at 10 s / fakes missed per 1,000 at the verify level):** ASVspoof 2021 real phone lines 9.14% / 83; simulated
+  calls v1 3.06% / 9, babble 7.00% / 8, held-out v2 10.78% / 6; **In-the-Wild (real-world deepfakes, never trained on) 4.47% / 16**; ASV5 eval 5.74%;
+  ASVspoof 2019 5.33%. Serving: GPU float16, 53 ms per window alone, ~235 simultaneous calls per laptop GPU; CPU ~5 calls.
+- **Built and working (all in git as of this push, 195 tests green locally):** detector, streaming API (`/predict`, `/stream`, `/explain`), explanation agent
+  (`audiodf explain`), scam-intent module (`audiodf intent`), channel-quality gate (experiment, not served), Whisper branch (experiment, not served),
+  evaluation tools (`call-thresholds`, `calibrate`, `serving_cost`, `intent.evaluate`, `gating.run`).
+- **Git:** pushed through the commit of this session's end (intent work + docs). CI: `1db0270` green; the result for `3d0c21a` and the final commit was not
+  read yet (the GitHub API rate limit ran out; check with the command in 0.4). **Kept local on purpose (your decision): run 8's files** (`src/configs/run8.yaml`,
+  `results/*run8*`, `results/train_run8.log`, `results/eval_run8_battery.log`, `results/chain_run9_and_run8_epochs.log`) and the **DVC pointer files** (`*.dvc`).
+- **DVC:** installed (3.67) and initialised (`.dvc/`, analytics off); 13 `artifacts*` folders tracked in the local DVC cache (`.dvc/cache`, ~3.4 GB); **no remote
+  yet** (waiting for you, DagsHub); `artifacts_run7_seed1/` is not tracked yet. Model weights exist only on this disk.
+- **Nothing is running.** Docker Desktop is installed but not started; no Kubernetes cluster is configured (kubectl client only).
+
+### 0.2 Decisions waiting for you (with my recommendation)
+
+1. **Deployment stage: go / no go** (you said: ask before starting). Steps when you say go: start Docker Desktop; `docker compose up` of `src/deploy/docker-compose.yml`
+   (kafka, api, worker, prometheus, grafana); Docker runtime test of `/predict`, `/explain`, `/stream`; Kafka end to end with real chunked audio; a Grafana
+   dashboard of verdicts, latency and errors; Kubernetes manifests (`src/deploy/k8s/detector.yaml`) validated offline (`kubectl apply --dry-run=client
+   --validate=false`) or for real on Docker Desktop's Kubernetes / kind if you enable one; fix the relative paths in `configs/default.yaml`; decide what the image
+   carries (shap / matplotlib are in `requirements.txt`; `transformers` for the intent speech-to-text is only in `requirements-dev.txt`: add it to the image if the
+   container should serve `intent`; it is large). Recommendation: go, compose first, Kubernetes offline.
+2. **Free LLM API key for the demos** (explanations and intent): create one (Groq recommended: fast, free tier, OpenAI-compatible; Gemini and OpenRouter also
+   wired), set it yourself in the terminal (`set AUDIODF_LLM_API_KEY=...` on Windows; never paste it in chat), optionally `AUDIODF_LLM_MODEL` if the default model
+   name has changed. Then: `python -m audiodf explain <audio> --provider groq --plot out.png` and the LLM intent measurement (item 3).
+3. **LLM intent path: measure, then adopt or not.** Rule fixed now, before any measurement: `python -m audiodf.intent.evaluate --provider groq --pause 2`; the LLM
+   path is adopted for demos if on the **independent** set (shakeleoatmeal test) normal calls flagged at "high" fall to <= 10% (rules: 37.8%) while scams flagged at
+   "high" stay >= 75% (rules: 83.3%), and on BothBosu test normal calls at "high" stay <= 2%. Otherwise the rules stay alone and intent is shown as context.
+4. **DVC remote on DagsHub** (you said: when you say). Steps: create a DagsHub repository; in your own terminal in the repo root: `python -m dvc remote add -d dagshub
+   https://dagshub.com/<user>/<repo>.dvc`, `python -m dvc remote modify --local dagshub auth basic`, `... user <your-username>`, `... password <your-token>`; tell me;
+   I then `python -m dvc add artifacts_run7_seed1`, `python -m dvc push`, and commit the pointer files except `artifacts_run8.dvc` (run 8 stays local unless you say).
+   Check the plan's storage (~3.5 GB, more with the seed-1 bundle).
+5. **Final docs and GitHub cleanup** (your plan: at the very end): model card, README pass, audit summary; then the repository cleanup you planned.
+
+### 0.3 Optional work (not committed to; pick if you want)
+
+- Channel-aware escalate level, if a hard reject is ever wanted (phone lines: 1.92% of genuine callers reach the escalate level; VoIP calls 0.12%).
+- Shadow mode: run Whisper and the gate next to the served model on live calls (score, never decide) to collect real-traffic evidence.
+- Echo: a realistic held-out echo test (measured rooms of 0.2-0.8 s) before any new echo training; run 8 showed more echo of the same kind does not help.
+- Neural-codec weakness (ASV5 C04 / C07 15-20%): a small EnCodec share in a future run (run 6's 7% helped ASV5 but cost ~0.5 on ASVspoof 2019).
+- In-the-Wild: why one voice (Adam Driver) holds 31% of the misses.
+- Intent: Hindi / code-mixed speech-to-text check; real bank call data if it ever becomes available (needs consent and data-protection decisions).
+- Show the Platt-calibrated score (sigmoid(1.314 logit(score) + 1.594), fitted on the tuning set) instead of the raw score in user-facing screens.
+- The full ASV5 eval (8 more tars, ~68 GB, needs disk space).
+
+### 0.4 How to resume (commands and rules)
+
+- `cd src && python -m pytest -q` (195 tests, ~4 min, no dataset or GPU needed); `python -m audiodf benchmark` (served bundle loads; ~51 ms first verdict on GPU).
+- CI: `curl -s "https://api.github.com/repos/Aniruddha-Ray/Audio-Deepfake-Detection/actions/runs?per_page=3"` (gh is not installed; poll every 3-5 min at most:
+  the unauthenticated API allows 60 requests per hour).
+- Before any push of a subset of files: run the suite in a clean checkout of the commit (`git worktree add <dir> HEAD`), then push, then read CI.
+- Rules that held all session: a decision rule is written in `new_plan.md` / `audit.md` before each run or measurement and applied as written; nothing is tuned on a
+  test set; no edits to imported `.py` files and no second data-loading job while a training run is active; do not move or rename dataset folders during a run;
+  never swap `artifacts/` without your yes; ask before every push; no GitHub cleanup until the end.
+- Long jobs were launched as detached `.cmd` files from the session's temporary folder (they will be gone); the equivalent commands are in `audit.md` section 7.
+- Data on this disk (git-ignored): `dataset19/` (ASVspoof 2019 LA), `dataset5/` (ASVspoof 5; 2 of 10 eval tars), `dataset21/` (ASVspoof 2021 LA eval), `dataset_noise/`
+  (MUSAN, RIRS_NOISES, DEMAND subset, ESC-50, MIT IR Survey), `dataset_calls*` (simulated call sets v1, babble, v2, cal_v1, cal_v2; `_dn12/_dn24` are the rejected
+  denoising test and can be deleted), `dataset_itw/release_in_the_wild/` (In-the-Wild), `dataset_intent/` (BothBosu, shakeleoatmeal). Cache:
+  `~/.cache/audiodf/` (indexes, codec renders of runs 3-9: `render_ff3_a7fd0e14` = runs 7 / 9 / seed 1, `render_ff3_93c5eff0` = run 8). Free disk at the end: ~34 GB.
+- Local tools: transformers 5.19, shap 0.52, dvc 3.67, Docker 29 + compose, kubectl client; Whisper-base / -small weights in `~/.cache/huggingface`.
+
 Base: the existing prototype (`AudioDeepfakeModel.ipynb`: SVM + CNN-LSTM, weighted-average ensemble on ASVspoof2019 LA) and the architecture in `BEing-Techies_PSB_HACKATHON_2026.pptx`.
 
 > **Status update:** Phases 0, 1, 3 and most of 4 are done — see `src/README.md` for the actual
@@ -924,6 +995,23 @@ the lab results carry to unseen, real-world deepfakes.
 
 **In-the-Wild results (2026-10-08):** final model EER 4.47%, 16 fakes missed per 1,000 at the served verify level with 89 genuine per 1,000 asked to verify; Whisper 12.95% /
 168; fixed fusion 5.23% / 29. Short clips (< 4 s) 25 per 1,000 missed, longer 4. One speaker (Adam Driver) holds 31% of the misses. Details `audit.md` phase 27.
+
+### 8.0 Transcript-based scam intent: kept (your decision, 2026-10-09); plan written before any rule and before looking at any test data
+
+**What it adds:** a check of *what is said* (speech-to-text, then scam patterns), independent of *how the voice sounds*. It never decides alone; it raises the check
+required. Policy: risky intent asks for at least a step-up check whatever the voice score; risky intent together with a voice at or above the verify level escalates.
+
+**Build (`src/audiodf/intent/`):** local Whisper-small speech-to-text with timestamps (weights already cached; transcripts never leave the machine); a transparent pattern
+lexicon (credential requests, payment redirection, urgency or threats, authority impersonation, bypassing verification, secrecy, remote access, large transfers; English plus
+a few Hindi / Hinglish phrases), each match with its phrase and time; an optional free-LLM classifier through the same client as the explanations, given the transcript as
+untrusted data (never as instructions), allowed only categories from the fixed list, each backed by a verbatim quote that must appear in the transcript, or it is discarded.
+
+**Evaluation, fixed now:** rules are written while looking only at BothBosu/scam-dialogue's *train* split (Apache-2.0, 1,280 synthetic dialogues, half scam). They are then
+measured once, unchanged, on BothBosu *test* and on shakeleoatmeal/phone-scam-detection-synthetic *test* (MIT, 180 dialogues; never looked at). Only the caller's turns are
+read. Reported: AUC of the intent score; at the "caution" and "high" levels the share of scam calls flagged and of normal calls flagged; per scam type. Demo bar (not an
+adoption rule): at the "high" level at most 5% of normal calls flagged. Caveats stated with the result: synthetic dialogues; scammer-calls-victim, while our case is a
+fraudster calling the bank; English only. The LLM path is measured the same way once a free API key is set. Real scam-call audio from YouTube exists but has no license:
+not used.
 
 ### 7.4 Fusion: don't jump to an ANN yet
 

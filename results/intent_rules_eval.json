@@ -1,0 +1,20 @@
+{
+ "BothBosu test": {
+  "n": 320,
+  "scam": 160,
+  "auc": 0.98865234375,
+  "caution_scam": 0.96875,
+  "caution_normal": 0.00625,
+  "high_scam": 0.8875,
+  "high_normal": 0.00625
+ },
+ "shakeleoatmeal test (independent)": {
+  "n": 180,
+  "scam": 90,
+  "auc": 0.7897530864197531,
+  "caution_scam": 0.9,
+  "caution_normal": 0.8222222222222222,
+  "high_scam": 0.8333333333333334,
+  "high_normal": 0.37777777777777777
+ }
+}

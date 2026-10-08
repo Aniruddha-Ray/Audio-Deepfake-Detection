@@ -237,6 +237,39 @@ def _cmd_benchmark(args, settings):
     print(json.dumps(benchmark(DetectionEngine.from_artifacts(settings)), indent=2))
 
 
+def _cmd_intent(args, settings):
+    """Scam intent of a call: from audio (local speech-to-text + the voice verdict + the combined action) or from a written transcript."""
+    if bool(args.audio) == bool(args.text):
+        raise SystemExit("give either --audio FILE or --text 'caller: ... receiver: ...'")
+    if args.text:
+        from audiodf.intent.call import text_intent
+
+        out = {"intent": text_intent(args.text, args.provider)}
+    else:
+        from audiodf.data.audio import load_audio
+        from audiodf.inference.engine import DetectionEngine
+        from audiodf.intent.call import analyse_call
+
+        engine = DetectionEngine.from_artifacts(settings)
+        out = analyse_call(engine, load_audio(args.audio, settings.audio.sample_rate), args.provider, args.language)
+        if out is None:
+            print("no speech detected")
+            return
+    if args.json:
+        print(json.dumps(out, indent=2, default=str))
+        return
+    for seg in out.get("transcript", []):
+        print(f"  [{seg['start_s']:5.1f} s] {seg['text']}")
+    i = out["intent"]
+    print(f"intent: {i['level']} (score {i['score']:.2f})" + (f"; LLM: {i['llm']}" if i.get("llm") else ""))
+    for e in i["evidence"]:
+        at = f" at {e['start_s']:.1f} s" if e.get("start_s") is not None else ""
+        print(f"  - {e['category']}: \"{e['phrase']}\"{at}")
+    if "decision" in out:
+        d = out["decision"]
+        print(f"decision: {d['action']} (voice {d['voice_action']}, intent {d['intent_level']}: {d['reason']})")
+
+
 def _cmd_explain(args, settings):
     from audiodf.data.audio import load_audio
     from audiodf.explain.explainer import explain_call
@@ -377,6 +410,13 @@ def main(argv=None) -> None:
     sp.add_argument("--workers", type=int, default=8)
     add("predict", _cmd_predict, "score one audio file").add_argument("audio")
     add("benchmark", _cmd_benchmark, "per-stage latency")
+    sp = add("intent", _cmd_intent, "scam intent of a call (local speech-to-text + patterns, optional bounded LLM) combined with the voice verdict")
+    sp.add_argument("--audio", help="recording of the caller (transcribed locally with Whisper)")
+    sp.add_argument("--text", help="a written transcript instead: 'caller: ... receiver: ...'")
+    sp.add_argument("--provider", choices=["template", "groq", "gemini", "openrouter"], default="template",
+                    help="template = patterns only; an LLM adds context-aware labels within fixed bounds (key in AUDIODF_LLM_API_KEY)")
+    sp.add_argument("--language", help="force the speech-to-text language (e.g. en, hi); default: detect")
+    sp.add_argument("--json", action="store_true")
     sp = add("explain", _cmd_explain, "explain one recording: verdict, SHAP regions, plain-language text (LLM or template)")
     sp.add_argument("audio")
     sp.add_argument("--provider", choices=["template", "groq", "gemini", "openrouter"], default="template",

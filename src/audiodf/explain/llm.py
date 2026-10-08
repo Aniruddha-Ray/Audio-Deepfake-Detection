@@ -81,12 +81,18 @@ def template(facts: dict) -> dict:
     return {"summary": summary, "reasons": reasons, "caveats": caveats, "source": "template"}
 
 
-def _post(base: str, model: str, key: str, facts: dict, timeout: float) -> str:
+def provider_settings(provider: str) -> tuple[str, str, str | None]:
+    """(base URL, model, API key or None) of a provider; the model can be overridden with AUDIODF_LLM_MODEL."""
+    base, model = PROVIDERS[provider]
+    return base, os.environ.get("AUDIODF_LLM_MODEL", model), os.environ.get("AUDIODF_LLM_API_KEY")
+
+
+def _post(base: str, model: str, key: str, facts: dict, timeout: float, system: str = SYSTEM) -> str:
     import requests
 
     r = requests.post(f"{base}/chat/completions", timeout=timeout, headers={"Authorization": f"Bearer {key}"},
                       json={"model": model, "temperature": 0.2,
-                            "messages": [{"role": "system", "content": SYSTEM},
+                            "messages": [{"role": "system", "content": system},
                                          {"role": "user", "content": json.dumps(facts, ensure_ascii=False)}]})
     r.raise_for_status()
     return r.json()["choices"][0]["message"]["content"]
@@ -96,9 +102,7 @@ def explain(facts: dict, provider: str = "template", timeout: float = 30.0) -> d
     """Explanation dict {summary, reasons, caveats, source[, rejected]} for the facts record."""
     if provider == "template":
         return template(facts)
-    base, model = PROVIDERS[provider]
-    model = os.environ.get("AUDIODF_LLM_MODEL", model)
-    key = os.environ.get("AUDIODF_LLM_API_KEY")
+    base, model, key = provider_settings(provider)
     if not key:
         return template(facts) | {"fallback": "no AUDIODF_LLM_API_KEY set"}
     try:
