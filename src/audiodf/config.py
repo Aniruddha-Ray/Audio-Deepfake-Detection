@@ -132,6 +132,7 @@ class KafkaConfig:
     bootstrap_servers: str = "localhost:9092"
     audio_topic: str = "deepfake-detection-audio-chunks"
     result_topic: str = "deepfake-detection-verdicts"
+    partitions: int = 1  # of the audio topic; workers in one group can be at most this many (a call's chunks stay on one partition)
     group_id: str = "deepfake-detector"
 
 

@@ -968,6 +968,44 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
 - `intent/call.py`, CLI `audiodf intent --audio FILE | --text "caller: ..."`; `intent/evaluate.py` reproduces phase 30 exactly. 16 tests (rules, Hinglish phrases, timestamps,
   the policy table, verbatim-quote validation, an injected "ignore your instructions" transcript held at caution, failures, the CLI); 195 tests green.
 
+### Phase 32: LLM demo and Kafka end to end (2026-10-17)
+
+- **Groq key (you set `AUDIODF_LLM_API_KEY` at the Windows user level; it was never printed or stored by me):** valid (the models endpoint answered). The first LLM
+  explanation fell back to the template with "groq failed: HTTPError": my default model `llama-3.3-70b-versatile` no longer exists on Groq. Default changed to
+  `openai/gpt-oss-120b` (override with `AUDIODF_LLM_MODEL`); model names on free tiers change, so a failure like this is expected again and the template covers it.
+- **LLM explanations (fake and genuine demo calls, `results/explain_demo/groq_*`):** they pass the number check and read well. Two things found and fixed or noted:
+  the model called the score "a 77.9% probability" (the raw score is not a probability, phase 26): the facts field is now `fake_score` and the prompt forbids the words
+  probability / chance / percentage (re-run: it says "score"); the number check cannot catch loose paraphrase (one line said all three windows were ~0.86-0.87 when one
+  was 0.61): a known limit of checking numbers rather than claims. Mistake 28: I let the first default model name go untested against the live API.
+- **Kafka end to end (your container `apache/kafka:4.1.1` on localhost:9092; `confluent-kafka` 2.16 installed):** the worker (`audiodf consume`) read 30 audio chunks of a fake
+  and a genuine call from the audio topic and published verdicts on the result topic while the calls were still streaming: first verdict 0.41 s after sending, fake call
+  `verify` with score 0.78 (offline 0.7789), genuine call `allow` with score 0.005 (offline 0.0047); per-verdict latency 48-141 ms (first one includes warm-up).
+  Test script in the session scratchpad (topics created, worker started, calls sent, verdicts read back); not yet in the repository.
+
+### Phase 33: the LLM intent path measured (2026-10-17; rule fixed in `new_plan.md` 0.2 item 3 before the run) and the compose stack
+
+- **LLM intent (Groq `openai/gpt-oss-120b`, rules + bounded LLM labels, `python -m audiodf.intent.evaluate --provider groq --pause 2.5`, `results/intent_eval_groq.json`):**
+  BothBosu test AUC 0.999 (rules 0.989), at high: scams 97.5% (rules 88.8%), normal 1.2% (0.6%); independent set (shakeleoatmeal test) AUC 0.710 (rules 0.790), at high:
+  scams 94.4% (83.3%), **normal 53.3% (rules 37.8%)**. **Caveat: the LLM request failed on 79 of 320 and 58 of 180 dialogues (cause not examined; likely free-tier rate
+  limits), which fell back to the rules: a partial measurement.**
+- **Verdict by the rule fixed before the run: not adopted** (needed: independent-set normal calls flagged at high <= 10%, scams >= 75%, BothBosu normal <= 2%; got 53.3% on
+  the independent set). The LLM labels more of the legitimate calls on the same topics, not fewer: bounded as designed it can lower a "high" only to "caution" and it flags more
+  than it clears. The rules alone stay as the intent module; intent remains context that raises the check, never a decision.
+- **Compose stack run for real (Docker Desktop, 5 containers: Kafka 4.1.1, API, worker, Prometheus, Grafana; `deploy/smoke_test.py` passes all 12 checks):** `/health`, `/predict`,
+  `/explain` (template and Groq), Kafka verdicts for a fake (verify, 0.7776) and a genuine (allow, 0.0046) call sent from a container on the compose network, both Prometheus
+  targets up, 28 verdicts counted, the Grafana datasource and the provisioned dashboard. CPU image: 0.5-1.4 s per call, median 184 ms per verdict.
+- **Defects found by running it (all fixed):** (1) the scaffold's model volume `../artifacts` pointed at a folder that does not exist (now `../../artifacts`); (2) Kafka 3.8.0 -> 4.1.1;
+  (3) **the first call after a fresh deploy got no verdict**: the worker subscribed before the topic existed, noticed it only minutes later, and `auto.offset.reset = latest` skipped
+  what was sent meanwhile: topics are now created up front (`ensure_topics`, partitions configurable) and a new consumer group reads from the earliest offset (committed offsets
+  still decide after that); verified on a fresh stack with the fake call sent first, plus 3 tests; (4) `requests` was missing from the runtime requirements (the LLM path failed in the
+  container with ModuleNotFoundError); (5) the score histogram's lowest bucket (0.05) could not show the verify level 0.006: finer buckets added; (6) no Grafana dashboard: provisioned
+  (calls scored now, verdicts per minute by level, time to a verdict, errors, score distribution); (7) the Kubernetes manifest described the old SVM/RCNN bundle and had a 10 s readiness
+  delay for a model that loads and downloads weights: startup probe, TORCH_HOME cache volume, GPU note. The manifests are schema-valid (kubeconform, Kubernetes 1.30) but were **not run on a
+  cluster** (none exists here).
+- **Not in the image:** `transformers` (the intent module's speech-to-text), so `audiodf intent --audio` runs on the host, not in the container; text intent and explanations work in it.
+- **Mistake 29:** the compose / Kubernetes scaffold was written in an earlier session and marked UNTESTED; its first real run exposed seven defects, one of which silently drops the first calls
+  after a deploy. Nothing marked untested should be reported as ready.
+
 ## 3. Decisions and the reasoning behind them
 
 - **Train on ASV5 only, drop ASV2019 (run 1).** Chosen because ASV5 dev gives attack-disjoint tuning and ASV2019 has a silence
@@ -1072,6 +1110,10 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
     clean-checkout test passed because they used this machine's library versions. Reproduced with an isolated Python 3.11 environment matching CI (uv), fixed
     (an unloadable estimator now just leaves out the optional channel line; a test covers it); 195 passed under 3.11. Lesson: a clean checkout is not a clean
     environment; test with CI's Python and freshly installed packages before pushing new dependencies.
+28. The default Groq model name was written from memory and never tried against the live API; it had been retired, so the first real LLM call failed (the
+    template fallback hid it from the user). Found when the key was first used (phase 32); default updated. Lesson: test a provider integration with a real call as soon as a key exists.
+29. The deployment scaffold (compose, Kubernetes, Kafka worker) was written untested; running it for real found seven defects (phase 33), including the loss of the first
+    calls after a fresh deploy. Lesson: run the stack before calling it deployable, and keep a smoke test (`deploy/smoke_test.py`).
 
 ## 5. Known limitations (current)
 
@@ -1149,8 +1191,8 @@ python -m audiodf.intent.evaluate [--provider groq --pause 2]                  #
 | Final model | **done: run 7 seed 0** (your decision 2026-10-08) |
 | Block -> escalate | done (phase 29) |
 | Explanation agent | done (phase 25); the LLM demo needs your API key |
-| Transcript intent | rules + module done (phases 30-31); **LLM path unmeasured** (rule fixed in `new_plan.md` 0.2 item 3) |
-| Deployment: Docker runtime, Kafka end to end, Grafana, Kubernetes | **waiting for your go** (`new_plan.md` 0.2 item 1) |
+| Transcript intent | rules + module done (phases 30-31); LLM path measured and **not adopted** (phase 33) |
+| Deployment: Docker runtime, Kafka end to end, Grafana | **done on this machine (phase 33; smoke test passes)**; Kubernetes manifests schema-valid, not run on a cluster |
 | `configs/default.yaml` relative paths | open, minor (part of deployment) |
 | DVC remote (DagsHub) + `artifacts_run7_seed1` tracking | **waiting for you** (`new_plan.md` 0.2 item 4) |
 | CI | `3d0c21a` and `e482d3c` failed (mistake 27), fixed in the next commit |

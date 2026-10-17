@@ -1,0 +1,2 @@
+BothBosu test: AUC 0.999 | caution or high: scam 100.0%, normal 1.9% | high: scam 97.5%, normal 1.2% | LLM failed on 79
+shakeleoatmeal test (independent): AUC 0.710 | caution or high: scam 96.7%, normal 88.9% | high: scam 94.4%, normal 53.3% | LLM failed on 58

@@ -1,0 +1,98 @@
+{
+  "verdict": {
+    "label": "fake",
+    "fake_probability": 0.77889,
+    "svm_probability": null,
+    "rcnn_probability": null,
+    "risk_level": "medium",
+    "action": "verify",
+    "segments_scored": 3,
+    "audio_seconds": 4.64,
+    "final": true,
+    "latency_ms": 77.58,
+    "call_id": null,
+    "wavlm_probability": 0.77889,
+    "whisper_probability": null
+  },
+  "facts": {
+    "verdict": {
+      "action": "verify",
+      "risk_level": "medium",
+      "fake_score": 0.7789,
+      "verify_threshold": 0.006,
+      "escalate_threshold": 0.9
+    },
+    "audio": {
+      "explained_seconds": 4.6
+    },
+    "score_of_explained_audio": 0.7789,
+    "score_with_every_region_removed": 0.4956,
+    "regions_top": [
+      {
+        "region": "2-4 s, 1-3 kHz",
+        "contribution": 0.192
+      },
+      {
+        "region": "0-2 s, below 300 Hz",
+        "contribution": 0.0935
+      },
+      {
+        "region": "0-2 s, 300 Hz-1 kHz",
+        "contribution": -0.053
+      },
+      {
+        "region": "0-2 s, 3-8 kHz",
+        "contribution": -0.0395
+      },
+      {
+        "region": "2-4 s, below 300 Hz",
+        "contribution": 0.0375
+      }
+    ],
+    "windows": [
+      {
+        "start_s": 0.0,
+        "end_s": 2.0,
+        "p_fake": 0.8628
+      },
+      {
+        "start_s": 1.0,
+        "end_s": 3.0,
+        "p_fake": 0.8674
+      },
+      {
+        "start_s": 2.0,
+        "end_s": 4.0,
+        "p_fake": 0.6061
+      }
+    ],
+    "channel": {
+      "room_echo": "not established",
+      "background_noise": "not established",
+      "note": "estimated from the audio; 'likely' is wrong on about 1 in 100 calls without it"
+    },
+    "attribution_check": {
+      "checked": true,
+      "k": 3,
+      "drop_top": 0.6701,
+      "drop_random": 0.3315,
+      "faithful": true
+    },
+    "model": "WavLM-Base+ (run 7, seed 0); explanation by SHAP over time x frequency regions"
+  },
+  "explanation": {
+    "summary": "The call is marked for verification with a medium risk level.",
+    "reasons": [
+      "The overall synthetic score is 0.78, which exceeds the verify threshold of 0.006.",
+      "The strongest contributing region (2\u20114\u202fs, 1\u20113\u202fkHz) added +0.19 toward a synthetic classification.",
+      "Additional regions in the first two seconds also contributed positively, raising the score.",
+      "Three overlapping windows each gave high synthetic scores (around 0.86\u20110.87)."
+    ],
+    "caveats": [
+      "The attribution check confirmed the explanation is faithful, so the region contributions are reliable.",
+      "Channel characteristics such as room echo and background noise were not established."
+    ],
+    "source": "groq:openai/gpt-oss-120b"
+  },
+  "plot": "..\\results\\explain_demo\\groq_fake.png"
+}

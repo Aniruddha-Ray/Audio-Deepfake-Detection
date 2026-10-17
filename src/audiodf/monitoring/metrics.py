@@ -9,8 +9,8 @@ from audiodf.inference.engine import Verdict
 REGISTRY = CollectorRegistry()
 
 VERDICTS = Counter("audiodf_verdicts_total", "Verdicts emitted", ["risk_level", "source"], registry=REGISTRY)
-FAKE_PROBABILITY = Histogram("audiodf_fake_probability", "Fused P(fake) of emitted verdicts",
-                             buckets=[0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0],
+FAKE_PROBABILITY = Histogram("audiodf_fake_probability", "Fake score of emitted verdicts (a ranking score, not a calibrated probability)",
+                             buckets=[0.001, 0.003, 0.006, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 0.95, 1.0],  # served verify level 0.0060, escalate 0.90
                              registry=REGISTRY)
 SCORING_SECONDS = Histogram("audiodf_scoring_seconds", "Time to produce one verdict",
                             buckets=[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5], registry=REGISTRY)

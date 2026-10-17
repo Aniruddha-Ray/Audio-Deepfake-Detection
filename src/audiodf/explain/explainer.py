@@ -53,7 +53,7 @@ def build_facts(verdict, engine, x: np.ndarray, att: dict, masker: RegionMasker,
     """Numbers and labels only: no audio, no transcript, no caller details."""
     order = np.argsort(-np.abs(att["values"]))[:top]
     return {
-        "verdict": {"action": verdict.action, "risk_level": verdict.risk_level, "fake_probability": round(float(verdict.fake_probability), 4),
+        "verdict": {"action": verdict.action, "risk_level": verdict.risk_level, "fake_score": round(float(verdict.fake_probability), 4),
                     "verify_threshold": round(float(engine.settings.risk.medium), 4), "escalate_threshold": round(float(engine.settings.risk.high), 4)},
         "audio": {"explained_seconds": round(len(x) / engine.settings.audio.sample_rate, 1)},
         "score_of_explained_audio": round(att["full"], 4),

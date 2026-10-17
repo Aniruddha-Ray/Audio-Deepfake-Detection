@@ -1,5 +1,7 @@
-# UNTESTED scaffold. Assumes: image pushed as audiodf:latest, a Kafka reachable at kafka:9092,
-# and a PVC "audiodf-models" holding svm.joblib / rcnn.pt / bundle.json.
+# Schema-validated offline (kubeconform, Kubernetes 1.30); NOT run on a cluster (none was available). Assumes: the image built from deploy/Dockerfile is
+# available as audiodf:latest, a Kafka reachable at kafka:9092, and a PVC "audiodf-models" holding the final model (wavlm.pt + bundle.json).
+# This CPU image serves ~5 calls per pod (audit.md phase 28): for real traffic use a GPU image and nodes (nvidia.com/gpu: 1 per pod, ~235 calls).
+# Each pod downloads WavLM-Base+'s base weights (~380 MB) on first start into an emptyDir: bake them into the image or a PVC for production.
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: audiodf-api}
@@ -16,9 +18,11 @@ spec:
           image: audiodf:latest
           ports: [{containerPort: 8000}]
           resources: {requests: {cpu: 500m, memory: 1Gi}, limits: {memory: 2Gi}}
-          readinessProbe: {httpGet: {path: /health, port: 8000}, initialDelaySeconds: 10}
-          volumeMounts: [{name: models, mountPath: /models, readOnly: true}]
-      volumes: [{name: models, persistentVolumeClaim: {claimName: audiodf-models}}]
+          env: [{name: TORCH_HOME, value: /cache/torch}]
+          startupProbe: {httpGet: {path: /health, port: 8000}, periodSeconds: 10, failureThreshold: 30}  # model load + first weight download
+          readinessProbe: {httpGet: {path: /health, port: 8000}, periodSeconds: 10}
+          volumeMounts: [{name: models, mountPath: /models, readOnly: true}, {name: torch-cache, mountPath: /cache/torch}]
+      volumes: [{name: models, persistentVolumeClaim: {claimName: audiodf-models}}, {name: torch-cache, emptyDir: {}}]
 ---
 apiVersion: v1
 kind: Service
@@ -42,10 +46,10 @@ spec:
         - name: worker
           image: audiodf:latest
           command: ["python", "-m", "audiodf", "consume", "--metrics-port", "9100"]
-          env: [{name: KAFKA_BOOTSTRAP_SERVERS, value: "kafka:9092"}]
+          env: [{name: KAFKA_BOOTSTRAP_SERVERS, value: "kafka:9092"}, {name: TORCH_HOME, value: /cache/torch}]
           resources: {requests: {cpu: "1", memory: 1Gi}, limits: {memory: 2Gi}}
-          volumeMounts: [{name: models, mountPath: /models, readOnly: true}]
-      volumes: [{name: models, persistentVolumeClaim: {claimName: audiodf-models}}]
+          volumeMounts: [{name: models, mountPath: /models, readOnly: true}, {name: torch-cache, mountPath: /cache/torch}]
+      volumes: [{name: models, persistentVolumeClaim: {claimName: audiodf-models}}, {name: torch-cache, emptyDir: {}}]
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

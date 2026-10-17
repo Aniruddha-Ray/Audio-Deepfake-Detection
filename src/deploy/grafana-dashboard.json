@@ -1,0 +1,29 @@
+{
+  "title": "Deepfake voice detection",
+  "uid": "audiodf",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": {"from": "now-15m", "to": "now"},
+  "panels": [
+    {"id": 1, "type": "stat", "title": "Calls being scored now", "gridPos": {"x": 0, "y": 0, "w": 6, "h": 5},
+     "targets": [{"expr": "sum(audiodf_active_sessions)", "refId": "A"}]},
+    {"id": 2, "type": "stat", "title": "Verdicts in the last 5 min", "gridPos": {"x": 6, "y": 0, "w": 6, "h": 5},
+     "targets": [{"expr": "sum(increase(audiodf_verdicts_total[5m]))", "refId": "A"}]},
+    {"id": 3, "type": "stat", "title": "Errors in the last 5 min", "gridPos": {"x": 12, "y": 0, "w": 6, "h": 5},
+     "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}},
+     "targets": [{"expr": "sum(increase(audiodf_errors_total[5m]))", "refId": "A"}]},
+    {"id": 4, "type": "stat", "title": "Median time to a verdict (ms)", "gridPos": {"x": 18, "y": 0, "w": 6, "h": 5},
+     "targets": [{"expr": "1000 * histogram_quantile(0.5, sum(rate(audiodf_scoring_seconds_bucket[5m])) by (le))", "refId": "A"}]},
+    {"id": 5, "type": "timeseries", "title": "Verdicts per minute by level (low = allow, medium = verify, high = escalate)",
+     "gridPos": {"x": 0, "y": 5, "w": 12, "h": 9},
+     "targets": [{"expr": "sum(rate(audiodf_verdicts_total[1m])) by (risk_level) * 60", "legendFormat": "{{risk_level}}", "refId": "A"}]},
+    {"id": 6, "type": "timeseries", "title": "Time to a verdict: median and 95th percentile (ms)", "gridPos": {"x": 12, "y": 5, "w": 12, "h": 9},
+     "targets": [
+       {"expr": "1000 * histogram_quantile(0.5, sum(rate(audiodf_scoring_seconds_bucket[1m])) by (le))", "legendFormat": "median", "refId": "A"},
+       {"expr": "1000 * histogram_quantile(0.95, sum(rate(audiodf_scoring_seconds_bucket[1m])) by (le))", "legendFormat": "95th percentile", "refId": "B"}]},
+    {"id": 7, "type": "barchart", "title": "Score of verdicts in the last 15 min (verify level 0.006, escalate level 0.90)",
+     "gridPos": {"x": 0, "y": 14, "w": 24, "h": 8},
+     "targets": [{"expr": "sum(increase(audiodf_fake_probability_bucket[15m])) by (le)", "legendFormat": "{{le}}", "format": "table", "instant": true, "refId": "A"}]}
+  ]
+}

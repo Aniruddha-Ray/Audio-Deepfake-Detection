@@ -26,6 +26,10 @@ Read this section first; it is the exact point to resume from. Details of every 
 
 ### 0.2 Decisions waiting for you (with my recommendation)
 
+> **Update 2026-10-17:** items 1-3 below were carried out: the compose stack runs and passes `src/deploy/smoke_test.py` (audit phase 32-33), the Groq key works, and the LLM
+> intent path was measured and not adopted (independent-set normal calls at high 53.3% against the <= 10% rule; 137 of 500 requests failed and fell back to the rules). Still open: item 4
+> (DVC remote), item 5 (final docs, cleanup), a Kubernetes cluster for the manifests, a GPU image for production, and `transformers` in the image if the container should transcribe audio.
+
 1. **Deployment stage: go / no go** (you said: ask before starting). Steps when you say go: start Docker Desktop; `docker compose up` of `src/deploy/docker-compose.yml`
    (kafka, api, worker, prometheus, grafana); Docker runtime test of `/predict`, `/explain`, `/stream`; Kafka end to end with real chunked audio; a Grafana
    dashboard of verdicts, latency and errors; Kubernetes manifests (`src/deploy/k8s/detector.yaml`) validated offline (`kubectl apply --dry-run=client

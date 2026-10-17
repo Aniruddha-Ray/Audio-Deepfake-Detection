@@ -1,0 +1,123 @@
+{
+  "verdict": {
+    "label": "real",
+    "fake_probability": 0.00474,
+    "svm_probability": null,
+    "rcnn_probability": null,
+    "risk_level": "low",
+    "action": "allow",
+    "segments_scored": 8,
+    "audio_seconds": 9.78,
+    "final": true,
+    "latency_ms": 121.19,
+    "call_id": null,
+    "wavlm_probability": 0.00474,
+    "whisper_probability": null
+  },
+  "facts": {
+    "verdict": {
+      "action": "allow",
+      "risk_level": "low",
+      "fake_score": 0.0047,
+      "verify_threshold": 0.006,
+      "escalate_threshold": 0.9
+    },
+    "audio": {
+      "explained_seconds": 9.8
+    },
+    "score_of_explained_audio": 0.0047,
+    "score_with_every_region_removed": 0.0046,
+    "regions_top": [
+      {
+        "region": "6-8 s, 300 Hz-1 kHz",
+        "contribution": 0.0283
+      },
+      {
+        "region": "6-8 s, 1-3 kHz",
+        "contribution": -0.0166
+      },
+      {
+        "region": "8-10 s, 3-8 kHz",
+        "contribution": -0.0157
+      },
+      {
+        "region": "6-8 s, below 300 Hz",
+        "contribution": 0.0145
+      },
+      {
+        "region": "8-10 s, 300 Hz-1 kHz",
+        "contribution": -0.0106
+      }
+    ],
+    "windows": [
+      {
+        "start_s": 0.0,
+        "end_s": 2.0,
+        "p_fake": 0.0001
+      },
+      {
+        "start_s": 1.0,
+        "end_s": 3.0,
+        "p_fake": 0.0004
+      },
+      {
+        "start_s": 2.0,
+        "end_s": 4.0,
+        "p_fake": 0.0
+      },
+      {
+        "start_s": 3.0,
+        "end_s": 5.0,
+        "p_fake": 0.0
+      },
+      {
+        "start_s": 4.0,
+        "end_s": 6.0,
+        "p_fake": 0.0
+      },
+      {
+        "start_s": 5.0,
+        "end_s": 7.0,
+        "p_fake": 0.0003
+      },
+      {
+        "start_s": 6.0,
+        "end_s": 8.0,
+        "p_fake": 0.0036
+      },
+      {
+        "start_s": 7.0,
+        "end_s": 9.0,
+        "p_fake": 0.0333
+      }
+    ],
+    "channel": {
+      "room_echo": "not established",
+      "background_noise": "not established",
+      "note": "estimated from the audio; 'likely' is wrong on about 1 in 100 calls without it"
+    },
+    "attribution_check": {
+      "checked": true,
+      "k": 3,
+      "drop_top": 0.0024,
+      "drop_random": -0.0167,
+      "faithful": true
+    },
+    "model": "WavLM-Base+ (run 7, seed 0); explanation by SHAP over time x frequency regions"
+  },
+  "explanation": {
+    "summary": "The audio is classified as genuine with a low synthetic score of 0.0047, which is below the verification threshold.",
+    "reasons": [
+      "The overall fake_score of 0.0047 is low and under the verify_threshold of 0.006.",
+      "Removing all identified regions changes the score only to 0.0046, showing little impact.",
+      "Most short\u2011time windows have near\u2011zero synthetic scores, with the highest window (7\u20119\u202fs) at 0.0333, still very low.",
+      "Positive region contributions (0.0283 and 0.0145) are offset by larger negative contributions, resulting in a minimal net effect."
+    ],
+    "caveats": [
+      "Channel characteristics such as room echo and background noise were not established.",
+      "The attribution check is marked as faithful, so the region contributions are considered reliable."
+    ],
+    "source": "groq:openai/gpt-oss-120b"
+  },
+  "plot": "..\\results\\explain_demo\\groq_real.png"
+}

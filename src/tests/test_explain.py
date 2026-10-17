@@ -102,7 +102,7 @@ def _facts():
 
 def test_an_llm_answer_with_only_the_facts_numbers_is_used(monkeypatch):
     facts = _facts()
-    p = facts["verdict"]["fake_probability"]
+    p = facts["verdict"]["fake_score"]
     good = {"summary": f"The call scored {p:.2f} and was sent to '{facts['verdict']['action']}'.",
             "reasons": ["Most of the evidence came from 2-4 s in the 1-3 kHz band."], "caveats": ["Regions are not causes."]}
     monkeypatch.setenv("AUDIODF_LLM_API_KEY", "test-key")
@@ -127,7 +127,7 @@ def test_an_llm_answer_with_an_invented_number_or_any_failure_falls_back_to_the_
 
 
 def test_number_check_allows_rounding_and_percentages_but_not_new_values():
-    facts = {"verdict": {"fake_probability": 0.7789, "verify_threshold": 0.006}, "regions_top": [{"region": "2-4 s, 1-3 kHz", "contribution": 0.192}]}
+    facts = {"verdict": {"fake_score": 0.7789, "verify_threshold": 0.006}, "regions_top": [{"region": "2-4 s, 1-3 kHz", "contribution": 0.192}]}
     assert llm.numbers_supported("Scored 0.78 (78%), region 2-4 s at 1-3 kHz, +0.19, verify 0.0060", facts)[0]
     ok, bad = llm.numbers_supported("Scored 0.78 with 99% certainty", facts)
     assert not ok and bad == [99.0]

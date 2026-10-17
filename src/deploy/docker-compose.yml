@@ -1,10 +1,15 @@
-# UNTESTED scaffold. Run from src/:  docker compose -f deploy/docker-compose.yml up --build
-# Needs trained artifacts in ../artifacts (audiodf train). Simulate a call from inside the network:
+# Run from src/:  docker compose -f deploy/docker-compose.yml up --build
+# Needs the final model in ../artifacts (repository root): wavlm.pt + bundle.json. On the first start each container downloads
+# WavLM-Base+'s pretrained base weights (~380 MB) into the shared "torch-cache" volume.
+# The CPU image serves a handful of calls (~5 calls per CPU, audit.md phase 28); production needs a GPU image and node.
+# Simulate a call from inside the network:
 #   docker compose -f deploy/docker-compose.yml run --rm worker python -m audiodf produce /data/call.wav --realtime
+# (mount a folder with the recording at /data first), or from the host against a published Kafka port with `python -m audiodf produce`.
+# LLM explanations: export AUDIODF_LLM_API_KEY in your own shell before `up`; it is passed through, never written to a file.
 
 services:
   kafka:
-    image: apache/kafka:3.8.0
+    image: apache/kafka:4.1.1
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -21,14 +26,24 @@ services:
   api:
     build: {context: .., dockerfile: deploy/Dockerfile}
     ports: ["8000:8000"]
-    volumes: ["../artifacts:/models:ro"]
+    environment:
+      AUDIODF_LLM_API_KEY: ${AUDIODF_LLM_API_KEY:-}
+      TORCH_HOME: /cache/torch
+    volumes: ["../../artifacts:/models:ro", "torch-cache:/cache/torch"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if b'\"ok\"' in urllib.request.urlopen('http://localhost:8000/health').read() else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 120s
 
   worker:
     build: {context: .., dockerfile: deploy/Dockerfile}
     command: ["python", "-m", "audiodf", "consume", "--metrics-port", "9100"]
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    volumes: ["../artifacts:/models:ro"]
+      TORCH_HOME: /cache/torch
+    volumes: ["../../artifacts:/models:ro", "torch-cache:/cache/torch"]
     depends_on: [kafka]
 
   prometheus:
@@ -39,5 +54,15 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports: ["3000:3000"]
-    volumes: ["./grafana-datasource.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"        # demo only: no login screen; remove for anything shared
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/audiodf.json
+    volumes:
+      - ./grafana-datasource.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
+      - ./grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/audiodf.yml:ro
+      - ./grafana-dashboard.json:/var/lib/grafana/dashboards/audiodf.json:ro
     depends_on: [prometheus]
+
+volumes:
+  torch-cache:

@@ -16,7 +16,7 @@ import os
 import re
 
 PROVIDERS = {
-    "groq": ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
+    "groq": ("https://api.groq.com/openai/v1", "openai/gpt-oss-120b"),
     "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.0-flash"),
     "openrouter": ("https://openrouter.ai/api/v1", "meta-llama/llama-3.3-70b-instruct:free"),
 }
@@ -25,7 +25,7 @@ SYSTEM = (
     "You explain the decision of a deepfake-voice detector to a bank fraud analyst. The decision is already made and final; never suggest "
     "changing it. Use ONLY the facts in the JSON you are given: do not add facts, numbers, causes or advice that are not in them. Region "
     "contributions are SHAP values: positive means that part of the audio pushed the score towards 'synthetic'. If the attribution check says "
-    "the attribution is not faithful, say the regions are unreliable. Write plain English for a non-specialist. Answer with JSON only: "
+    "the attribution is not faithful, say the regions are unreliable. Write plain English for a non-specialist. The fake score is a ranking score from 0 (genuine) to 1 (synthetic), NOT a probability and not a percentage: never call it a probability, chance or likelihood and never convert it to a percentage; say \"score\". Answer with JSON only: "
     '{"summary": one sentence, "reasons": [2 to 4 short sentences], "caveats": [1 or 2 short sentences]}.')
 
 
@@ -60,7 +60,7 @@ def template(facts: dict) -> dict:
     v = facts["verdict"]
     level = ("at or above the escalation level" if v["action"] == "escalate" else "at or above the verify level" if v["action"] == "verify"
              else "below the verify level")
-    p = v["fake_probability"]
+    p = v["fake_score"]
     summary = (f"The call scored {p:.4f} on the synthetic-voice scale (0 = genuine, 1 = synthetic), {level} "
                f"(verify {v['verify_threshold']:.4f}, escalate {v['escalate_threshold']:.2f}), so the action is '{v['action']}'.")
     reasons = []

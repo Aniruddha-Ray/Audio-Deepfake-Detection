@@ -14,3 +14,4 @@ encodec
 confluent-kafka
 shap  # explanations: SHAP over time x frequency regions (audiodf/explain)
 matplotlib  # explanation pictures
+requests  # free-tier LLM client (audiodf/explain/llm.py, audiodf/intent)

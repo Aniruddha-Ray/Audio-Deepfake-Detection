@@ -24,7 +24,7 @@ def draw(x: np.ndarray, sr: int, masker, values: np.ndarray, windows: list, fact
         ax1.text((r.t0 + r.t1) / 2, (lo + hi) / 2, f"{v:+.2f}", ha="center", va="center", fontsize=7)
     ax1.set_ylabel("Hz")
     v = facts["verdict"]
-    ax1.set_title(f"Action: {v['action']}  |  fake score {v['fake_probability']:.2f}  |  red = pushed towards synthetic")
+    ax1.set_title(f"Action: {v['action']}  |  fake score {v['fake_score']:.2f}  |  red = pushed towards synthetic")
     mids = [(w["start_s"] + w["end_s"]) / 2 for w in windows]
     ax2.bar(mids, [w["p_fake"] for w in windows], width=0.8, color="tab:red")
     ax2.axhline(v["verify_threshold"], color="tab:orange", linestyle="--", label="verify")

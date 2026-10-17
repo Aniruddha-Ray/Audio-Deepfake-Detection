@@ -25,9 +25,39 @@ def _kafka():
     return confluent_kafka
 
 
+def ensure_topics(settings: Settings, admin=None, new_topic=None) -> list[str]:
+    """Create the audio and result topics if they are missing; returns the ones created. A worker that subscribes before its topic exists only
+    notices the topic minutes later (metadata refresh) and, with no saved offset, would miss the first calls: topics are created up front
+    (found on 2026-10-17: the first call sent after a fresh deploy got no verdict)."""
+    if admin is None:
+        _kafka()
+        from confluent_kafka.admin import AdminClient, NewTopic
+
+        admin, new_topic = AdminClient({"bootstrap.servers": settings.kafka.bootstrap_servers}), NewTopic
+    have = set(admin.list_topics(timeout=15).topics)
+    wanted = {settings.kafka.audio_topic: settings.kafka.partitions, settings.kafka.result_topic: 1}
+    missing = [t for t in wanted if t not in have]
+    if missing:
+        for topic, future in admin.create_topics([new_topic(t, num_partitions=wanted[t], replication_factor=1) for t in missing]).items():
+            try:
+                future.result()
+            except Exception as exc:  # another process created it first
+                if "TOPIC_ALREADY_EXISTS" not in str(exc):
+                    raise
+    return missing
+
+
+def consumer_config(settings: Settings) -> dict:
+    """auto.offset.reset only applies when the group has no saved position, i.e. its first start: "earliest" then, so calls sent while the worker
+    was still joining are not skipped; after that the committed offsets decide, so a restart resumes where it stopped."""
+    return {"bootstrap.servers": settings.kafka.bootstrap_servers, "group.id": settings.kafka.group_id,
+            "auto.offset.reset": "earliest", "enable.auto.commit": True}
+
+
 def simulate_call(settings: Settings, wav_path: str, call_id: str, realtime: bool = False) -> int:
     """Publish a recording as a stream of chunks. Returns the number of chunks sent."""
     kafka = _kafka()
+    ensure_topics(settings)
     producer = kafka.Producer({"bootstrap.servers": settings.kafka.bootstrap_servers})
     wave = load_audio(wav_path, settings.audio.sample_rate)
     step = int(settings.stream.chunk_seconds * settings.audio.sample_rate)
@@ -47,9 +77,13 @@ def run_consumer(settings: Settings, engine: DetectionEngine | None = None, metr
     kafka = _kafka()
     engine = engine or DetectionEngine.from_artifacts(settings)
     processor = ChunkProcessor(engine)
-    consumer = kafka.Consumer({"bootstrap.servers": settings.kafka.bootstrap_servers,
-                               "group.id": settings.kafka.group_id, "auto.offset.reset": "latest",
-                               "enable.auto.commit": True})
+    try:
+        created = ensure_topics(settings)
+        if created:
+            log(f"created topics {created}")
+    except Exception as exc:  # the broker may still be starting: the consumer below retries on its own
+        log(f"could not check topics: {exc}")
+    consumer = kafka.Consumer(consumer_config(settings))
     producer = kafka.Producer({"bootstrap.servers": settings.kafka.bootstrap_servers})
     consumer.subscribe([settings.kafka.audio_topic])
     if metrics_port:
