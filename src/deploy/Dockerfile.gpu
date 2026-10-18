@@ -1,0 +1,21 @@
+# GPU image of the detector. Build from the src/ directory:  docker build -f deploy/Dockerfile.gpu -t audiodf-gpu .
+# Same code and requirements as the CPU image; the difference is the CUDA build of PyTorch (its wheels bundle the CUDA libraries, so no CUDA base image is
+# needed). Run with the NVIDIA container runtime: `docker run --gpus all ...`, or the compose override deploy/docker-compose.gpu.yml.
+# cu128 wheels run on any driver that supports CUDA 12.8 or newer (the build host's driver supports 13.1).
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cu128 \
+    && pip install --no-cache-dir -r requirements.txt
+
+COPY audiodf ./audiodf
+COPY configs ./configs
+
+ENV AUDIODF_ARTIFACTS=/models PYTHONUNBUFFERED=1 PYTHONPATH=/app HF_HOME=/cache/hf TORCH_HOME=/cache/torch NVIDIA_VISIBLE_DEVICES=all
+EXPOSE 8000 9100
+
+CMD ["uvicorn", "audiodf.serving.api:get_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

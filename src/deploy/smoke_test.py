@@ -38,13 +38,13 @@ def post(url: str, body: bytes, timeout: float = 300) -> dict:
     return json.loads(urllib.request.urlopen(urllib.request.Request(url, data=body, method="POST"), timeout=timeout).read())
 
 
-def kafka_check(files: list[Path]) -> None:
+def kafka_check(files: list[Path], image: str) -> None:
     ids = {}
     for f in files:
         cid = f"smoke-{uuid.uuid4().hex[:6]}"
         ids[cid] = f.name
         out = subprocess.run(["docker", "run", "--rm", "--network", "deploy_default", "-e", "KAFKA_BOOTSTRAP_SERVERS=kafka:9092", "-v",
-                              f"{f.parent.resolve()}:/data:ro", "deploy-api:latest", "python", "-m", "audiodf", "produce", f"/data/{f.name}",
+                              f"{f.parent.resolve()}:/data:ro", image, "python", "-m", "audiodf", "produce", f"/data/{f.name}",
                               "--call-id", cid], capture_output=True, text=True)
         check(f"kafka: sent {f.name}", out.returncode == 0, out.stdout.strip().splitlines()[-1] if out.stdout.strip() else out.stderr[-120:])
     final = {}
@@ -71,6 +71,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("recordings", nargs="+", type=Path)
     ap.add_argument("--kafka", action="store_true", help="also test the Kafka path (needs the docker CLI; recordings must share a folder)")
+    ap.add_argument("--image", default="deploy-api:latest", help="image for the Kafka producer step (audiodf-gpu with the GPU override)")
     args = ap.parse_args()
     try:
         h = get(f"{API}/health")
@@ -84,7 +85,7 @@ def main() -> int:
         e = post(f"{API}/explain?nsamples=60", f.read_bytes())
         check(f"/explain {f.name}", bool(e["explanation"]["summary"]) and "facts" in e, f"check faithful: {e['facts']['attribution_check'].get('faithful')}")
     if args.kafka:
-        kafka_check(args.recordings)
+        kafka_check(args.recordings, args.image)
     time.sleep(10)
     targets = get(f"{PROM}/api/v1/targets")["data"]["activeTargets"]
     check("prometheus targets up", len(targets) >= 2 and all(t["health"] == "up" for t in targets), ", ".join(f"{t['labels']['job']}={t['health']}" for t in targets))

@@ -1,0 +1,13 @@
+# GPU override: run the API and the worker on the GPU.
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.gpu.yml up -d --build
+# Needs Docker with NVIDIA GPU support (Docker Desktop with WSL2 and a current NVIDIA driver, or the NVIDIA Container Toolkit on Linux).
+# Both services load the model on the same GPU: on a 4 GB card that is about 1 GB each; give a bigger card to more workers.
+services:
+  api:
+    build: {context: .., dockerfile: deploy/Dockerfile.gpu}
+    image: audiodf-gpu
+    deploy: &gpu {resources: {reservations: {devices: [{driver: nvidia, count: 1, capabilities: [gpu]}]}}}
+  worker:
+    build: {context: .., dockerfile: deploy/Dockerfile.gpu}
+    image: audiodf-gpu
+    deploy: *gpu

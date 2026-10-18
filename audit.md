@@ -1002,9 +1002,23 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
   (calls scored now, verdicts per minute by level, time to a verdict, errors, score distribution); (7) the Kubernetes manifest described the old SVM/RCNN bundle and had a 10 s readiness
   delay for a model that loads and downloads weights: startup probe, TORCH_HOME cache volume, GPU note. The manifests are schema-valid (kubeconform, Kubernetes 1.30) but were **not run on a
   cluster** (none exists here).
-- **Not in the image:** `transformers` (the intent module's speech-to-text), so `audiodf intent --audio` runs on the host, not in the container; text intent and explanations work in it.
+- **Not in the image at this point:** `transformers` (added in phase 34).
 - **Mistake 29:** the compose / Kubernetes scaffold was written in an earlier session and marked UNTESTED; its first real run exposed seven defects, one of which silently drops the first calls
   after a deploy. Nothing marked untested should be reported as ready.
+
+### Phase 34: GPU production image and speech-to-text in the container (2026-10-18)
+
+- **GPU image** (`deploy/Dockerfile.gpu`, `deploy/docker-compose.gpu.yml` override; PyTorch cu128 wheels, 12.6 GB on disk, 4.4 GB compressed): Docker Desktop sees the RTX 3050 Laptop (4 GB);
+  inside the container `torch.cuda.is_available()` is True. The same 12 smoke-test checks pass on it (`/predict`, `/explain`, Kafka for a fake: verify 0.7805, and a genuine call: allow 0.0050,
+  Prometheus, Grafana). **Latency in the container: about 63 ms per 10 s call after warm-up** (first call 290-540 ms), against 0.5-1.4 s on the CPU image. Measured on one laptop GPU
+  with one request at a time: the capacity figure (about 235 calls per GPU) still comes from the earlier serving-cost study, not from a load test of the container.
+- **Speech-to-text in the CPU image:** `transformers` added to `requirements.txt`; `HF_HOME` and a `hf-cache` volume keep the Whisper weights across restarts.
+  `python -m audiodf intent --audio` runs inside the container (transcribed a genuine call, intent none, allow). Whisper-small is downloaded on first use (needs internet once).
+- `deploy/smoke_test.py --image` names the producer image (the Kafka step hard-coded the CPU image). New `tests/test_deploy_files.py` (5 tests): both Dockerfiles identical except the PyTorch
+  build, requirements cover the container's imports, the GPU override targets api and worker, the compose volumes and Prometheus targets match, the dashboard uses only exported metrics.
+- **Open:** locally 14 older tests (codec rendering) fail because the project's own guard wants 15 GB free and C: has 7 GB (Docker images and caches); the failures are the guard, not a
+  code change, but the suite must be run with more free disk (CI has it). The GPU image was removed afterwards to free space; rebuild with
+  `docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.gpu.yml build api`. Not tested: an NVIDIA GPU under Kubernetes (needs the device plugin; manifest has a note only).
 
 ## 3. Decisions and the reasoning behind them
 

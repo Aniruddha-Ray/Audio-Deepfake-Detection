@@ -12,8 +12,9 @@ RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pyt
 COPY audiodf ./audiodf
 COPY configs ./configs
 
-# Model artifacts are mounted (volume / PVC), not baked into the image.
-ENV AUDIODF_ARTIFACTS=/models PYTHONUNBUFFERED=1 PYTHONPATH=/app
+# Model artifacts are mounted (volume / PVC), not baked into the image; so are the downloaded base weights (WavLM in TORCH_HOME, Whisper-small for
+# `audiodf intent --audio` in HF_HOME, ~1 GB, fetched on first use).
+ENV AUDIODF_ARTIFACTS=/models PYTHONUNBUFFERED=1 PYTHONPATH=/app HF_HOME=/cache/hf TORCH_HOME=/cache/torch
 EXPOSE 8000 9100
 
 CMD ["uvicorn", "audiodf.serving.api:get_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
