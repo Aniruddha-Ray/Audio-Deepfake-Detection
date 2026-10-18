@@ -1,4 +1,6 @@
-# audiodf: real-time deepfake voice detection (SVM + RCNN ensemble)
+# audiodf: real-time deepfake voice detection
+
+> **Final model: WavLM-Base+ alone (run 7, seed 0).** The SVM + RCNN text below describes earlier runs. See `../MODEL_CARD.md` (what it is, results, limits) and `../DEMO_GUIDE.md`. The datasets named below were deleted from the working machine at the end of the project; re-download them to retrain or re-evaluate.
 
 Production-shaped version of the notebook prototype. Independent branches (SVM, RCNN, WavLM), each with its own
 audio processing, fused into one P(fake) and mapped to Allow / Verify / Block. Trained on ASVspoof5 + ASVspoof2019.
@@ -112,7 +114,7 @@ python -m audiodf benchmark                  # per-stage latency
 python -m audiodf serve --port 8000          # API: /predict, /stream/{id}, /health, /metrics
 python -m audiodf consume                    # Kafka worker (needs a broker + confluent-kafka)
 python -m audiodf produce call.wav --realtime
-python -m pytest                             # 195 tests, no dataset or GPU needed
+python -m pytest                             # 204 tests, no dataset or GPU needed
 python -m audiodf explain call.wav --plot out.png   # verdict + SHAP regions + plain-language reasons (--provider groq|gemini|openrouter with AUDIODF_LLM_API_KEY)
 python -m audiodf intent --audio call.wav        # local speech-to-text + scam-intent patterns + the voice verdict -> one action
 python -m audiodf intent --text "caller: ... receiver: ..."   # intent of a written transcript (--provider adds a bounded LLM)
@@ -199,8 +201,7 @@ of calls at that level would be genuine customers (`audit.md` phase 26). `escala
    a gap on real calls (packet loss, DTX, echo). Collect labelled production audio when possible.
 3. **Eval scoring is a stratified subset by default** (60k of 680k clips; the SVM runs at ~35 clips/s).
    Run `--eval-utts 0` once for the final number.
-4. **Kafka, Docker, Kubernetes and Grafana files are untested scaffolds** (no broker or cluster was available).
-   The chunk-routing logic (`streaming/processor.py`) is unit-tested; the Kafka glue is not.
+4. **Docker, Kafka, Prometheus and Grafana were run for real** (compose stack, CPU and GPU images, `deploy/smoke_test.py`, audit phases 33 and 34). The **Kubernetes manifests are schema-valid but have never run on a cluster**.
 5. The SVM is recomputed on each verdict (about 41 ms per 10 s buffer). Fine for now; cache or share the
    STFT across prefixes if you need many concurrent calls per GPU.
 6. ViT is not integrated. If tried, benchmark it against the RCNN on the same eval set and per-attack table.

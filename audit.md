@@ -1019,6 +1019,7 @@ eval clips; rendered in 418 s (23 calls/s); indexing 65 s, no call without speec
 - **Open:** locally 14 older tests (codec rendering) fail because the project's own guard wants 15 GB free and C: has 7 GB (Docker images and caches); the failures are the guard, not a
   code change, but the suite must be run with more free disk (CI has it). The GPU image was removed afterwards to free space; rebuild with
   `docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.gpu.yml build api`. Not tested: an NVIDIA GPU under Kubernetes (needs the device plugin; manifest has a note only).
+- **Finishing (2026-10-18):** CI green on 0a43864. Model card (`MODEL_CARD.md`) and demo guide (`DEMO_GUIDE.md`) written; demo commands run once as written. **Disk cleanup:** pip, uv and Docker build caches, my images and volumes, then (by the user) the public datasets (`dataset5` 69 GB, `dataset21` 14 GB, `dataset_itw` 8 GB, `dataset19` 7 GB, `dataset_noise` 5 GB) and the feature cache: **retraining or re-running the ASVspoof / In-the-Wild evaluations needs a re-download**; the saved scores and reports in `results/` remain. Full suite after cleanup: 204 passed (the 14 codec tests earlier failed only on the 15 GB free-disk guard). Compose stack and the standalone `kafka` container stopped. Kubernetes deliberately skipped. Still local-only: weights (no DVC remote yet), old bundles (run 7 seed 1, run 8, run 9), the `dataset_calls*` folders.
 
 ## 3. Decisions and the reasoning behind them
 
