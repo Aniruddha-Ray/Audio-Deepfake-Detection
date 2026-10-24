@@ -1,0 +1,6 @@
+outs:
+- md5: 909cac3845877d1b67a98239d80f3263.dir
+  size: 160750471
+  nfiles: 4
+  hash: md5
+  path: artifacts_run4_wavlm

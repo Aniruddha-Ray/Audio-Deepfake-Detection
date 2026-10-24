@@ -1,0 +1,20 @@
+# Run 8: run 7's recipe (noise, echo, bursty packet loss, G.711, no EnCodec) aimed at its two weakest spots, real room echo and
+# low-SNR babble. Changes against run 7 (decision rule: new_plan.md 7.3r):
+#   echo on 50% of the copies (run 7: 30%); echo from half simulated rooms, half measured rooms (MIT IR Survey, 270 spaces,
+#   CC-BY 4.0), half of the measured ones stretched in time (x 0.8-3.0); noise down to 0 dB SNR (run 7: 5 dB), babble 30%
+#   of the noise (run 7: 20%), colours 20% (25%), MUSAN 30% (35%). The held-out test corpora (RIRS_NOISES real RIRs, ESC-50)
+#   are never used in training (build_kit refuses them).
+#   cd src && python run.py --config configs/run8.yaml --eval-utts 30000
+data:
+  neural_share: 0.0
+  reverb_p: 0.5
+  snr_db: [0, 35]
+  noise_mix: {musan: 0.30, pointsource: 0.15, demand: 0.05, babble: 0.30, colours: 0.20}
+  rir_corpora: [sim_rir, mit_rir]
+  rir_stretch_p: 0.5
+  rir_stretch: [0.8, 3.0]
+wavlm:
+  keep_epochs: true
+paths:
+  artifacts_dir: ../artifacts_run8
+  results_dir: ../results/run8

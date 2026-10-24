@@ -1,0 +1,420 @@
+ Image deploy-api Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 577B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 750B 0.0s done
+#2 DONE 0.1s
+
+#3 [internal] load metadata for docker.io/library/python:3.11-slim
+#3 ...
+
+#4 [auth] library/python:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/python:3.11-slim
+#3 DONE 3.0s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 2B done
+#5 DONE 0.1s
+
+#6 [1/7] FROM docker.io/library/python:3.11-slim@sha256:e88e9763f943ec1834f992a4b51e0f24500486803e8bc534e5767af9ea65f6ce
+#6 resolve docker.io/library/python:3.11-slim@sha256:e88e9763f943ec1834f992a4b51e0f24500486803e8bc534e5767af9ea65f6ce 0.1s done
+#6 DONE 0.1s
+
+#7 [internal] load build context
+#7 transferring context: 923.85kB 0.2s done
+#7 DONE 0.4s
+
+#6 [1/7] FROM docker.io/library/python:3.11-slim@sha256:e88e9763f943ec1834f992a4b51e0f24500486803e8bc534e5767af9ea65f6ce
+#6 sha256:496c1a902b3a93cea3e54b90b79dbcaa0e58ad90c3fe9dd0a43c9557dc47f17d 0B / 250B 0.2s
+#6 sha256:496c1a902b3a93cea3e54b90b79dbcaa0e58ad90c3fe9dd0a43c9557dc47f17d 250B / 250B 0.3s
+#6 sha256:759a7f30c31818dda4c97b407b24d93da479c306568d185ced927e1a749164f1 0B / 14.46MB 0.2s
+#6 sha256:0f752a1982d6f819fc2c9e78ac1514c63f2f2e1dec7885ffd4cb6809ba4a26ca 0B / 1.29MB 0.2s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 0B / 29.84MB 0.2s
+#6 sha256:496c1a902b3a93cea3e54b90b79dbcaa0e58ad90c3fe9dd0a43c9557dc47f17d 250B / 250B 0.3s done
+#6 sha256:759a7f30c31818dda4c97b407b24d93da479c306568d185ced927e1a749164f1 2.10MB / 14.46MB 0.9s
+#6 sha256:759a7f30c31818dda4c97b407b24d93da479c306568d185ced927e1a749164f1 5.24MB / 14.46MB 1.2s
+#6 sha256:759a7f30c31818dda4c97b407b24d93da479c306568d185ced927e1a749164f1 7.34MB / 14.46MB 1.4s
+#6 sha256:759a7f30c31818dda4c97b407b24d93da479c306568d185ced927e1a749164f1 9.44MB / 14.46MB 1.5s
+#6 sha256:759a7f30c31818dda4c97b407b24d93da479c306568d185ced927e1a749164f1 10.49MB / 14.46MB 1.6s
+#6 sha256:759a7f30c31818dda4c97b407b24d93da479c306568d185ced927e1a749164f1 12.58MB / 14.46MB 1.8s
+#6 sha256:759a7f30c31818dda4c97b407b24d93da479c306568d185ced927e1a749164f1 14.46MB / 14.46MB 1.9s
+#6 sha256:759a7f30c31818dda4c97b407b24d93da479c306568d185ced927e1a749164f1 14.46MB / 14.46MB 2.1s done
+#6 sha256:0f752a1982d6f819fc2c9e78ac1514c63f2f2e1dec7885ffd4cb6809ba4a26ca 1.29MB / 1.29MB 2.1s done
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 2.10MB / 29.84MB 2.5s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 4.19MB / 29.84MB 2.8s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 7.34MB / 29.84MB 3.0s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 10.49MB / 29.84MB 3.1s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 13.63MB / 29.84MB 3.4s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 15.73MB / 29.84MB 3.7s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 17.83MB / 29.84MB 3.9s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 19.92MB / 29.84MB 4.0s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 22.02MB / 29.84MB 4.2s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 25.17MB / 29.84MB 4.5s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 28.31MB / 29.84MB 4.8s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 29.84MB / 29.84MB 5.0s
+#6 sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 29.84MB / 29.84MB 5.1s done
+#6 extracting sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e
+#6 extracting sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e 2.1s done
+#6 extracting sha256:0f752a1982d6f819fc2c9e78ac1514c63f2f2e1dec7885ffd4cb6809ba4a26ca
+#6 extracting sha256:0f752a1982d6f819fc2c9e78ac1514c63f2f2e1dec7885ffd4cb6809ba4a26ca 0.4s done
+#6 extracting sha256:759a7f30c31818dda4c97b407b24d93da479c306568d185ced927e1a749164f1
+#6 extracting sha256:759a7f30c31818dda4c97b407b24d93da479c306568d185ced927e1a749164f1 1.5s done
+#6 extracting sha256:496c1a902b3a93cea3e54b90b79dbcaa0e58ad90c3fe9dd0a43c9557dc47f17d
+#6 extracting sha256:496c1a902b3a93cea3e54b90b79dbcaa0e58ad90c3fe9dd0a43c9557dc47f17d 0.1s done
+#6 DONE 9.7s
+
+#8 [2/7] RUN apt-get update && apt-get install -y --no-install-recommends libsndfile1     && rm -rf /var/lib/apt/lists/*
+#8 1.418 Hit:1 http://deb.debian.org/debian trixie InRelease
+#8 1.418 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]
+#8 1.577 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#8 1.591 Get:4 http://deb.debian.org/debian trixie/main amd64 Packages [9678 kB]
+#8 2.519 Get:5 http://deb.debian.org/debian trixie-updates/main amd64 Packages [4412 B]
+#8 2.528 Get:6 http://deb.debian.org/debian-security trixie-security/main amd64 Packages [269 kB]
+#8 3.534 Fetched 10.0 MB in 3s (3748 kB/s)
+#8 3.534 Reading package lists...
+#8 4.467 Reading package lists...
+#8 5.390 Building dependency tree...
+#8 5.675 Reading state information...
+#8 6.062 The following additional packages will be installed:
+#8 6.064   libflac14 libmp3lame0 libmpg123-0t64 libogg0 libopus0 libvorbis0a
+#8 6.065   libvorbisenc2
+#8 6.069 Suggested packages:
+#8 6.069   opus-tools
+#8 6.186 The following NEW packages will be installed:
+#8 6.189   libflac14 libmp3lame0 libmpg123-0t64 libogg0 libopus0 libsndfile1
+#8 6.193   libvorbis0a libvorbisenc2
+#8 6.273 0 upgraded, 8 newly installed, 0 to remove and 1 not upgraded.
+#8 6.273 Need to get 3962 kB of archives.
+#8 6.273 After this operation, 6637 kB of additional disk space will be used.
+#8 6.273 Get:1 http://deb.debian.org/debian trixie/main amd64 libogg0 amd64 1.3.5-3+b2 [23.8 kB]
+#8 6.281 Get:2 http://deb.debian.org/debian trixie/main amd64 libflac14 amd64 1.5.0+ds-2 [210 kB]
+#8 6.331 Get:3 http://deb.debian.org/debian trixie/main amd64 libmp3lame0 amd64 3.100-6+b3 [363 kB]
+#8 6.377 Get:4 http://deb.debian.org/debian trixie/main amd64 libmpg123-0t64 amd64 1.32.10-1+deb13u1 [149 kB]
+#8 6.394 Get:5 http://deb.debian.org/debian trixie/main amd64 libopus0 amd64 1.5.2-2 [2852 kB]
+#8 6.645 Get:6 http://deb.debian.org/debian trixie/main amd64 libvorbis0a amd64 1.3.7-3 [90.0 kB]
+#8 6.655 Get:7 http://deb.debian.org/debian trixie/main amd64 libvorbisenc2 amd64 1.3.7-3 [75.4 kB]
+#8 6.661 Get:8 http://deb.debian.org/debian trixie/main amd64 libsndfile1 amd64 1.2.2-2+deb13u1 [199 kB]
+#8 6.947 debconf: unable to initialize frontend: Dialog
+#8 6.947 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#8 6.947 debconf: falling back to frontend: Readline
+#8 6.948 debconf: unable to initialize frontend: Readline
+#8 6.948 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/x86_64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 8.)
+#8 6.948 debconf: falling back to frontend: Teletype
+#8 6.959 debconf: unable to initialize frontend: Teletype
+#8 6.959 debconf: (This frontend requires a controlling tty.)
+#8 6.959 debconf: falling back to frontend: Noninteractive
+#8 8.158 Fetched 3962 kB in 0s (8744 kB/s)
+#8 8.242 Selecting previously unselected package libogg0:amd64.
+#8 8.242 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 5660 files and directories currently installed.)
+#8 8.263 Preparing to unpack .../0-libogg0_1.3.5-3+b2_amd64.deb ...
+#8 8.293 Unpacking libogg0:amd64 (1.3.5-3+b2) ...
+#8 8.416 Selecting previously unselected package libflac14:amd64.
+#8 8.420 Preparing to unpack .../1-libflac14_1.5.0+ds-2_amd64.deb ...
+#8 8.434 Unpacking libflac14:amd64 (1.5.0+ds-2) ...
+#8 8.543 Selecting previously unselected package libmp3lame0:amd64.
+#8 8.547 Preparing to unpack .../2-libmp3lame0_3.100-6+b3_amd64.deb ...
+#8 8.557 Unpacking libmp3lame0:amd64 (3.100-6+b3) ...
+#8 8.660 Selecting previously unselected package libmpg123-0t64:amd64.
+#8 8.664 Preparing to unpack .../3-libmpg123-0t64_1.32.10-1+deb13u1_amd64.deb ...
+#8 8.675 Unpacking libmpg123-0t64:amd64 (1.32.10-1+deb13u1) ...
+#8 8.794 Selecting previously unselected package libopus0:amd64.
+#8 8.797 Preparing to unpack .../4-libopus0_1.5.2-2_amd64.deb ...
+#8 8.811 Unpacking libopus0:amd64 (1.5.2-2) ...
+#8 9.043 Selecting previously unselected package libvorbis0a:amd64.
+#8 9.047 Preparing to unpack .../5-libvorbis0a_1.3.7-3_amd64.deb ...
+#8 9.059 Unpacking libvorbis0a:amd64 (1.3.7-3) ...
+#8 9.168 Selecting previously unselected package libvorbisenc2:amd64.
+#8 9.171 Preparing to unpack .../6-libvorbisenc2_1.3.7-3_amd64.deb ...
+#8 9.181 Unpacking libvorbisenc2:amd64 (1.3.7-3) ...
+#8 9.275 Selecting previously unselected package libsndfile1:amd64.
+#8 9.279 Preparing to unpack .../7-libsndfile1_1.2.2-2+deb13u1_amd64.deb ...
+#8 9.292 Unpacking libsndfile1:amd64 (1.2.2-2+deb13u1) ...
+#8 9.439 Setting up libogg0:amd64 (1.3.5-3+b2) ...
+#8 9.498 Setting up libmpg123-0t64:amd64 (1.32.10-1+deb13u1) ...
+#8 9.547 Setting up libopus0:amd64 (1.5.2-2) ...
+#8 9.588 Setting up libvorbis0a:amd64 (1.3.7-3) ...
+#8 9.627 Setting up libflac14:amd64 (1.5.0+ds-2) ...
+#8 9.662 Setting up libmp3lame0:amd64 (3.100-6+b3) ...
+#8 9.702 Setting up libvorbisenc2:amd64 (1.3.7-3) ...
+#8 9.739 Setting up libsndfile1:amd64 (1.2.2-2+deb13u1) ...
+#8 9.781 Processing triggers for libc-bin (2.41-12+deb13u4) ...
+#8 DONE 10.9s
+
+#9 [3/7] WORKDIR /app
+#9 DONE 0.2s
+
+#10 [4/7] COPY requirements.txt .
+#10 DONE 0.2s
+
+#11 [5/7] RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu     && pip install --no-cache-dir -r requirements.txt
+#11 3.463 Looking in indexes: https://download.pytorch.org/whl/cpu
+#11 4.004 Collecting torch
+#11 4.479   Downloading https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (37 kB)
+#11 4.676 Collecting torchaudio
+#11 4.996   Downloading https://download-r2.pytorch.org/whl/cpu/torchaudio-2.11.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (6.9 kB)
+#11 5.130 Collecting filelock (from torch)
+#11 5.194   Downloading filelock-3.32.3-py3-none-any.whl.metadata (2.0 kB)
+#11 5.283 Collecting typing-extensions>=4.10.0 (from torch)
+#11 5.293   Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+#11 5.301 Requirement already satisfied: setuptools>=77.0.3 in /usr/local/lib/python3.11/site-packages (from torch) (79.0.1)
+#11 5.392 Collecting sympy>=1.13.3 (from torch)
+#11 5.402   Downloading sympy-1.14.0-py3-none-any.whl.metadata (12 kB)
+#11 5.516 Collecting networkx>=2.5.1 (from torch)
+#11 5.526   Downloading networkx-3.6.1-py3-none-any.whl.metadata (6.8 kB)
+#11 5.551 Collecting jinja2 (from torch)
+#11 5.563   Downloading https://download.pytorch.org/whl/jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+#11 5.681 Collecting fsspec>=0.8.5 (from torch)
+#11 5.692   Downloading fsspec-2026.7.0-py3-none-any.whl.metadata (10 kB)
+#11 5.984 Collecting mpmath<1.4,>=1.1.0 (from sympy>=1.13.3->torch)
+#11 5.994   Downloading mpmath-1.3.0-py3-none-any.whl.metadata (8.6 kB)
+#11 6.146 Collecting MarkupSafe>=2.0 (from jinja2->torch)
+#11 6.156   Downloading https://download.pytorch.org/whl/markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+#11 6.224 Downloading https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl (196.2 MB)
+#11 27.16    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 196.2/196.2 MB 10.0 MB/s eta 0:00:00
+#11 27.48 Downloading https://download-r2.pytorch.org/whl/cpu/torchaudio-2.11.0%2Bcpu-cp311-cp311-manylinux_2_28_x86_64.whl (341 kB)
+#11 27.53    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 341.3/341.3 kB 8.6 MB/s eta 0:00:00
+#11 27.54 Downloading fsspec-2026.7.0-py3-none-any.whl (206 kB)
+#11 27.56    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 206.6/206.6 kB 9.0 MB/s eta 0:00:00
+#11 27.57 Downloading networkx-3.6.1-py3-none-any.whl (2.1 MB)
+#11 27.77    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 10.5 MB/s eta 0:00:00
+#11 27.78 Downloading sympy-1.14.0-py3-none-any.whl (6.3 MB)
+#11 28.38    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.3/6.3 MB 10.6 MB/s eta 0:00:00
+#11 28.39 Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+#11 28.40    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 45.6/45.6 kB 10.6 MB/s eta 0:00:00
+#11 28.40 Downloading filelock-3.32.3-py3-none-any.whl (98 kB)
+#11 28.42    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 98.9/98.9 kB 12.7 MB/s eta 0:00:00
+#11 28.43 Downloading https://download.pytorch.org/whl/jinja2-3.1.6-py3-none-any.whl (134 kB)
+#11 28.51    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 134.9/134.9 kB 1.6 MB/s eta 0:00:00
+#11 28.52 Downloading https://download.pytorch.org/whl/markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+#11 28.53 Downloading mpmath-1.3.0-py3-none-any.whl (536 kB)
+#11 28.60    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 536.2/536.2 kB 8.6 MB/s eta 0:00:00
+#11 29.42 Installing collected packages: torchaudio, mpmath, typing-extensions, sympy, networkx, MarkupSafe, fsspec, filelock, jinja2, torch
+#11 65.31 Successfully installed MarkupSafe-3.0.3 filelock-3.32.3 fsspec-2026.7.0 jinja2-3.1.6 mpmath-1.3.0 networkx-3.6.1 sympy-1.14.0 torch-2.14.1+cpu torchaudio-2.11.0+cpu typing-extensions-4.16.0
+#11 65.32 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+#11 67.70 Collecting numpy (from -r requirements.txt (line 1))
+#11 67.76   Downloading numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+#11 68.01 Collecting scipy (from -r requirements.txt (line 2))
+#11 68.01   Downloading scipy-1.17.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (62 kB)
+#11 68.03      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.1/62.1 kB 10.3 MB/s eta 0:00:00
+#11 68.23 Collecting scikit-learn (from -r requirements.txt (line 3))
+#11 68.25   Downloading scikit_learn-1.9.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.3 kB)
+#11 68.30 Collecting joblib (from -r requirements.txt (line 4))
+#11 68.31   Downloading joblib-1.6.0-py3-none-any.whl.metadata (6.5 kB)
+#11 68.35 Collecting soundfile (from -r requirements.txt (line 5))
+#11 68.36   Downloading soundfile-0.14.0-py2.py3-none-manylinux_2_28_x86_64.whl.metadata (18 kB)
+#11 68.37 Requirement already satisfied: torch in /usr/local/lib/python3.11/site-packages (from -r requirements.txt (line 6)) (2.14.1+cpu)
+#11 68.37 Requirement already satisfied: torchaudio in /usr/local/lib/python3.11/site-packages (from -r requirements.txt (line 7)) (2.11.0+cpu)
+#11 68.44 Collecting pyyaml (from -r requirements.txt (line 8))
+#11 68.45   Downloading pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+#11 68.61 Collecting fastapi (from -r requirements.txt (line 9))
+#11 68.62   Downloading fastapi-0.143.3-py3-none-any.whl.metadata (26 kB)
+#11 68.70 Collecting uvicorn (from -r requirements.txt (line 10))
+#11 68.71   Downloading uvicorn-0.54.0-py3-none-any.whl.metadata (6.6 kB)
+#11 68.75 Collecting prometheus_client (from -r requirements.txt (line 11))
+#11 68.76   Downloading prometheus_client-0.26.0-py3-none-any.whl.metadata (2.1 kB)
+#11 68.79 Collecting imageio-ffmpeg (from -r requirements.txt (line 12))
+#11 68.80   Downloading imageio_ffmpeg-0.6.0-py3-none-manylinux2014_x86_64.whl.metadata (1.5 kB)
+#11 68.82 Collecting encodec (from -r requirements.txt (line 13))
+#11 68.83   Downloading encodec-0.1.1.tar.gz (3.7 MB)
+#11 69.20      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.7/3.7 MB 10.6 MB/s eta 0:00:00
+#11 69.29   Preparing metadata (setup.py): started
+#11 69.80   Preparing metadata (setup.py): finished with status 'done'
+#11 70.00 Collecting confluent-kafka (from -r requirements.txt (line 14))
+#11 70.01   Downloading confluent_kafka-2.16.0-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (38 kB)
+#11 70.11 Collecting shap (from -r requirements.txt (line 15))
+#11 70.12   Downloading shap-0.51.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (25 kB)
+#11 70.43 Collecting matplotlib (from -r requirements.txt (line 16))
+#11 70.44   Downloading matplotlib-3.11.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (80 kB)
+#11 70.45      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 80.3/80.3 kB 23.1 MB/s eta 0:00:00
+#11 70.65 Collecting narwhals>=2.0.1 (from scikit-learn->-r requirements.txt (line 3))
+#11 70.66   Downloading narwhals-2.27.1-py3-none-any.whl.metadata (15 kB)
+#11 70.68 Collecting threadpoolctl>=3.5.0 (from scikit-learn->-r requirements.txt (line 3))
+#11 70.69   Downloading threadpoolctl-3.7.0-py3-none-any.whl.metadata (24 kB)
+#11 70.75 Collecting cloudpickle>=3.0 (from joblib->-r requirements.txt (line 4))
+#11 70.76   Downloading cloudpickle-3.1.2-py3-none-any.whl.metadata (7.1 kB)
+#11 70.96 Collecting cffi>=1.0 (from soundfile->-r requirements.txt (line 5))
+#11 70.97   Downloading cffi-2.1.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.5 kB)
+#11 70.98 Requirement already satisfied: typing-extensions in /usr/local/lib/python3.11/site-packages (from soundfile->-r requirements.txt (line 5)) (4.16.0)
+#11 70.99 Requirement already satisfied: filelock in /usr/local/lib/python3.11/site-packages (from torch->-r requirements.txt (line 6)) (3.32.3)
+#11 70.99 Requirement already satisfied: setuptools>=77.0.3 in /usr/local/lib/python3.11/site-packages (from torch->-r requirements.txt (line 6)) (79.0.1)
+#11 70.99 Requirement already satisfied: sympy>=1.13.3 in /usr/local/lib/python3.11/site-packages (from torch->-r requirements.txt (line 6)) (1.14.0)
+#11 71.00 Requirement already satisfied: networkx>=2.5.1 in /usr/local/lib/python3.11/site-packages (from torch->-r requirements.txt (line 6)) (3.6.1)
+#11 71.00 Requirement already satisfied: jinja2 in /usr/local/lib/python3.11/site-packages (from torch->-r requirements.txt (line 6)) (3.1.6)
+#11 71.00 Requirement already satisfied: fsspec>=0.8.5 in /usr/local/lib/python3.11/site-packages (from torch->-r requirements.txt (line 6)) (2026.7.0)
+#11 71.11 Collecting starlette>=0.46.0 (from fastapi->-r requirements.txt (line 9))
+#11 71.12   Downloading starlette-1.8.0-py3-none-any.whl.metadata (6.6 kB)
+#11 71.56 Collecting pydantic>=2.9.0 (from fastapi->-r requirements.txt (line 9))
+#11 71.58   Downloading pydantic-2.14.1-py3-none-any.whl.metadata (133 kB)
+#11 71.59      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 133.0/133.0 kB 16.6 MB/s eta 0:00:00
+#11 71.63 Collecting typing-inspection>=0.4.2 (from fastapi->-r requirements.txt (line 9))
+#11 71.64   Downloading typing_inspection-0.4.4-py3-none-any.whl.metadata (2.6 kB)
+#11 71.66 Collecting annotated-doc>=0.0.2 (from fastapi->-r requirements.txt (line 9))
+#11 71.67   Downloading annotated_doc-0.0.5-py3-none-any.whl.metadata (6.5 kB)
+#11 71.72 Collecting opentelemetry-api>=1.44.0 (from fastapi->-r requirements.txt (line 9))
+#11 71.73   Downloading opentelemetry_api-1.45.1-py3-none-any.whl.metadata (1.4 kB)
+#11 71.78 Collecting click>=7.0 (from uvicorn->-r requirements.txt (line 10))
+#11 71.79   Downloading click-8.5.0-py3-none-any.whl.metadata (2.6 kB)
+#11 71.82 Collecting h11>=0.8 (from uvicorn->-r requirements.txt (line 10))
+#11 71.83   Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+#11 71.88 Collecting einops (from encodec->-r requirements.txt (line 13))
+#11 71.90   Downloading einops-0.8.2-py3-none-any.whl.metadata (13 kB)
+#11 72.69 Collecting pandas (from shap->-r requirements.txt (line 15))
+#11 72.70   Downloading pandas-3.0.6-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (79 kB)
+#11 72.71      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 79.5/79.5 kB 7.1 MB/s eta 0:00:00
+#11 72.83 Collecting tqdm>=4.27.0 (from shap->-r requirements.txt (line 15))
+#11 77.59   Downloading tqdm-4.70.1-py3-none-any.whl.metadata (57 kB)
+#11 77.60      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 57.4/57.4 kB 131.6 MB/s eta 0:00:00
+#11 77.62 Requirement already satisfied: packaging>20.9 in /usr/local/lib/python3.11/site-packages (from shap->-r requirements.txt (line 15)) (26.3)
+#11 77.64 Collecting slicer==0.0.8 (from shap->-r requirements.txt (line 15))
+#11 77.65   Downloading slicer-0.0.8-py3-none-any.whl.metadata (4.0 kB)
+#11 77.98 Collecting numba (from shap->-r requirements.txt (line 15))
+#11 77.99   Downloading numba-0.68.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (2.8 kB)
+#11 78.14 Collecting llvmlite (from shap->-r requirements.txt (line 15))
+#11 78.15   Downloading llvmlite-0.50.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (5.1 kB)
+#11 78.32 Collecting contourpy>=1.0.1 (from matplotlib->-r requirements.txt (line 16))
+#11 78.34   Downloading contourpy-1.3.3-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (5.5 kB)
+#11 78.36 Collecting cycler>=0.10 (from matplotlib->-r requirements.txt (line 16))
+#11 78.37   Downloading cycler-0.12.1-py3-none-any.whl.metadata (3.8 kB)
+#11 78.90 Collecting fonttools>=4.28.2 (from matplotlib->-r requirements.txt (line 16))
+#11 78.92   Downloading fonttools-4.67.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (137 kB)
+#11 78.93      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 137.2/137.2 kB 13.8 MB/s eta 0:00:00
+#11 79.09 Collecting kiwisolver>=1.3.1 (from matplotlib->-r requirements.txt (line 16))
+#11 79.11   Downloading kiwisolver-1.5.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (5.2 kB)
+#11 79.59 Collecting pillow>=9 (from matplotlib->-r requirements.txt (line 16))
+#11 79.60   Downloading pillow-13.0.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.1 kB)
+#11 79.66 Collecting pyparsing>=3 (from matplotlib->-r requirements.txt (line 16))
+#11 79.67   Downloading pyparsing-3.3.3-py3-none-any.whl.metadata (5.9 kB)
+#11 79.71 Collecting python-dateutil>=2.7 (from matplotlib->-r requirements.txt (line 16))
+#11 79.72   Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+#11 79.75 Collecting pycparser (from cffi>=1.0->soundfile->-r requirements.txt (line 5))
+#11 79.77   Downloading pycparser-3.11-py3-none-any.whl.metadata (8.2 kB)
+#11 80.06 Collecting annotated-types>=0.6.0 (from pydantic>=2.9.0->fastapi->-r requirements.txt (line 9))
+#11 80.08   Downloading annotated_types-0.8.0-py3-none-any.whl.metadata (15 kB)
+#11 81.66 Collecting pydantic-core==2.50.1 (from pydantic>=2.9.0->fastapi->-r requirements.txt (line 9))
+#11 81.67   Downloading pydantic_core-2.50.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.5 kB)
+#11 81.72 Collecting six>=1.5 (from python-dateutil>=2.7->matplotlib->-r requirements.txt (line 16))
+#11 81.73   Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+#11 81.88 Collecting anyio<5,>=4.0.0 (from starlette>=0.46.0->fastapi->-r requirements.txt (line 9))
+#11 82.16   Downloading anyio-4.15.1-py3-none-any.whl.metadata (4.7 kB)
+#11 82.18 Requirement already satisfied: mpmath<1.4,>=1.1.0 in /usr/local/lib/python3.11/site-packages (from sympy>=1.13.3->torch->-r requirements.txt (line 6)) (1.3.0)
+#11 82.23 Requirement already satisfied: MarkupSafe>=2.0 in /usr/local/lib/python3.11/site-packages (from jinja2->torch->-r requirements.txt (line 6)) (3.0.3)
+#11 82.44 Collecting idna>=2.8 (from anyio<5,>=4.0.0->starlette>=0.46.0->fastapi->-r requirements.txt (line 9))
+#11 88.74   Downloading idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+#11 89.06 Downloading numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.9 MB)
+#11 90.67    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.9/16.9 MB 11.2 MB/s eta 0:00:00
+#11 90.68 Downloading scipy-1.17.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.3 MB)
+#11 94.00    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.3/35.3 MB 11.4 MB/s eta 0:00:00
+#11 94.01 Downloading scikit_learn-1.9.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (9.3 MB)
+#11 94.87    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.3/9.3 MB 10.9 MB/s eta 0:00:00
+#11 94.88 Downloading joblib-1.6.0-py3-none-any.whl (306 kB)
+#11 94.92    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 306.1/306.1 kB 10.3 MB/s eta 0:00:00
+#11 94.93 Downloading soundfile-0.14.0-py2.py3-none-manylinux_2_28_x86_64.whl (1.3 MB)
+#11 95.06    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 10.2 MB/s eta 0:00:00
+#11 95.07 Downloading pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (806 kB)
+#11 95.15    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 806.6/806.6 kB 10.9 MB/s eta 0:00:00
+#11 95.17 Downloading fastapi-0.143.3-py3-none-any.whl (144 kB)
+#11 95.18    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 144.8/144.8 kB 12.7 MB/s eta 0:00:00
+#11 95.19 Downloading uvicorn-0.54.0-py3-none-any.whl (87 kB)
+#11 95.20    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 87.4/87.4 kB 14.2 MB/s eta 0:00:00
+#11 95.21 Downloading prometheus_client-0.26.0-py3-none-any.whl (64 kB)
+#11 95.22    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 64.5/64.5 kB 13.7 MB/s eta 0:00:00
+#11 95.23 Downloading imageio_ffmpeg-0.6.0-py3-none-manylinux2014_x86_64.whl (29.5 MB)
+#11 97.81    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.5/29.5 MB 11.9 MB/s eta 0:00:00
+#11 97.83 Downloading confluent_kafka-2.16.0-cp311-cp311-manylinux_2_28_x86_64.whl (5.0 MB)
+#11 98.27    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.0/5.0 MB 11.4 MB/s eta 0:00:00
+#11 98.28 Downloading shap-0.51.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.1 MB)
+#11 98.39    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 9.4 MB/s eta 0:00:00
+#11 98.40 Downloading slicer-0.0.8-py3-none-any.whl (15 kB)
+#11 98.42 Downloading matplotlib-3.11.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (9.9 MB)
+#11 99.30    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.9/9.9 MB 11.2 MB/s eta 0:00:00
+#11 99.31 Downloading annotated_doc-0.0.5-py3-none-any.whl (5.3 kB)
+#11 99.32 Downloading cffi-2.1.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (217 kB)
+#11 99.34    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 217.8/217.8 kB 11.3 MB/s eta 0:00:00
+#11 99.35 Downloading click-8.5.0-py3-none-any.whl (125 kB)
+#11 99.36    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 125.3/125.3 kB 10.8 MB/s eta 0:00:00
+#11 99.37 Downloading cloudpickle-3.1.2-py3-none-any.whl (22 kB)
+#11 99.38 Downloading contourpy-1.3.3-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (355 kB)
+#11 99.42    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 355.2/355.2 kB 12.6 MB/s eta 0:00:00
+#11 99.42 Downloading cycler-0.12.1-py3-none-any.whl (8.3 kB)
+#11 99.43 Downloading fonttools-4.67.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (5.5 MB)
+#11 99.94    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.5/5.5 MB 10.9 MB/s eta 0:00:00
+#11 99.95 Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+#11 99.96 Downloading kiwisolver-1.5.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (1.4 MB)
+#11 100.1    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 11.0 MB/s eta 0:00:00
+#11 100.1 Downloading narwhals-2.27.1-py3-none-any.whl (483 kB)
+#11 100.2    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 483.2/483.2 kB 10.4 MB/s eta 0:00:00
+#11 100.2 Downloading opentelemetry_api-1.45.1-py3-none-any.whl (60 kB)
+#11 100.2    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 60.3/60.3 kB 14.2 MB/s eta 0:00:00
+#11 100.2 Downloading pillow-13.0.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (7.1 MB)
+#11 100.9    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.1/7.1 MB 9.8 MB/s eta 0:00:00
+#11 100.9 Downloading pydantic-2.14.1-py3-none-any.whl (488 kB)
+#11 101.0    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 488.1/488.1 kB 10.8 MB/s eta 0:00:00
+#11 101.0 Downloading pydantic_core-2.50.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.2 MB)
+#11 101.2    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.2/2.2 MB 10.1 MB/s eta 0:00:00
+#11 101.2 Downloading pyparsing-3.3.3-py3-none-any.whl (126 kB)
+#11 101.2    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 126.4/126.4 kB 11.5 MB/s eta 0:00:00
+#11 101.2 Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+#11 101.3    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 229.9/229.9 kB 10.2 MB/s eta 0:00:00
+#11 101.3 Downloading starlette-1.8.0-py3-none-any.whl (79 kB)
+#11 101.3    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 79.6/79.6 kB 11.1 MB/s eta 0:00:00
+#11 101.3 Downloading threadpoolctl-3.7.0-py3-none-any.whl (26 kB)
+#11 101.3 Downloading tqdm-4.70.1-py3-none-any.whl (80 kB)
+#11 101.3    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 80.2/80.2 kB 13.3 MB/s eta 0:00:00
+#11 101.3 Downloading typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+#11 101.4 Downloading einops-0.8.2-py3-none-any.whl (65 kB)
+#11 101.4    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 65.6/65.6 kB 25.1 MB/s eta 0:00:00
+#11 101.4 Downloading llvmlite-0.50.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (59.7 MB)
+#11 107.1    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 59.7/59.7 MB 9.9 MB/s eta 0:00:00
+#11 107.1 Downloading numba-0.68.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (3.8 MB)
+#11 107.5    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.8/3.8 MB 10.0 MB/s eta 0:00:00
+#11 107.5 Downloading pandas-3.0.6-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (11.1 MB)
+#11 108.8    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.1/11.1 MB 8.6 MB/s eta 0:00:00
+#11 108.8 Downloading annotated_types-0.8.0-py3-none-any.whl (13 kB)
+#11 108.8 Downloading anyio-4.15.1-py3-none-any.whl (132 kB)
+#11 108.8    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 132.1/132.1 kB 10.9 MB/s eta 0:00:00
+#11 108.8 Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+#11 108.8 Downloading pycparser-3.11-py3-none-any.whl (51 kB)
+#11 108.8    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 51.2/51.2 kB 16.8 MB/s eta 0:00:00
+#11 108.8 Downloading idna-3.20-py3-none-any.whl (69 kB)
+#11 108.8    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 69.6/69.6 kB 18.0 MB/s eta 0:00:00
+#11 109.3 Building wheels for collected packages: encodec
+#11 109.3   Building wheel for encodec (setup.py): started
+#11 109.8   Building wheel for encodec (setup.py): finished with status 'done'
+#11 109.8   Created wheel for encodec: filename=encodec-0.1.1-py3-none-any.whl size=45852 sha256=c68ca1cdaa9f798370345741cd60eb2c22da21de21718bb11bd1365a331b2690
+#11 109.8   Stored in directory: /tmp/pip-ephem-wheel-cache-5893293x/wheels/b4/a4/88/480018a664e58ca7ce6708759193ee51b017b3b72aa3df8a85
+#11 109.8 Successfully built encodec
+#11 110.9 Installing collected packages: typing-inspection, tqdm, threadpoolctl, slicer, six, pyyaml, pyparsing, pydantic-core, pycparser, prometheus_client, pillow, opentelemetry-api, numpy, narwhals, llvmlite, kiwisolver, imageio-ffmpeg, idna, h11, fonttools, einops, cycler, confluent-kafka, cloudpickle, click, annotated-types, annotated-doc, uvicorn, scipy, python-dateutil, pydantic, numba, joblib, contourpy, cffi, anyio, starlette, soundfile, scikit-learn, pandas, matplotlib, encodec, shap, fastapi
+#11 147.0 Successfully installed annotated-doc-0.0.5 annotated-types-0.8.0 anyio-4.15.1 cffi-2.1.1 click-8.5.0 cloudpickle-3.1.2 confluent-kafka-2.16.0 contourpy-1.3.3 cycler-0.12.1 einops-0.8.2 encodec-0.1.1 fastapi-0.143.3 fonttools-4.67.0 h11-0.16.0 idna-3.20 imageio-ffmpeg-0.6.0 joblib-1.6.0 kiwisolver-1.5.1 llvmlite-0.50.0 matplotlib-3.11.2 narwhals-2.27.1 numba-0.68.0 numpy-2.4.6 opentelemetry-api-1.45.1 pandas-3.0.6 pillow-13.0.0 prometheus_client-0.26.0 pycparser-3.11 pydantic-2.14.1 pydantic-core-2.50.1 pyparsing-3.3.3 python-dateutil-2.9.0.post0 pyyaml-6.0.3 scikit-learn-1.9.1 scipy-1.17.1 shap-0.51.0 six-1.17.0 slicer-0.0.8 soundfile-0.14.0 starlette-1.8.0 threadpoolctl-3.7.0 tqdm-4.70.1 typing-inspection-0.4.4 uvicorn-0.54.0
+#11 147.0 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+#11 147.2 
+#11 147.2 [notice] A new release of pip is available: 24.0 -> 26.2.1
+#11 147.2 [notice] To update, run: pip install --upgrade pip
+#11 DONE 150.2s
+
+#12 [6/7] COPY audiodf ./audiodf
+#12 DONE 0.9s
+
+#13 [7/7] COPY configs ./configs
+#13 DONE 0.1s
+
+#14 exporting to image
+#14 exporting layers
+#14 exporting layers 95.4s done
+#14 exporting manifest sha256:a713d0d81b571e11336d94be4b8ebd71fcd368dcfdd4b36a2db5d42f1476e237 0.1s done
+#14 exporting config sha256:378119ad2a4c620ceb91a0cf83a98bf66509e0d2d629c6c020b77aca856649ad 0.1s done
+#14 exporting attestation manifest sha256:e498232f9bb359e1b23fb69366e3299efb04185d74dceee5a656b18424ce7008 0.1s done
+#14 exporting manifest list sha256:77f01e20e735ea116eb972941d1703b13ac10198d75ab922860e42a3717d579f
+#14 exporting manifest list sha256:77f01e20e735ea116eb972941d1703b13ac10198d75ab922860e42a3717d579f 0.1s done
+#14 naming to docker.io/library/deploy-api:latest done
+#14 unpacking to docker.io/library/deploy-api:latest
+#14 unpacking to docker.io/library/deploy-api:latest 39.0s done
+#14 DONE 134.7s
+
+#15 resolving provenance for metadata file
+#15 DONE 0.1s
+ Image deploy-api Built 
+BUILD EXIT 0

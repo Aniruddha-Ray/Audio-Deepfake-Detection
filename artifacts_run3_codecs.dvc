@@ -1,0 +1,6 @@
+outs:
+- md5: e240a6edcdd6b2ffffdb4649833a615e.dir
+  size: 46133413
+  nfiles: 3
+  hash: md5
+  path: artifacts_run3_codecs

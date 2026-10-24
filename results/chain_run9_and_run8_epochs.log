@@ -1,0 +1,90 @@
+[A1/4] run 9: ASVspoof 2021 
+Loading weights:   0%|          | 0/479 [00:00<?, ?it/s]Loading weights:   5%|5         | 25/479 [00:00<00:01, 242.18it/s]Loading weights:  10%|#         | 50/479 [00:00<00:02, 203.10it/s]Loading weights:  17%|#7        | 83/479 [00:00<00:01, 244.40it/s]Loading weights:  23%|##2       | 109/479 [00:00<00:01, 244.88it/s]Loading weights:  28%|##7       | 134/479 [00:00<00:01, 192.48it/s]Loading weights:  32%|###2      | 155/479 [00:00<00:01, 183.77it/s]Loading weights:  37%|###6      | 175/479 [00:00<00:01, 175.14it/s]Loading weights:  63%|######3   | 302/479 [00:00<00:00, 460.62it/s]Loading weights: 100%|##########| 479/479 [00:01<00:00, 471.31it/s]
+  scoring asv21/eval: 29994 of 181566 clips
+  scoring wavlm on 29994 clips
+  scoring whisper on 29994 clips
+  asv21/eval   n= 29994 | EER at 10 s: wavlm   9.14%  whisper  13.86%  fused   9.83%
+               fused EER by seconds of speech: 2s 9.90%  4s 9.87%  6s 9.83%  8s 9.83%  10s 9.83%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_asv21_eval_run9.json
+[A2/4] run 9: call set v1 
+Loading weights:   0%|          | 0/479 [00:00<?, ?it/s]Loading weights:   7%|6         | 33/479 [00:00<00:01, 297.98it/s]Loading weights:  14%|#3        | 66/479 [00:00<00:01, 311.54it/s]Loading weights:  21%|##        | 100/479 [00:00<00:01, 305.49it/s]Loading weights:  27%|##7       | 131/479 [00:00<00:01, 236.84it/s]Loading weights:  34%|###4      | 163/479 [00:00<00:01, 248.79it/s]Loading weights:  40%|###9      | 190/479 [00:00<00:01, 252.51it/s]Loading weights:  88%|########7 | 420/479 [00:00<00:00, 839.55it/s]Loading weights: 100%|##########| 479/479 [00:00<00:00, 575.28it/s]
+  scoring calls/eval: 9600 of 9600 clips
+  scoring wavlm on 9600 clips
+  scoring whisper on 9600 clips
+  calls/eval   n=  9600 | EER at 10 s: wavlm   3.06%  whisper   5.47%  fused   2.96%
+               fused EER by seconds of speech: 2s 4.99%  4s 3.73%  6s 3.07%  8s 3.01%  10s 2.96%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run9_calls.json
+[A3/4] run 9: babble set 
+Loading weights:   0%|          | 0/479 [00:00<?, ?it/s]Loading weights:   5%|4         | 23/479 [00:00<00:02, 203.92it/s]Loading weights:   9%|9         | 44/479 [00:00<00:02, 206.14it/s]Loading weights:  16%|#5        | 76/479 [00:00<00:01, 253.76it/s]Loading weights:  22%|##1       | 103/479 [00:00<00:01, 240.45it/s]Loading weights:  27%|##6       | 129/479 [00:00<00:01, 227.81it/s]Loading weights:  32%|###1      | 152/479 [00:00<00:01, 209.56it/s]Loading weights:  36%|###6      | 174/479 [00:00<00:01, 209.32it/s]Loading weights:  41%|####      | 196/479 [00:00<00:01, 207.72it/s]Loading weights: 100%|##########| 479/479 [00:00<00:00, 498.60it/s]
+  scoring calls/eval: 4800 of 4800 clips
+  scoring wavlm on 4800 clips
+  scoring whisper on 4800 clips
+  calls/eval   n=  4800 | EER at 10 s: wavlm   7.00%  whisper   8.31%  fused   6.21%
+               fused EER by seconds of speech: 2s 9.60%  4s 7.06%  6s 6.42%  8s 6.33%  10s 6.21%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run9_babble.json
+[A4/4] run 9: call set v2 
+Loading weights:   0%|          | 0/479 [00:00<?, ?it/s]Loading weights:   5%|5         | 26/479 [00:00<00:01, 258.45it/s]Loading weights:  11%|#         | 52/479 [00:00<00:01, 255.95it/s]Loading weights:  17%|#7        | 82/479 [00:00<00:01, 274.48it/s]Loading weights:  23%|##2       | 110/479 [00:00<00:01, 267.90it/s]Loading weights:  29%|##8       | 137/479 [00:00<00:01, 226.95it/s]Loading weights:  34%|###4      | 164/479 [00:00<00:01, 223.79it/s]Loading weights: 100%|##########| 479/479 [00:00<00:00, 649.04it/s]
+  scoring calls/eval: 6400 of 6400 clips
+  scoring wavlm on 6400 clips
+  scoring whisper on 6400 clips
+  calls/eval   n=  6400 | EER at 10 s: wavlm  10.78%  whisper  10.48%  fused   9.62%
+               fused EER by seconds of speech: 2s 12.80%  4s 10.44%  6s 9.77%  8s 9.66%  10s 9.62%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run9_v2.json
+[B] serving cost: run 7 (served) and run 9 
+Loading weights:   0%|          | 0/479 [00:00<?, ?it/s]Loading weights:   5%|4         | 22/479 [00:00<00:02, 214.32it/s]Loading weights:  12%|#2        | 58/479 [00:00<00:01, 276.62it/s]Loading weights:  18%|#7        | 86/479 [00:00<00:01, 268.85it/s]Loading weights:  24%|##4       | 117/479 [00:00<00:01, 272.48it/s]Loading weights:  30%|###       | 145/479 [00:00<00:01, 243.27it/s]Loading weights:  35%|###5      | 170/479 [00:00<00:01, 219.70it/s]Loading weights: 100%|##########| 479/479 [00:00<00:00, 596.29it/s]
+[C] DIAGNOSTIC run 8 epochs 5 6 8 on ASVspoof 2021, babble, v2 (epoch 7 = the run 8 bundle, scored already) 
+[C] epoch 5: ASVspoof 2021 
+  scoring asv21/eval: 29994 of 181566 clips
+  scoring wavlm on 29994 clips
+  asv21/eval   n= 29994 | EER at 10 s: wavlm   9.42%  fused   9.42%
+               fused EER by seconds of speech: 2s 9.58%  4s 9.44%  6s 9.42%  8s 9.42%  10s 9.42%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_asv21_eval_run8e5.json
+[C] epoch 5: babble 
+  scoring calls/eval: 4800 of 4800 clips
+  scoring wavlm on 4800 clips
+  calls/eval   n=  4800 | EER at 10 s: wavlm   6.00%  fused   6.00%
+               fused EER by seconds of speech: 2s 9.02%  4s 7.23%  6s 6.38%  8s 6.08%  10s 6.00%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run8e5_babble.json
+[C] epoch 5: v2 
+  scoring calls/eval: 6400 of 6400 clips
+  scoring wavlm on 6400 clips
+  calls/eval   n=  6400 | EER at 10 s: wavlm   9.97%  fused   9.97%
+               fused EER by seconds of speech: 2s 13.44%  4s 11.05%  6s 10.09%  8s 10.05%  10s 9.97%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run8e5_v2.json
+[C] epoch 6: ASVspoof 2021 
+  scoring asv21/eval: 29994 of 181566 clips
+  scoring wavlm on 29994 clips
+  asv21/eval   n= 29994 | EER at 10 s: wavlm   9.21%  fused   9.21%
+               fused EER by seconds of speech: 2s 9.26%  4s 9.25%  6s 9.21%  8s 9.21%  10s 9.21%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_asv21_eval_run8e6.json
+[C] epoch 6: babble 
+  scoring calls/eval: 4800 of 4800 clips
+  scoring wavlm on 4800 clips
+  calls/eval   n=  4800 | EER at 10 s: wavlm   6.38%  fused   6.38%
+               fused EER by seconds of speech: 2s 9.38%  4s 7.56%  6s 6.73%  8s 6.35%  10s 6.38%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run8e6_babble.json
+[C] epoch 6: v2 
+  scoring calls/eval: 6400 of 6400 clips
+  scoring wavlm on 6400 clips
+  calls/eval   n=  6400 | EER at 10 s: wavlm  10.25%  fused  10.25%
+               fused EER by seconds of speech: 2s 13.56%  4s 11.69%  6s 10.53%  8s 10.22%  10s 10.25%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run8e6_v2.json
+[C] epoch 8: ASVspoof 2021 
+  scoring asv21/eval: 29994 of 181566 clips
+  scoring wavlm on 29994 clips
+  asv21/eval   n= 29994 | EER at 10 s: wavlm   9.33%  fused   9.33%
+               fused EER by seconds of speech: 2s 9.34%  4s 9.35%  6s 9.33%  8s 9.33%  10s 9.33%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_asv21_eval_run8e8.json
+[C] epoch 8: babble 
+  scoring calls/eval: 4800 of 4800 clips
+  scoring wavlm on 4800 clips
+  calls/eval   n=  4800 | EER at 10 s: wavlm   6.33%  fused   6.33%
+               fused EER by seconds of speech: 2s 9.29%  4s 7.62%  6s 6.71%  8s 6.42%  10s 6.33%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run8e8_babble.json
+[C] epoch 8: v2 
+  scoring calls/eval: 6400 of 6400 clips
+  scoring wavlm on 6400 clips
+  calls/eval   n=  6400 | EER at 10 s: wavlm  10.16%  fused  10.16%
+               fused EER by seconds of speech: 2s 13.75%  4s 11.61%  6s 10.33%  8s 10.11%  10s 10.16%
+report: C:\Users\Asus\OneDrive\Desktop\Audio-Deepfake-Detection\results\evaluate_calls_eval_run8e8_v2.json
+ALL DONE 

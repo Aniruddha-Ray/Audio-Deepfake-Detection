@@ -1,0 +1,6 @@
+outs:
+- md5: e5eed8bca8bc302c6b61d854f150a12b.dir
+  size: 43903738
+  nfiles: 4
+  hash: md5
+  path: artifacts_run2_pooled

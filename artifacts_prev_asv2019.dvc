@@ -1,0 +1,6 @@
+outs:
+- md5: 10b7f5efd5fc095d04dbad28835464a4.dir
+  size: 14525001
+  nfiles: 4
+  hash: md5
+  path: artifacts_prev_asv2019

@@ -1,0 +1,196 @@
+{
+  "n": 29994,
+  "spoof_fraction": 0.6666,
+  "fusion_weights": {
+    "wavlm": 1.0
+  },
+  "at_horizon": {
+    "wavlm": {
+      "eer_pct": 9.211,
+      "auc": 0.96837,
+      "acc_at_eer_thr": 0.90788,
+      "recall_spoof": 0.90787,
+      "fpr_bonafide_flagged": 0.0921,
+      "acc_at_0.5": 0.8471,
+      "eer_threshold": 0.01923
+    },
+    "fused": {
+      "eer_pct": 9.211,
+      "auc": 0.96837,
+      "acc_at_eer_thr": 0.90788,
+      "recall_spoof": 0.90787,
+      "fpr_bonafide_flagged": 0.0921,
+      "acc_at_0.5": 0.8471,
+      "eer_threshold": 0.01923
+    }
+  },
+  "per_attack_eer_pct": {
+    "wavlm": {
+      "A07": 5.321,
+      "A08": 4.551,
+      "A09": 2.335,
+      "A10": 23.991,
+      "A11": 15.035,
+      "A12": 4.903,
+      "A13": 4.998,
+      "A14": 8.331,
+      "A15": 4.821,
+      "A16": 3.318,
+      "A17": 2.273,
+      "A18": 13.194,
+      "A19": 3.371
+    },
+    "fused": {
+      "A07": 5.321,
+      "A08": 4.551,
+      "A09": 2.335,
+      "A10": 23.991,
+      "A11": 15.035,
+      "A12": 4.903,
+      "A13": 4.998,
+      "A14": 8.331,
+      "A15": 4.821,
+      "A16": 3.318,
+      "A17": 2.273,
+      "A18": 13.194,
+      "A19": 3.371
+    }
+  },
+  "time_to_decision_eer_pct": {
+    "wavlm": {
+      "2s": 9.261,
+      "4s": 9.246,
+      "6s": 9.211,
+      "8s": 9.211,
+      "10s": 9.211
+    },
+    "fused": {
+      "2s": 9.261,
+      "4s": 9.246,
+      "6s": 9.211,
+      "8s": 9.211,
+      "10s": 9.211
+    }
+  },
+  "per_codec_eer_pct": {
+    "wavlm": {
+      "-": 7.004,
+      "alaw": 8.638,
+      "g722": 7.594,
+      "gsm": 12.113,
+      "opus": 7.183,
+      "pstn": 11.556,
+      "ulaw": 8.86
+    },
+    "fused": {
+      "-": 7.004,
+      "alaw": 8.638,
+      "g722": 7.594,
+      "gsm": 12.113,
+      "opus": 7.183,
+      "pstn": 11.556,
+      "ulaw": 8.86
+    }
+  },
+  "operating_point": {
+    "overall": {
+      "verify": {
+        "threshold": 0.22627,
+        "bonafide_flagged": 0.0444,
+        "spoof_caught": 0.83
+      },
+      "block": {
+        "threshold": 0.60973,
+        "bonafide_flagged": 0.0243,
+        "spoof_caught": 0.7633
+      }
+    },
+    "per_codec": {
+      "-": {
+        "verify": {
+          "threshold": 0.22627,
+          "bonafide_flagged": 0.0209,
+          "spoof_caught": 0.8517
+        },
+        "block": {
+          "threshold": 0.60973,
+          "bonafide_flagged": 0.0105,
+          "spoof_caught": 0.796
+        }
+      },
+      "alaw": {
+        "verify": {
+          "threshold": 0.22627,
+          "bonafide_flagged": 0.0382,
+          "spoof_caught": 0.8341
+        },
+        "block": {
+          "threshold": 0.60973,
+          "bonafide_flagged": 0.0231,
+          "spoof_caught": 0.7662
+        }
+      },
+      "g722": {
+        "verify": {
+          "threshold": 0.22627,
+          "bonafide_flagged": 0.0409,
+          "spoof_caught": 0.8721
+        },
+        "block": {
+          "threshold": 0.60973,
+          "bonafide_flagged": 0.0241,
+          "spoof_caught": 0.814
+        }
+      },
+      "gsm": {
+        "verify": {
+          "threshold": 0.22627,
+          "bonafide_flagged": 0.0835,
+          "spoof_caught": 0.8371
+        },
+        "block": {
+          "threshold": 0.60973,
+          "bonafide_flagged": 0.0361,
+          "spoof_caught": 0.7602
+        }
+      },
+      "opus": {
+        "verify": {
+          "threshold": 0.22627,
+          "bonafide_flagged": 0.0363,
+          "spoof_caught": 0.8587
+        },
+        "block": {
+          "threshold": 0.60973,
+          "bonafide_flagged": 0.0238,
+          "spoof_caught": 0.8064
+        }
+      },
+      "pstn": {
+        "verify": {
+          "threshold": 0.22627,
+          "bonafide_flagged": 0.0422,
+          "spoof_caught": 0.7249
+        },
+        "block": {
+          "threshold": 0.60973,
+          "bonafide_flagged": 0.0214,
+          "spoof_caught": 0.6319
+        }
+      },
+      "ulaw": {
+        "verify": {
+          "threshold": 0.22627,
+          "bonafide_flagged": 0.0467,
+          "spoof_caught": 0.8329
+        },
+        "block": {
+          "threshold": 0.60973,
+          "bonafide_flagged": 0.0307,
+          "spoof_caught": 0.7702
+        }
+      }
+    }
+  },
+  "scores_csv": "C:\\Users\\Asus\\OneDrive\\Desktop\\Audio-Deepfake-Detection\\results\\evaluate_asv21_eval_run8e6_scores.csv"
+}

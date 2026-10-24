@@ -1,0 +1,6 @@
+outs:
+- md5: 2e452e9055a9c710971f4b945cc0c81e.dir
+  size: 114617588
+  nfiles: 2
+  hash: md5
+  path: artifacts_run5_encodec
