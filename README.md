@@ -1,3 +1,5 @@
+> **This repository is archived as the development history.** The maintained version of the project is at **[Aniruddha-Ray/deepfake-voice-guard](https://github.com/Aniruddha-Ray/deepfake-voice-guard)**: a clean layout with the final model (WavLM-Base+), model card, demo guide, CI/CD and all later fixes. This repository keeps the full experiment history (runs 1-9, `audit.md`, `new_plan.md`) and is not updated any more.
+
 # Real-Time Deepfake Voice Detection
 
 **Event:** PSB Hackathon Series 2026
