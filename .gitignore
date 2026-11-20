@@ -8,4 +8,3 @@ __pycache__/
 artifacts_*/
 # local data and model bundles (ARTIFACT/*.dvc pointers are tracked)
 DATASET/
-ARTIFACT/*/
