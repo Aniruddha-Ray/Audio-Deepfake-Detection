@@ -194,14 +194,14 @@ class DataConfig:
 
 @dataclass
 class PathsConfig:
-    data_root: str = str(REPO_ROOT / "dataset19" / "LA" / "LA")  # ASVspoof2019 LA (folder renamed from dataset/ on 2026-10-06)
-    asv5_root: str = str(REPO_ROOT / "dataset5")
-    asv21_root: str = str(REPO_ROOT / "dataset21")  # ASVspoof 2021 LA eval: telephony test set (data/asv21.py)
-    noise_root: str = str(REPO_ROOT / "dataset_noise")  # MUSAN, DEMAND, ESC-50, RIRS_NOISES (data/noise_bank.py)
-    itw_root: str = str(REPO_ROOT / "dataset_itw" / "release_in_the_wild")  # In-the-Wild: out-of-domain test only
-    calls_root: str = str(REPO_ROOT / "dataset_calls")  # simulated VoIP calls from ASV5 eval clips (data/voip_sim.py)
+    data_root: str = str(REPO_ROOT / "DATASET" / "dataset19" / "LA" / "LA")  # ASVspoof2019 LA (folder renamed from dataset/ on 2026-10-06)
+    asv5_root: str = str(REPO_ROOT / "DATASET" / "dataset5")
+    asv21_root: str = str(REPO_ROOT / "DATASET" / "dataset21")  # ASVspoof 2021 LA eval: telephony test set (data/asv21.py)
+    noise_root: str = str(REPO_ROOT / "DATASET" / "dataset_noise")  # MUSAN, DEMAND, ESC-50, RIRS_NOISES (data/noise_bank.py)
+    itw_root: str = str(REPO_ROOT / "DATASET" / "dataset_itw" / "release_in_the_wild")  # In-the-Wild: out-of-domain test only
+    calls_root: str = str(REPO_ROOT / "DATASET" / "dataset_calls")  # simulated VoIP calls from ASV5 eval clips (data/voip_sim.py)
     cache_dir: str = str(Path.home() / ".cache" / "audiodf")
-    artifacts_dir: str = str(REPO_ROOT / "artifacts")
+    artifacts_dir: str = str(REPO_ROOT / "ARTIFACT" / "artifacts")
     results_dir: str = str(REPO_ROOT / "results")
 
 

@@ -212,7 +212,7 @@ def main():
     p.add_argument("--results", default="../results")
     p.add_argument("--tuning", required=True)
     p.add_argument("--estimator", required=True)
-    p.add_argument("--v2-protocol", default="../dataset_calls_v2/ASV5.eval.calls.tsv")
+    p.add_argument("--v2-protocol", default="../DATASET/dataset_calls_v2/ASV5.eval.calls.tsv")
     p.add_argument("--out", required=True)
     p.set_defaults(fn=cmd_eval)
     args = ap.parse_args()

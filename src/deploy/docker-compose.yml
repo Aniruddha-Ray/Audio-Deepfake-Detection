@@ -1,5 +1,5 @@
 # Run from src/:  docker compose -f deploy/docker-compose.yml up --build
-# Needs the final model in ../artifacts (repository root): wavlm.pt + bundle.json. On the first start each container downloads
+# Needs the final model in ARTIFACT/artifacts (repository root): wavlm.pt + bundle.json. On the first start each container downloads
 # WavLM-Base+'s pretrained base weights (~380 MB) into the shared "torch-cache" volume.
 # The CPU image serves a handful of calls (~5 calls per CPU, audit.md phase 28). For ~235 calls per GPU add the GPU override (needs an NVIDIA GPU in Docker):
 #   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.gpu.yml up -d --build
@@ -33,7 +33,7 @@ services:
       AUDIODF_LLM_API_KEY: ${AUDIODF_LLM_API_KEY:-}
       TORCH_HOME: /cache/torch
       HF_HOME: /cache/hf
-    volumes: ["../../artifacts:/models:ro", "torch-cache:/cache/torch", "hf-cache:/cache/hf"]
+    volumes: ["../../ARTIFACT/artifacts:/models:ro", "torch-cache:/cache/torch", "hf-cache:/cache/hf"]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if b'\"ok\"' in urllib.request.urlopen('http://localhost:8000/health').read() else 1)"]
       interval: 15s
@@ -48,7 +48,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       TORCH_HOME: /cache/torch
       HF_HOME: /cache/hf
-    volumes: ["../../artifacts:/models:ro", "torch-cache:/cache/torch", "hf-cache:/cache/hf"]
+    volumes: ["../../ARTIFACT/artifacts:/models:ro", "torch-cache:/cache/torch", "hf-cache:/cache/hf"]
     depends_on: [kafka]
 
   prometheus:

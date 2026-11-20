@@ -6,8 +6,8 @@ Thresholds come from the genuine calls of half A in the calibration sets (pooled
 budget the report gives the threshold and, on every test set, the share of genuine calls flagged and fakes caught; the
 operating points themselves are a product decision.
 
-  python -m audiodf call-thresholds --cal ../dataset_calls_cal_v1/ASV5.eval.calls.tsv,../results/x_scores.csv ... \
-      --test v1=../dataset_calls/ASV5.eval.calls.tsv,../results/y_scores.csv ... --stored ../artifacts --tag run7
+  python -m audiodf call-thresholds --cal ../DATASET/dataset_calls_cal_v1/ASV5.eval.calls.tsv,../results/x_scores.csv ... \
+      --test v1=../DATASET/dataset_calls/ASV5.eval.calls.tsv,../results/y_scores.csv ... --stored ../ARTIFACT/artifacts --tag run7
 """
 
 from __future__ import annotations

@@ -42,7 +42,7 @@ def test_the_stack_mounts_the_model_and_the_weight_caches_and_prometheus_scrapes
     base = _compose("docker-compose.yml")
     for name in ("api", "worker"):
         vols = " ".join(base["services"][name]["volumes"])
-        assert "../../artifacts:/models:ro" in vols and "torch-cache:/cache/torch" in vols and "hf-cache:/cache/hf" in vols, name
+        assert "../../ARTIFACT/artifacts:/models:ro" in vols and "torch-cache:/cache/torch" in vols and "hf-cache:/cache/hf" in vols, name
     assert {"torch-cache", "hf-cache"} <= set(base["volumes"])
     assert "4.1" in base["services"]["kafka"]["image"]
     jobs = {s["targets"][0] for j in yaml.safe_load((DEPLOY / "prometheus.yml").read_text())["scrape_configs"] for s in j["static_configs"]}

@@ -88,11 +88,11 @@ configs/default.yaml   tests/   deploy/ (Dockerfile, compose, Prometheus, Grafan
 ```bash
 cd src
 pip install -r requirements-dev.txt          # install the torch build you want first
-export AUDIODF_ASV5=../dataset5              # ASVspoof5: ASVspoof5.*.tsv, flac_T/, flac_D/ (flac_E_eval/ for the test)
-export AUDIODF_DATA=../dataset19/LA/LA         # optional: ASVspoof2019 LA, used as a cross-dataset test
+export AUDIODF_ASV5=../DATASET/dataset5              # ASVspoof5: ASVspoof5.*.tsv, flac_T/, flac_D/ (flac_E_eval/ for the test)
+export AUDIODF_DATA=../DATASET/dataset19/LA/LA         # optional: ASVspoof2019 LA, used as a cross-dataset test
 
 python run.py                                # ONE command: audit -> index -> SVM -> RCNN -> tune -> test -> artifacts/
-python run.py --config configs/run6.yaml --eval-utts 30000   # run 6 recipe: needs dataset_noise/ (MUSAN noise, RIRS_NOISES, DEMAND subset)
+python run.py --config configs/run6.yaml --eval-utts 30000   # run 6 recipe: needs DATASET/dataset_noise/ (MUSAN noise, RIRS_NOISES, DEMAND subset)
 python run.py --no-impairments               # the runs 3-5 recipe: no noise, echo or packet loss
 python run.py --epochs 12 --eval-utts 0      # flags (--eval-utts 0 = whole eval split, hours; --limit 800 = smoke test)
 python run.py --train-splits asv5:train --holdout-attacks   # run-1 setup: ASV5 train only, tune on ASV5 dev
@@ -108,7 +108,7 @@ python -m audiodf render-calls               # simulated VoIP calls from clean A
 python -m audiodf evaluate --dataset calls --eval-utts 0 --save-scores
 python -m audiodf calibrate --scores S.csv --protocol P.tsv --tag T --repeat 20   # thresholds on speaker halves
 python -m audiodf live-check --scores S.csv --bundle DIR --tag T   # stream through CallSession vs batched scores
-python -m audiodf.evaluation.channel_report --protocol ../dataset21/ASVspoof2021.LA.eval.tsv --runs a=... b=...
+python -m audiodf.evaluation.channel_report --protocol ../DATASET/dataset21/ASVspoof2021.LA.eval.tsv --runs a=... b=...
 python -m audiodf predict some.flac          # one file -> verdict JSON
 python -m audiodf benchmark                  # per-stage latency
 python -m audiodf serve --port 8000          # API: /predict, /stream/{id}, /health, /metrics

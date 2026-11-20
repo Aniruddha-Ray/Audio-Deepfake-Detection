@@ -2,5 +2,5 @@
 # recipe in audiodf/config.py (data.impairments is on by default). Writes next to, not over, the served model in artifacts/.
 #   cd src && python run.py --config configs/run6.yaml --eval-utts 30000
 paths:
-  artifacts_dir: ../artifacts_run6
+  artifacts_dir: ../ARTIFACT/artifacts_run6
   results_dir: ../results/run6

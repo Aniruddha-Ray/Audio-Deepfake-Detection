@@ -1,3 +1,5 @@
+> **Folder layout note (2026-11):** after this log was written the model bundles (`artifacts*`) moved into `ARTIFACT/` and the dataset folders (`dataset*`) into `DATASET/`; paths in this log and in `new_plan.md` refer to the earlier layout.
+
 # Audit log: Real-Time Deepfake Voice Detection
 
 Running record of what was done, what was found, what turned out wrong, and what is open.

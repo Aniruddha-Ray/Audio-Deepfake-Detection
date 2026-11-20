@@ -6,6 +6,11 @@
 **Team:** BEing Techies
 **Institution:** Indian Institute of Engineering Science and Technology, Shibpur
 
+## Folder layout (local, not in git)
+- `ARTIFACT/`: every trained model bundle (`artifacts` = the final model, run 7 seed 0; `artifacts_run1_asv5` ... `artifacts_run9` = earlier runs) and their DVC pointer files (`*.dvc`).
+- `DATASET/`: the simulated call sets (`dataset_calls*`) and the scam-dialogue sets (`dataset_intent`). The public datasets (ASVspoof 5/2019/2021, In-the-Wild, noise corpora) were removed after the project and go in `DATASET/` when re-downloaded: `dataset5`, `dataset19`, `dataset21`, `dataset_itw`, `dataset_noise`.
+- Code paths: `src/audiodf/config.py` (`REPO_ROOT/DATASET/...`, `REPO_ROOT/ARTIFACT/artifacts`) and `src/configs/*.yaml`.
+
 ## Team Members
 * Antarikshya Mitra
 * Aniruddha Ray

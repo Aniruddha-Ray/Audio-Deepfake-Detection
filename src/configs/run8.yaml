@@ -16,5 +16,5 @@ data:
 wavlm:
   keep_epochs: true
 paths:
-  artifacts_dir: ../artifacts_run8
+  artifacts_dir: ../ARTIFACT/artifacts_run8
   results_dir: ../results/run8

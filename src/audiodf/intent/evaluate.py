@@ -14,8 +14,8 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[3]
-SETS = {"BothBosu test": ROOT / "dataset_intent" / "bothbosu_scam-dialogue_test.csv",
-        "shakeleoatmeal test (independent)": ROOT / "dataset_intent" / "shakeleoatmeal_test.parquet"}
+SETS = {"BothBosu test": ROOT / "DATASET" / "dataset_intent" / "bothbosu_scam-dialogue_test.csv",
+        "shakeleoatmeal test (independent)": ROOT / "DATASET" / "dataset_intent" / "shakeleoatmeal_test.parquet"}
 
 
 def _load(path: Path):

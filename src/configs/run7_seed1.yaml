@@ -8,5 +8,5 @@ wavlm:
   keep_epochs: true
   seed: 1
 paths:
-  artifacts_dir: ../artifacts_run7_seed1
+  artifacts_dir: ../ARTIFACT/artifacts_run7_seed1
   results_dir: ../results/run7_seed1
